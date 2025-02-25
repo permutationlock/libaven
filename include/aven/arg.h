@@ -75,6 +75,11 @@ static void aven_arg_print_type(AvenArgType arg_type) {
 static void aven_arg_print_value(AvenArgValue value) {
     switch (value.type) {
         case AVEN_ARG_TYPE_BOOL:
+            if (value.data.arg_bool) {
+                printf("true");
+            } else {
+                printf("false");
+            }
             break;
         case AVEN_ARG_TYPE_INT:
             printf("%d", value.data.arg_int);
@@ -92,15 +97,17 @@ static void aven_arg_print(AvenArg arg) {
     printf("    %s", arg.name);
 
     aven_arg_print_type(arg.type);
- 
+
     if (arg.description != NULL) {
         printf("  --  %s", arg.description);
     }
 
-    if (arg.type != AVEN_ARG_TYPE_BOOL and arg.type == arg.value.type) {
-        printf(" (default=");
-        aven_arg_print_value(arg.value);
-        printf(")");
+    if (arg.type == arg.value.type) {
+        if (arg.type != AVEN_ARG_TYPE_BOOL or arg.value.data.arg_bool) {
+            printf(" (default=");
+            aven_arg_print_value(arg.value);
+            printf(")");
+        }
     } else if (arg.optional) {
         printf(" (optional)");
     }
@@ -118,7 +125,7 @@ static void aven_arg_help(AvenArgSlice args, char *overview, char *usage) {
     printf("OPTIONS:\n");
     printf("    help, -h, -help, --help -- Show this message\n");
     for (size_t i = 0; i < args.len; i += 1) {
-        aven_arg_print(slice_get(args, i));
+        aven_arg_print(get(args, i));
     }
 }
 
@@ -143,14 +150,22 @@ AVEN_FN int aven_arg_parse(
 
         bool found = false;
         for (size_t j = 0; j < args.len; j += 1) {
-            AvenArg *arg = &slice_get(args, j);
+            AvenArg *arg = &get(args, j);
             if (strcmp(arg_str, arg->name) != 0) {
                 continue;
             }
 
             switch (arg->type) {
                 case AVEN_ARG_TYPE_BOOL:
-                    arg->value.data.arg_bool = true;
+                    if (i + 1 < argc and strcmp(argv[i + 1], "false") == 0) {
+                        arg->value.data.arg_bool = false;
+                        i += 1;
+                    } else if (i + 1 < argc and strcmp(argv[i + 1], "true") == 0) {
+                        arg->value.data.arg_bool = true;
+                        i += 1;
+                    } else {
+                        arg->value.data.arg_bool = true;
+                    }
                     break;
                 case AVEN_ARG_TYPE_INT:
                     if (i + 1 >= argc) {
@@ -189,7 +204,7 @@ AVEN_FN int aven_arg_parse(
 
     int error = 0;
     for (size_t j = 0; j < args.len; j += 1) {
-        AvenArg arg = slice_get(args, j);
+        AvenArg arg = get(args, j);
         if (!arg.optional and arg.value.type != arg.type) {
             printf("missing required argument:\n");
             aven_arg_print(arg);
@@ -205,14 +220,14 @@ AVEN_FN AvenArgOptional aven_arg_get(
     char *argname
 ) {
     for (size_t i = 0; i < arg_slice.len; i += 1) {
-        if (strcmp(argname, slice_get(arg_slice, i).name) == 0) {
+        if (strcmp(argname, get(arg_slice, i).name) == 0) {
             return (AvenArgOptional){
                 .valid = true,
-                .value = slice_get(arg_slice, i),
+                .value = get(arg_slice, i),
             };
         }
     }
-    
+
     return (AvenArgOptional){ .valid = false };
 }
 

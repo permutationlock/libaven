@@ -28,12 +28,28 @@ int main(int argc, char **argv) {
 
     AvenArena arena = aven_arena_init(mem, ARENA_SIZE);
 
+    AvenArgSlice common_args = aven_build_common_args();
+    AvenArgSlice libaven_args = libaven_build_args();
+    AvenArgSlice args = aven_arena_create_slice(
+        AvenArg,
+        &arena,
+        common_args.len + libaven_args.len
+    );
+    size_t arg_index = 0;
+    for (size_t i = 0; i < common_args.len; i += 1) {
+        get(args, arg_index) = get(common_args, i);
+        arg_index += 1;
+    }
+    for (size_t i = 0; i < libaven_args.len; i += 1) {
+        get(args, arg_index) = get(libaven_args, i);
+        arg_index += 1;
+    }
     int error = aven_arg_parse(
-        aven_build_common_args,
+        args,
         argv,
         argc,
-        aven_build_common_overview.ptr,
-        aven_build_common_usage.ptr
+        aven_build_common_overview().ptr,
+        aven_build_common_usage().ptr
     );
     if (error != 0) {
         if (error != AVEN_ARG_ERROR_HELP) {
@@ -43,17 +59,26 @@ int main(int argc, char **argv) {
         return 0;
     }
 
+    // Directories
+
+    AvenStr root_dir = aven_str(".");
+
     // Build the library
 
     AvenBuildStep out_dir_step = aven_build_step_mkdir(aven_str("build_out"));
 
     AvenBuildCommonOpts opts = aven_build_common_opts(
-        aven_build_common_args,
+        args,
         &arena
     );
+    LibAvenBuildOpts libaven_opts = libaven_build_opts(
+        args,
+        &arena
+    );
+
     AvenBuildStep libaven_step = libaven_build_step(
         &opts,
-        aven_str("."),
+        root_dir,
         &out_dir_step,
         &arena
     );
@@ -66,22 +91,38 @@ int main(int argc, char **argv) {
     AvenStr aven_include = libaven_build_include_path(aven_str("."), &arena);
     AvenBuildStep test_dir_step = aven_build_step_mkdir(aven_str("build_test"));
 
-#ifdef _WIN32
-    // If on windows build a manifest resource file to enable utf8 mode
-    AvenBuildStep manifest_step = libaven_build_windres_manifest_step(
-        &opts,
-        aven_str("."),
-        &test_dir_step,
-        &arena
-    );
-    AvenBuildStep *test_obj_step_data[] = { &manifest_step };
-    AvenBuildStepPtrSlice test_obj_steps = {
-        .ptr = test_obj_step_data,
-        .len = countof(test_obj_step_data),
+    Optional(AvenBuildStep) winutf8_obj_step = { .valid = libaven_opts.winutf8 };
+    if (winutf8_obj_step.valid) {
+        winutf8_obj_step.value = libaven_build_step_windres_manifest(
+            &opts,
+            root_dir,
+            &out_dir_step,
+            &arena
+        );
+    }
+
+    Optional(AvenBuildStep) winpthreads_obj_step = {
+        .valid = libaven_opts.winpthreads.local
     };
-#else
-    AvenBuildStepPtrSlice test_obj_steps = { 0 };
-#endif
+    if (winpthreads_obj_step.valid) {
+        winpthreads_obj_step.value = libaven_build_step_winpthreads(
+            &opts,
+            &libaven_opts,
+            root_dir,
+            &out_dir_step,
+            &arena
+        );
+    }
+
+    AvenBuildStep *test_obj_step_data[2];
+    List(AvenBuildStep *) test_obj_list = list_array(test_obj_step_data);
+    if (winutf8_obj_step.valid) {
+        list_push(test_obj_list) = &winutf8_obj_step.value;
+    }
+    if (winpthreads_obj_step.valid) {
+        list_push(test_obj_list) = &winpthreads_obj_step.value;
+    }
+    AvenBuildStepPtrSlice test_obj_steps = slice_list(test_obj_list);
 
     AvenBuildStep test_step = aven_build_common_step_cc_ld_run_exe_ex(
         &opts,

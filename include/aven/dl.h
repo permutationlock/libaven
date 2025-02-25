@@ -29,7 +29,7 @@ AVEN_FN int aven_dl_close(void *handle);
 
         int dot_index = (int)fname.len - 1;
         for (; dot_index > 0; dot_index -= 1) {
-            if (slice_get(fname, (size_t)dot_index) == '.') {
+            if (get(fname, (size_t)dot_index) == '.') {
                 break;
             }
         }

@@ -59,6 +59,7 @@ AvenTestResult test_aven_path(AvenArena arena, void *args) {
             sizeof(fmt) +
                 path.len +
                 expected_path.len,
+            1,
             1
         );
 
@@ -94,6 +95,7 @@ AvenTestResult test_aven_path_rel_dir(AvenArena arena, void *args) {
             sizeof(fmt) +
                 path.len +
                 expected_path.len,
+            1,
             1
         );
 
@@ -129,10 +131,13 @@ AvenTestResult test_aven_path_rel_diff(AvenArena arena, void *args) {
     if (!match) {
         char fmt[] = "expected \"%s\", found \"%s\"";
        
-        char *buffer = malloc(
+        char *buffer = aven_arena_alloc(
+            &arena,
             sizeof(fmt) +
             path.len +
-            expected_path.len
+            expected_path.len,
+            1,
+            1
         );
 
         int len = sprintf(buffer, fmt, expected_path.ptr, path.ptr);

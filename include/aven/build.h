@@ -161,9 +161,12 @@ static int aven_build_step_wait(AvenBuildStep *step) {
         return 0;
     }
 
-    int error = aven_proc_wait(step->pid);
+    AvenProcWaitResult result = aven_proc_wait(step->pid);
     step->state = AVEN_BUILD_STEP_STATE_DONE;
-    return error;
+    if (result.error != 0) {
+        return 1;
+    }
+    return result.payload;
 }
 
 AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {

@@ -87,9 +87,7 @@ AVEN_FN void aven_watch_deinit(AvenWatchHandle handle);
             signaled |= ((uint32_t)1) << result;
             win_timeout = 0;
 
-            int success = FindNextChangeNotification(
-                slice_get(handles, result)
-            );
+            int success = FindNextChangeNotification(get(handles, result));
             if (success == 0) {
                 return (AvenWatchResult){ .error = AVEN_WATCH_ERROR_FILE };
             }
@@ -108,7 +106,7 @@ AVEN_FN void aven_watch_deinit(AvenWatchHandle handle);
         AvenWatchHandleSlice handles = { .ptr = &handle, .len = 1 };
         return aven_watch_check_multiple(handles, timeout);
     }
- 
+
     AVEN_FN void aven_watch_deinit(AvenWatchHandle handle) {
         AVEN_WIN32_FN(int) FindCloseChangeNotification(
             AvenWatchHandle handle
@@ -131,7 +129,7 @@ AVEN_FN void aven_watch_deinit(AvenWatchHandle handle);
 
         int result = inotify_add_watch(
             handle,
-            dirname.ptr, 
+            dirname.ptr,
             IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_MODIFY
         );
         if (result <= 0) {
@@ -150,7 +148,7 @@ AVEN_FN void aven_watch_deinit(AvenWatchHandle handle);
         struct pollfd pfds[AVEN_WATCH_MAX_HANDLES];
         for (size_t i = 0; i < handles.len; i += 1) {
             pfds[i] = (struct pollfd){
-                .fd = slice_get(handles, i),
+                .fd = get(handles, i),
                 .events = POLLIN
             };
         }
@@ -176,7 +174,7 @@ AVEN_FN void aven_watch_deinit(AvenWatchHandle handle);
             ssize_t len = 0;
             do {
                 len = read(
-                    slice_get(handles, i),
+                    get(handles, i),
                     buffer,
                     sizeof(buffer)
                 );
@@ -185,7 +183,7 @@ AVEN_FN void aven_watch_deinit(AvenWatchHandle handle);
                 }
             } while (len < 0);
         }
-        
+
         return (AvenWatchResult){ .payload = signaled };
     }
 

@@ -37,7 +37,7 @@ AVEN_FN void aven_test(
     printf("running %lu test(s) for %s:", (unsigned long)tcases.len, fname);
     size_t passed = 0;
     for (size_t i = 0; i < tcases.len; i += 1) {
-        AvenTestCase *tcase = &slice_get(tcases, i);
+        AvenTestCase *tcase = &get(tcases, i);
         AvenTestResult result = tcase->fn(arena, tcase->args);
         if (result.error != 0) {
             printf(

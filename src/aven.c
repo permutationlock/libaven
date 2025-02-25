@@ -2,7 +2,7 @@
     #define _POSIX_C_SOURCE 200112L
 #endif
 #define AVEN_IMPLEMENTATION
-#define AVEN_IMPLEMENTATION_STU
+#define AVEN_IMPLEMENTATION_SEPARATE_TU
 #include <aven/arena.h>
 #include <aven/arg.h>
 #include <aven/build.h>

@@ -15,7 +15,7 @@ typedef struct {
     AvenStr incflag;
     AvenStr defflag;
     AvenStrSlice flags;
-    int flagsep;
+    bool flagsep;
 } AvenBuildCommonCOpts;
 
 typedef struct {
@@ -25,14 +25,14 @@ typedef struct {
     AvenStr winflag;
     AvenStr shrflag;
     AvenStrSlice flags;
-    int flagsep;
+    bool flagsep;
 } AvenBuildCommonLDOpts;
 
 typedef struct {
     AvenStr archiver;
     AvenStr outflag;
     AvenStrSlice flags;
-    int flagsep;
+    bool flagsep;
 } AvenBuildCommonAROpts;
 
 typedef struct {
@@ -55,17 +55,13 @@ typedef struct {
     bool test;
 } AvenBuildCommonOpts;
 
-static char aven_build_common_overview_cstr[] = "Aven C build system";
-static AvenStr aven_build_common_overview = {
-    .ptr = aven_build_common_overview_cstr,
-    .len = countof(aven_build_common_overview_cstr),
-};
+static inline AvenStr aven_build_common_overview(void) {
+    return aven_str("Aven C build system");
+}
 
-static char aven_build_common_usage_cstr[] = "./build [options]";
-static AvenStr aven_build_common_usage = {
-    .ptr = aven_build_common_usage_cstr,
-    .len = countof(aven_build_common_usage_cstr),
-};
+static inline AvenStr aven_build_common_usage(void) {
+    return aven_str("./build [options]");
+}
 
 AvenArg aven_build_common_args_data[] = {
     {
@@ -209,10 +205,10 @@ AvenArg aven_build_common_args_data[] = {
     #if defined(__clang__)
             .data = { .arg_str = "-std=c11" },
     #else
-            .data = { .arg_str = "/std:c11" },
-    #endif 
+            .data = { .arg_str = "/std:c11 /experimental:c11atomics" },
+    #endif
 #elif defined(__TINYC__)
-            .data = { .arg_str = "-D__BIGGEST_ALIGNMENT__=16" },
+            .data = { .arg_str = "-std=c11" },
 #else
             .data = { .arg_str = "" },
 #endif
@@ -250,7 +246,7 @@ AvenArg aven_build_common_args_data[] = {
     },
     {
         .name = "-windresflags",
-        .description = "Archiver common flags",
+        .description = "Windows resource compiler common flags",
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
@@ -263,7 +259,7 @@ AvenArg aven_build_common_args_data[] = {
     },
     {
         .name = "-obext",
-        .description = "File extension for object files",
+        .description = "File extension(s) for object files",
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
@@ -282,7 +278,7 @@ AvenArg aven_build_common_args_data[] = {
     },
     {
         .name = "-exext",
-        .description = "File extension for executables",
+        .description = "File extension(s) for executables",
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
@@ -312,7 +308,7 @@ AvenArg aven_build_common_args_data[] = {
     },
     {
         .name = "-arext",
-        .description = "File extension for static libraries",
+        .description = "File extension(s) for static libraries",
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
@@ -331,7 +327,7 @@ AvenArg aven_build_common_args_data[] = {
     },
     {
         .name = "-wrext",
-        .description = "File extension for windows resource files",
+        .description = "File extension(s) for windows resource files",
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
@@ -513,54 +509,55 @@ AvenArg aven_build_common_args_data[] = {
     },
     {
         .name = "-ccflagsep",
-        .description = "C compiler spaces between flag and argument",
-        .type = AVEN_ARG_TYPE_INT,
+        .description = "C compiler add space between flag and argument",
+        .type = AVEN_ARG_TYPE_BOOL,
         .value = {
-            .type = AVEN_ARG_TYPE_INT,
+            .type = AVEN_ARG_TYPE_BOOL,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_CCFLAGSPACES)
-            .data = { .arg_int = AVEN_BUILD_COMMON_DEFAULT_CCFLAGSPACES },
+            .data = { .arg_bool = AVEN_BUILD_COMMON_DEFAULT_CCFLAGSPACES },
 #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
-            .data = { .arg_int = 0 },
+            .data = { .arg_bool = false },
 #else
-            .data = { .arg_int = 1 },
+            .data = { .arg_bool = true },
 #endif
         },
     },
     {
         .name = "-ldflagsep",
-        .description = "Linker spaces between flag and argument",
-        .type = AVEN_ARG_TYPE_INT,
+        .description = "Linker add space between flag and argument",
+        .type = AVEN_ARG_TYPE_BOOL,
         .value = {
-            .type = AVEN_ARG_TYPE_INT,
+            .type = AVEN_ARG_TYPE_BOOL,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_LDFLAGSPACES)
-            .data = { .arg_int = AVEN_BUILD_COMMON_DEFAULT_LDFLAGSPACES },
+            .data = { .arg_bool = AVEN_BUILD_COMMON_DEFAULT_LDFLAGSPACES },
 #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
-            .data = { .arg_int = 0 },
+            .data = { .arg_bool = false },
 #else
-            .data = { .arg_int = 1 },
+            .data = { .arg_bool = true },
 #endif
         },
     },
     {
         .name = "-arflagsep",
-        .description = "Archiver spaces between flag and argument",
-        .type = AVEN_ARG_TYPE_INT,
+        .description = "Archiver add space between flag and argument",
+        .type = AVEN_ARG_TYPE_BOOL,
         .value = {
-            .type = AVEN_ARG_TYPE_INT,
+            .type = AVEN_ARG_TYPE_BOOL,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_ARFLAGSPACES)
-            .data = { .arg_int = AVEN_BUILD_COMMON_DEFAULT_ARFLAGSPACES },
+            .data = { .arg_bool = AVEN_BUILD_COMMON_DEFAULT_ARFLAGSPACES },
 #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
-            .data = { .arg_int = 0 },
+            .data = { .arg_bool = false },
 #else
-            .data = { .arg_int = 1 },
+            .data = { .arg_bool = true },
 #endif
         },
     },
 };
-AvenArgSlice aven_build_common_args = {
-    .ptr = aven_build_common_args_data,
-    .len = countof(aven_build_common_args_data),
-};
+
+static inline AvenArgSlice aven_build_common_args(void) {
+    AvenArgSlice args = slice_array(aven_build_common_args_data);
+    return args;
+}
 
 static inline AvenBuildCommonOpts aven_build_common_opts(
     AvenArgSlice arg_slice,
@@ -570,13 +567,13 @@ static inline AvenBuildCommonOpts aven_build_common_opts(
 
     opts.test = aven_arg_get_bool(arg_slice, "test");
     opts.clean = aven_arg_get_bool(arg_slice, "clean");
-     
+
     opts.cc.compiler = aven_str_cstr(aven_arg_get_str(arg_slice, "-cc"));
     opts.cc.incflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ccincflag"));
     opts.cc.defflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ccdefflag"));
     opts.cc.objflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ccobjflag"));
     opts.cc.outflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ccoutflag"));
-    opts.cc.flagsep = aven_arg_get_int(arg_slice, "-ccflagsep");
+    opts.cc.flagsep = aven_arg_get_bool(arg_slice, "-ccflagsep");
     opts.cc.flags = aven_str_split(
         aven_str_cstr(aven_arg_get_str(arg_slice, "-ccflags")),
         ' ',
@@ -594,7 +591,7 @@ static inline AvenBuildCommonOpts aven_build_common_opts(
     opts.ld.libflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ldlibflag"));
     opts.ld.winflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ldwinflag"));
     opts.ld.shrflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ldshrflag"));
-    opts.ld.flagsep = aven_arg_get_int(arg_slice, "-ldflagsep");
+    opts.ld.flagsep = aven_arg_get_bool(arg_slice, "-ldflagsep");
     opts.ld.flags = aven_str_split(
         aven_str_cstr(aven_arg_get_str(arg_slice, "-ldflags")),
         ' ',
@@ -609,7 +606,7 @@ static inline AvenBuildCommonOpts aven_build_common_opts(
     } else {
         opts.ar.outflag = aven_str("");
     }
-    opts.ar.flagsep = aven_arg_get_int(arg_slice, "-arflagsep");
+    opts.ar.flagsep = aven_arg_get_bool(arg_slice, "-arflagsep");
     opts.ar.flags = aven_str_split(
         aven_str_cstr(aven_arg_get_str(arg_slice, "-arflags")),
         ' ',
@@ -691,7 +688,7 @@ static inline void aven_build_common_step_add_path_deps(
             aven_path(
                 arena,
                 dir_path.ptr,
-                aven_str_concat(fname, slice_get(exts, i), arena).ptr,
+                aven_str_concat(fname, get(exts, i), arena).ptr,
                 NULL
             )
         );
@@ -717,13 +714,13 @@ static inline AvenBuildStep aven_build_common_step_cc_ex(
         '.',
         arena
     );
-    AvenStr ext_free_fname = slice_get(ext_split, 0);
+    AvenStr ext_free_fname = get(ext_split, 0);
 
     AvenStr out_fname = ext_free_fname;
     if (opts->obexts.len > 0) {
         out_fname = aven_str_concat(
             out_fname,
-            slice_get(opts->obexts, 0),
+            get(opts->obexts, 0),
             arena
         );
     }
@@ -737,30 +734,30 @@ static inline AvenBuildStep aven_build_common_step_cc_ex(
     AvenStrSlice cmd_slice = {
         .len = 4 + opts->cc.flags.len + includes.len + macros.len
     };
-    if (opts->cc.flagsep > 0) {
+    if (opts->cc.flagsep) {
         cmd_slice.len += 1 + includes.len + macros.len;
     }
     cmd_slice.ptr = aven_arena_create_array(AvenStr, arena, cmd_slice.len);
 
     size_t i = 0;
-    slice_get(cmd_slice, i) = opts->cc.compiler;
+    get(cmd_slice, i) = opts->cc.compiler;
     i += 1;
 
     for (size_t j = 0; j < opts->cc.flags.len; j += 1) {
-        slice_get(cmd_slice, i) = slice_get(opts->cc.flags, j);
+        get(cmd_slice, i) = get(opts->cc.flags, j);
         i += 1;
     }
 
     for (size_t j = 0; j < includes.len; j += 1) {
-        if (opts->cc.flagsep > 0) {
-            slice_get(cmd_slice, i) = opts->cc.incflag;
+        if (opts->cc.flagsep) {
+            get(cmd_slice, i) = opts->cc.incflag;
             i += 1;
-            slice_get(cmd_slice, i) = slice_get(includes, j);
+            get(cmd_slice, i) = get(includes, j);
             i += 1;
         } else {
-            slice_get(cmd_slice, i) = aven_str_concat(
+            get(cmd_slice, i) = aven_str_concat(
                 opts->cc.incflag,
-                slice_get(includes, j),
+                get(includes, j),
                 arena
             );
             i += 1;
@@ -768,38 +765,38 @@ static inline AvenBuildStep aven_build_common_step_cc_ex(
     }
 
     for (size_t j = 0; j < macros.len; j += 1) {
-        if (opts->cc.flagsep > 0) {
-            slice_get(cmd_slice, i) = opts->cc.defflag;
+        if (opts->cc.flagsep) {
+            get(cmd_slice, i) = opts->cc.defflag;
             i += 1;
-            slice_get(cmd_slice, i) = slice_get(macros, j);
+            get(cmd_slice, i) = get(macros, j);
             i += 1;
         } else {
-            slice_get(cmd_slice, i) = aven_str_concat(
+            get(cmd_slice, i) = aven_str_concat(
                 opts->cc.defflag,
-                slice_get(macros, j),
+                get(macros, j),
                 arena
             );
             i += 1;
         }
     }
 
-    slice_get(cmd_slice, i) = opts->cc.objflag;
+    get(cmd_slice, i) = opts->cc.objflag;
     i += 1;
 
-    if (opts->cc.flagsep > 0) {
-        slice_get(cmd_slice, i) = opts->cc.outflag;
+    if (opts->cc.flagsep) {
+        get(cmd_slice, i) = opts->cc.outflag;
         i += 1;
-        slice_get(cmd_slice, i) = target_path;
+        get(cmd_slice, i) = target_path;
         i += 1;
     } else {
-        slice_get(cmd_slice, i) = aven_str_concat(
+        get(cmd_slice, i) = aven_str_concat(
             opts->cc.outflag,
             target_path,
             arena
         );
         i += 1;
     }
-    slice_get(cmd_slice, i) = src_path;
+    get(cmd_slice, i) = src_path;
     i += 1;
 
     AvenBuildOptionalPath out_path = { .value = target_path, .valid = true };
@@ -864,7 +861,7 @@ static AvenBuildStep aven_build_common_step_ld(
 
     AvenStr ext_free_fname = out_fname;
     if (exts.len > 0) {
-        out_fname = aven_str_concat(out_fname, slice_get(exts, 0), arena);
+        out_fname = aven_str_concat(out_fname, get(exts, 0), arena);
     }
     AvenStr target_path = aven_path(
         arena,
@@ -878,7 +875,7 @@ static AvenBuildStep aven_build_common_step_ld(
         opts->ld.flags.len +
         obj_steps.len +
         linked_libs.len;
-    if (opts->ld.flagsep > 0) {
+    if (opts->ld.flagsep) {
         cmd_slice.len += 1 + linked_libs.len;
     }
     switch (bin_type) {
@@ -896,36 +893,36 @@ static AvenBuildStep aven_build_common_step_ld(
     cmd_slice.ptr = aven_arena_create_array(AvenStr, arena, cmd_slice.len);
 
     size_t i = 0;
-    slice_get(cmd_slice, i) = opts->ld.linker;
+    get(cmd_slice, i) = opts->ld.linker;
     i += 1;
 
     for (size_t j = 0; j < opts->ld.flags.len; j += 1) {
-        slice_get(cmd_slice, i) = slice_get(opts->ld.flags, j);
+        get(cmd_slice, i) = get(opts->ld.flags, j);
         i += 1;
     }
 
     switch (bin_type) {
         case AVEN_BUILD_COMMON_BIN_TYPE_WINDOW:
             if (opts->ld.winflag.len > 0) {
-                slice_get(cmd_slice, i) = opts->ld.winflag;
+                get(cmd_slice, i) = opts->ld.winflag;
                 i += 1;
             }
             break;
         case AVEN_BUILD_COMMON_BIN_TYPE_DLL:
-            slice_get(cmd_slice, i) = opts->ld.shrflag;
+            get(cmd_slice, i) = opts->ld.shrflag;
             i += 1;
             break;
         default:
             break;
     }
- 
-    if (opts->ld.flagsep > 0) {
-        slice_get(cmd_slice, i) = opts->ld.outflag;
+
+    if (opts->ld.flagsep) {
+        get(cmd_slice, i) = opts->ld.outflag;
         i += 1;
-        slice_get(cmd_slice, i) = target_path;
+        get(cmd_slice, i) = target_path;
         i += 1;
     } else {
-        slice_get(cmd_slice, i) = aven_str_concat(
+        get(cmd_slice, i) = aven_str_concat(
             opts->ld.outflag,
             target_path,
             arena
@@ -934,22 +931,22 @@ static AvenBuildStep aven_build_common_step_ld(
     }
 
     for (size_t j = 0; j < obj_steps.len; j += 1) {
-        AvenBuildStep *obj_step = slice_get(obj_steps, j);
+        AvenBuildStep *obj_step = get(obj_steps, j);
         assert(obj_step->out_path.valid);
-        slice_get(cmd_slice, i) = obj_step->out_path.value;
+        get(cmd_slice, i) = obj_step->out_path.value;
         i += 1;
     }
 
     for (size_t j = 0; j < linked_libs.len; j += 1) {
-        if (opts->ld.flagsep > 0) {
-            slice_get(cmd_slice, i) = opts->ld.libflag;
+        if (opts->ld.flagsep) {
+            get(cmd_slice, i) = opts->ld.libflag;
             i += 1;
-            slice_get(cmd_slice, i) = slice_get(linked_libs, j);
+            get(cmd_slice, i) = get(linked_libs, j);
             i += 1;
         } else {
-            slice_get(cmd_slice, i) = aven_str_concat(
+            get(cmd_slice, i) = aven_str_concat(
                 opts->ld.libflag,
-                slice_get(linked_libs, j),
+                get(linked_libs, j),
                 arena
             );
             i += 1;
@@ -963,7 +960,7 @@ static AvenBuildStep aven_build_common_step_ld(
     );
 
     for (size_t j = 0; j < obj_steps.len; j += 1) {
-        aven_build_step_add_dep(&link_step, slice_get(obj_steps, j), arena);
+        aven_build_step_add_dep(&link_step, get(obj_steps, j), arena);
     }
     aven_build_step_add_dep(&link_step, out_dir_step, arena);
 
@@ -1074,7 +1071,7 @@ static inline AvenBuildStep aven_build_common_step_ar(
     if (opts->arexts.len > 0) {
         out_fname = aven_str_concat(
             out_fname,
-            slice_get(opts->arexts, 0),
+            get(opts->arexts, 0),
             arena
         );
     }
@@ -1087,28 +1084,28 @@ static inline AvenBuildStep aven_build_common_step_ar(
 
     AvenStrSlice cmd_slice = { 0 };
     cmd_slice.len = 2 + opts->ar.flags.len + obj_steps.len;
-    if (opts->ar.outflag.len != 0 and opts->ar.flagsep > 0) {
+    if (opts->ar.outflag.len != 0 and opts->ar.flagsep) {
         cmd_slice.len += 1;
     }
     cmd_slice.ptr = aven_arena_create_array(AvenStr, arena, cmd_slice.len);
 
     size_t i = 0;
-    slice_get(cmd_slice, i) = opts->ar.archiver;
+    get(cmd_slice, i) = opts->ar.archiver;
     i += 1;
 
     for (size_t j = 0; j < opts->ar.flags.len; j += 1) {
-        slice_get(cmd_slice, i) = slice_get(opts->ar.flags, j);
+        get(cmd_slice, i) = get(opts->ar.flags, j);
         i += 1;
     }
 
     if (opts->ar.outflag.len != 0) {
-        if (opts->ar.flagsep > 0) {
-            slice_get(cmd_slice, i) = opts->ar.outflag;
+        if (opts->ar.flagsep) {
+            get(cmd_slice, i) = opts->ar.outflag;
             i += 1;
-            slice_get(cmd_slice, i) = target_path;
+            get(cmd_slice, i) = target_path;
             i += 1;
         } else {
-            slice_get(cmd_slice, i) = aven_str_concat(
+            get(cmd_slice, i) = aven_str_concat(
                 opts->ar.outflag,
                 target_path,
                 arena
@@ -1116,14 +1113,14 @@ static inline AvenBuildStep aven_build_common_step_ar(
             i += 1;
         }
     } else {
-        slice_get(cmd_slice, i) = target_path;
+        get(cmd_slice, i) = target_path;
         i += 1;
     }
 
     for (size_t j = 0; j < obj_steps.len; j += 1) {
-        AvenBuildStep *obj_step = slice_get(obj_steps, j);
+        AvenBuildStep *obj_step = get(obj_steps, j);
         assert(obj_step->out_path.valid);
-        slice_get(cmd_slice, i) = obj_step->out_path.value;
+        get(cmd_slice, i) = obj_step->out_path.value;
         i += 1;
     }
 
@@ -1134,7 +1131,7 @@ static inline AvenBuildStep aven_build_common_step_ar(
     );
 
     for (size_t j = 0; j < obj_steps.len; j += 1) {
-        aven_build_step_add_dep(&ar_step, slice_get(obj_steps, j), arena);
+        aven_build_step_add_dep(&ar_step, get(obj_steps, j), arena);
     }
     aven_build_step_add_dep(&ar_step, out_dir_step, arena);
 
@@ -1170,13 +1167,13 @@ static inline AvenBuildStep aven_build_common_step_windres(
         '.',
         arena
     );
-    AvenStr ext_free_fname = slice_get(ext_split, 0);
+    AvenStr ext_free_fname = get(ext_split, 0);
 
     AvenStr out_fname = ext_free_fname;
     if (opts->wrexts.len > 0) {
         out_fname = aven_str_concat(
             out_fname,
-            slice_get(opts->wrexts, 0),
+            get(opts->wrexts, 0),
             arena
         );
     }
@@ -1192,19 +1189,19 @@ static inline AvenBuildStep aven_build_common_step_windres(
 
     size_t i = 0;
     assert(opts->windres.compiler.valid);
-    slice_get(cmd_slice, i) = opts->windres.compiler.value;
+    get(cmd_slice, i) = opts->windres.compiler.value;
     i += 1;
 
     for (size_t j = 0; j < opts->windres.flags.len; j += 1) {
-        slice_get(cmd_slice, i) = slice_get(opts->windres.flags, j);
+        get(cmd_slice, i) = get(opts->windres.flags, j);
         i += 1;
     }
 
-    slice_get(cmd_slice, i) = opts->windres.outflag;
+    get(cmd_slice, i) = opts->windres.outflag;
     i += 1;
-    slice_get(cmd_slice, i) = target_path;
+    get(cmd_slice, i) = target_path;
     i += 1;
-    slice_get(cmd_slice, i) = src_path;
+    get(cmd_slice, i) = src_path;
     i += 1;
 
     AvenBuildOptionalPath out_path = { .value = target_path, .valid = true };
@@ -1257,17 +1254,17 @@ static AvenBuildStep aven_build_common_step_cc_ld(
     );
 
     size_t i = 0;
-    slice_get(exe_obj_steps, i) = obj_step;
+    get(exe_obj_steps, i) = obj_step;
     i += 1;
     for (size_t j = 0; j < obj_steps.len; j += 1) {
-        slice_get(exe_obj_steps, i) = slice_get(obj_steps, j);
+        get(exe_obj_steps, i) = get(obj_steps, j);
         i += 1;
     }
 
     assert(obj_step->out_path.valid);
     AvenStr obj_fname = aven_path_fname(obj_step->out_path.value, arena);
     if (opts->obexts.len > 0) {
-        obj_fname.len -= slice_get(opts->obexts, 0).len;
+        obj_fname.len -= get(opts->obexts, 0).len;
     }
     AvenStr exe_fname = aven_str_copy(obj_fname, arena);
 
@@ -1387,11 +1384,11 @@ static inline AvenBuildStep aven_build_common_step_run_exe(
     cmd_slice.ptr = aven_arena_create_array(AvenStr, arena, cmd_slice.len);
 
     size_t i = 0;
-    slice_get(cmd_slice, i) = exe_step->out_path.value;
+    get(cmd_slice, i) = exe_step->out_path.value;
     i += 1;
 
     for (size_t j = 0; j < args.len; j += 1) {
-        slice_get(cmd_slice, i) = slice_get(args, j);
+        get(cmd_slice, i) = get(args, j);
         i += 1;
     }
 
