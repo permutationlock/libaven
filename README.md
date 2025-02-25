@@ -8,16 +8,18 @@ access macros.
 
 The library has expanded to include:
 
- - slices, optionals, and results: `aven.h`
+ - optionals, results, slices, lists, queues, and pools, : `aven.h`
  - arena allocation: `aven/arena.h` ([inspired by this post][2])
  - command line argument parsing: `aven/arg.h`
  - a C build system: `aven/build.h`, `aven/build/common.h`
  - portable file system interaction: `aven/fs.h`
- - a tiny SIMD linear algebra library: `aven/glm.h`
+ - a tiny SIMD linear algebra library: `aven/math.h`
  - portable file path string manipulation: `aven/path.h`
  - portable process execution and management: `aven/proc.h`
- - slice based strings: `aven/str.h`
+ - a random number generator interface: `aven/rng.h`
+ - slice-based strings: `aven/str.h`
  - a bare-bones test framework: `aven/test.h`
+ - portable thread pools: `aven/thread_pool.h`
  - portable high precision timing: `aven/time.h`
  - portable directory watching (Windows + Linux only): `aven/watch.h`
 
@@ -61,7 +63,7 @@ that satisfies the following requirements:
    (`cc` or a separate `ld`), and (maybe) an archiver (`ar`);
  - it should include a portable API to interact with the filesystem
    (`mkdir`, `rm`, `rmdir`, `touch`) wihtout relying on external binaries[^2];
- - builds should be directed graphs of steps and dependencies between steps;
+ - builds should be acyclic directed graphs of steps;
  - the user must be able to specify exactly what executables and flags will
    be used for each build tool, e.g. how the variables `CC` and `CFLAGS` are
    used in Makefiles;
@@ -88,22 +90,9 @@ Hopefully many other toolchains are supported as well! The MSVC
 toolchain is so weird that the build configuration has been expanded to be
 very accommodating.
 
-### Cross-compilation
-
-Since the build system is simple and flexible, cross compilation is achievable
-regardless of the host or toolchain. Below we build the build system on a
-host `x86_64` Linux machine with TinyCC, then create build artifacts for
-an `x86_64` Windows target using MinGW-w64.
-
-```
-tcc -D__BIGGEST_ALIGNMENT__=16 -o build build.c
-./build -cc "x86_64-w64-mingww32-gcc" -ar "x86_64-w64-mingw32-ar" \
-    -ccflags "-O2 -Werror -Wall -Wextra" -exext ".exe" -soext ".dll"
-```
-
 ## Building the library
 
-A static object file can built using the contained build system.  
+A static object file can built using the contained build system. 
 
 ### Building the build system
 
@@ -156,6 +145,29 @@ cl.exe /std:c11 /Fe:build.exe build.c
 ./build clean
 ```
 
+### Cross-compilation
+
+Since the build system is simple and flexible, cross compilation is achievable
+regardless of the host or toolchain. The commands below build the build system on a
+host `x86_64` Linux machine with TinyCC, then create build artifacts for
+an `x86_64` Windows target using MinGW-w64.
+
+```
+tcc -D__BIGGEST_ALIGNMENT__=16 -o build build.c
+./build -cc "x86_64-w64-mingww32-gcc" \
+    -ar "x86_64-w64-mingw32-ar" \
+    -windres "x86_64-w64-mingw32-windres" \
+    -ccflags "-std=c11 -O3 -Werror -Wall -Wextra" \
+    -exext ".exe" -soext ".dll" \
+    -ldwinflag "-mwindows" \
+    -syslibs "kernel32 user32 gdi32 shell32" \
+    -winutf8
+```
+
+Note that the `libaven` repo
+itself doesn't produce any executable build artifacts, try this command
+in a project that produces a graphical application like [`libavengraph`][7].
+
 [^1]: Some things like file system notifications and detecting the path to a
     running executable are not standard across
     POSIX systems. Currently everything in `aven/watch.h` and the
@@ -177,3 +189,4 @@ cl.exe /std:c11 /Fe:build.exe build.c
 [4]: https://sr.ht/~mcf/cproc/
 [5]: https://repo.or.cz/w/tinycc.git
 [6]: https://musl.libc.org/
+[7]: https://github.com/permutationlock/libavengraph
