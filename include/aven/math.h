@@ -315,6 +315,14 @@ static inline void mat2_rotate(Mat2 dst, Mat2 m, float theta) {
     mat2_mul_mat2(dst, m, rot);
 }
 
+static inline void mat2_rotate_dir(Mat2 dst, Mat2 m, Vec2 dir) {
+    Mat2 rot = {
+        { dir[0],  dir[1] },
+        { dir[1], -dir[0] },
+    };
+    mat2_mul_mat2(dst, m, rot);
+}
+
 static inline void mat2_stretch(
     Mat2 dst,
     Vec2 dim,
@@ -382,7 +390,24 @@ static inline void aff2_rotate(Aff2 dst, Aff2 t, float theta) {
     mat2_mul_aff2(dst, r, t);
 }
 
+static inline void aff2_rotate_dir(Aff2 dst, Aff2 t, Vec2 dir) {
+    Mat2 r;
+    mat2_identity(r);
+    mat2_rotate_dir(r, r, dir);
+    mat2_mul_aff2(dst, r, t);
+}
+
 static inline void aff2_position(
+    Aff2 dst,
+    Vec2 pos,
+    Vec2 dim
+) {
+    aff2_identity(dst);
+    aff2_stretch(dst, dim, dst);
+    aff2_add_vec2(dst, dst, pos);
+}
+
+static inline void aff2_position_rangle(
     Aff2 dst,
     Vec2 pos,
     Vec2 dim,
@@ -394,7 +419,29 @@ static inline void aff2_position(
     aff2_add_vec2(dst, dst, pos);
 }
 
+static inline void aff2_position_rdir(
+    Aff2 dst,
+    Vec2 pos,
+    Vec2 dim,
+    Vec2 dir
+) {
+    aff2_identity(dst);
+    aff2_stretch(dst, dim, dst);
+    aff2_rotate_dir(dst, dst, dir);
+    aff2_add_vec2(dst, dst, pos);
+}
+
 static inline void aff2_camera_position(
+    Aff2 dst,
+    Vec2 pos,
+    Vec2 dim
+) {
+    aff2_identity(dst);
+    aff2_sub_vec2(dst, dst, pos);
+    aff2_stretch(dst, (Vec2){ 1.0f / dim[0], 1.0f / dim[1] }, dst);
+}
+
+static inline void aff2_camera_position_rangle(
     Aff2 dst,
     Vec2 pos,
     Vec2 dim,
