@@ -249,7 +249,20 @@ static inline AVEN_NORETURN void aven_panic_internal_fn(
     _Exit(1);
 }
 
-#define aven_panic(msg) aven_panic_internal_fn(msg, sizeof(msg) - 1)
+#define aven_panic_internal_s(x) #x
+#define aven_panic_internal_sfy(x) aven_panic_internal_s(x)
+#define aven_panic_internal_fmt(msg) \
+    "panic at " \
+    __FILE__ \
+    ":" \
+    aven_panic_internal_sfy(__LINE__) \
+    "\n    error: " \
+    msg \
+    "\n"
+#define aven_panic_internal_ex(msg) aven_panic_internal_fn(msg, sizeof(msg) - 1)
+#define aven_panic(msg) aven_panic_internal_ex( \
+        aven_panic_internal_fmt(msg) \
+    )
 
 #if defined(AVEN_IMPLEMENTATION) and !defined(AVEN_IMPLEMENTATION_SEPARATE_TU)
     #define AVEN_FN static inline
