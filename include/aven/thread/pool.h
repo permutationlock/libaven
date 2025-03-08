@@ -11,6 +11,7 @@ typedef struct {
     AvenThreadPoolJobFn fn;
     void *args;
 } AvenThreadPoolJob;
+typedef Slice(AvenThreadPoolJob) AvenThreadPoolJobSlice;
 
 typedef struct {
     Queue(AvenThreadPoolJob) job_queue;
@@ -63,7 +64,7 @@ static int aven_thread_pool_worker_internal_fn(void *args) {
     return 0;
 }
 
-static AvenThreadPool aven_thread_pool_init(
+static inline AvenThreadPool aven_thread_pool_init(
     size_t nthreads,
     size_t njobs,
     AvenArena *arena
@@ -91,7 +92,7 @@ static AvenThreadPool aven_thread_pool_init(
     return thread_pool;
 }
 
-static void aven_thread_pool_run(AvenThreadPool *thread_pool) {
+static inline void aven_thread_pool_run(AvenThreadPool *thread_pool) {
     for (size_t i = 0; i < thread_pool->workers.len; i += 1) {
         aven_thread_create(
             &get(thread_pool->workers, i),
@@ -101,7 +102,7 @@ static void aven_thread_pool_run(AvenThreadPool *thread_pool) {
     }
 }
 
-static void aven_thread_pool_submit(
+static inline void aven_thread_pool_submit(
     AvenThreadPool *thread_pool,
     AvenThreadPoolJobFn fn,
     void *args
@@ -115,7 +116,19 @@ static void aven_thread_pool_submit(
     aven_thread_mtx_unlock(&thread_pool->lock);
 }
 
-static void aven_thread_pool_wait(AvenThreadPool *thread_pool) {
+static inline void aven_thread_pool_submit_slice(
+    AvenThreadPool *thread_pool,
+    AvenThreadPoolJobSlice jobs
+) {
+    aven_thread_mtx_lock(&thread_pool->lock);
+    for (size_t i = 0; i < jobs.len; i += 1) {
+        queue_push(thread_pool->job_queue) = get(jobs, i);
+    }
+    aven_thread_cnd_broadcast(&thread_pool->job_cond);
+    aven_thread_mtx_unlock(&thread_pool->lock);
+}
+
+static inline void aven_thread_pool_wait(AvenThreadPool *thread_pool) {
     aven_thread_mtx_lock(&thread_pool->lock);
     while (
         thread_pool->job_queue.used > 0 or
@@ -127,7 +140,9 @@ static void aven_thread_pool_wait(AvenThreadPool *thread_pool) {
     aven_thread_mtx_unlock(&thread_pool->lock);
 }
 
-static void aven_thread_pool_halt_and_destroy(AvenThreadPool *thread_pool) {
+static inline void aven_thread_pool_halt_and_destroy(
+    AvenThreadPool *thread_pool
+) {
     aven_thread_mtx_lock(&thread_pool->lock);
     thread_pool->done = true;
     queue_clear(thread_pool->job_queue);
