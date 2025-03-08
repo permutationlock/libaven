@@ -20,7 +20,7 @@
 #endif
 
 #if !defined(AVEN_USE_STD_ASSERT) and __has_builtin(__builtin_unreachable)
-    #define assert(c) while (!(c)) { __builtin_unreachable(); }
+    #define assert(c) ((!(c)) ? __builtin_unreachable() : (void)0)
 #else
     #ifndef AVEN_USE_STD_ASSERT
         #define AVEN_USE_STD_ASSERT
@@ -65,23 +65,11 @@
 
 typedef Slice(unsigned char) ByteSlice;
 
-#if !defined(AVEN_USE_STD_ASSERT) or !defined(NDEBUG)
-    static inline size_t aven_assert_lt_internal_fn(size_t a, size_t b) {
-        assert(a < b);
-        return a;
-    }
-
-    #define aven_assert_lt_internal(a, b) aven_assert_lt_internal_fn(a, b)
-#else
-    #define aven_assert_lt_internal(a, b) a
-#endif
-
 static inline size_t aven_queue_push_internal(
     size_t *used,
     size_t *back,
     size_t cap
 ) {
-    assert(*used < cap);
     *used += 1;
     size_t index = *back;
     *back = index + 1;
@@ -96,7 +84,6 @@ static inline size_t aven_queue_pop_internal(
     size_t *front,
     size_t cap
 ) {
-    assert(*used > 0);
     *used -= 1;
     size_t index = *front;
     *front = index + 1;
@@ -108,10 +95,8 @@ static inline size_t aven_queue_pop_internal(
 
 static inline size_t aven_pool_next_internal(
     size_t *used,
-    size_t *len,
-    size_t cap
+    size_t *len
 ) {
-    assert(*len < cap);
     *used += 1;
     size_t index = *len;
     *len += 1;
@@ -136,27 +121,31 @@ static inline void aven_pool_push_free_internal(
     size_t *parent,
     size_t index
 ) {
-    assert(*used > 0);
-
     *used -= 1;
     *parent = *free;
     *free = index + 1;
 }
 
-#define get(s, i) (s).ptr[aven_assert_lt_internal(i, (s).len)]
+#define get(s, i) (s).ptr[(assert(i < (s).len), i)]
 #define list_get(l, i) get(l, i)
 #define list_front(l) get(l, 0)
 #define list_back(l) get(l, (l).len - 1)
-#define list_pop(l) (l).ptr[aven_assert_lt_internal(--(l).len, (l).cap)]
-#define list_push(l) (l).ptr[aven_assert_lt_internal((l).len++, (l).cap)]
+#define list_pop(l) (l).ptr[(assert((l).len > 0), --(l).len)]
+#define list_push(l) (l).ptr[(assert((l).len < (l).cap), (l).len++)]
 #define list_clear(l) do { (l).len = 0; } while (0)
-#define queue_front(q) (q).ptr[(q).front + aven_assert_lt_internal(0, (q).used)]
-#define queue_back(q) (q).ptr[(q).back + aven_assert_lt_internal(0, (q).used)]
+#define queue_front(q) (q).ptr[(assert((q).used > 0), (q).front)]
+#define queue_back(q) (q).ptr[(assert((q).used > 0), (q).back)]
 #define queue_pop(q) (q).ptr[ \
-        aven_queue_pop_internal(&(q).used, &(q).front, (q).cap) \
+        ( \
+            assert((q).used > 0), \
+            aven_queue_pop_internal(&(q).used, &(q).front, (q).cap) \
+        ) \
     ]
 #define queue_push(q) (q).ptr[ \
-        aven_queue_push_internal(&(q).used, &(q).back, (q).cap) \
+        ( \
+            assert((q).used < (q).cap), \
+            aven_queue_push_internal(&(q).used, &(q).back, (q).cap) \
+        ) \
     ]
 #define queue_clear(q) do { \
         (q).used = 0; \
@@ -165,18 +154,26 @@ static inline void aven_pool_push_free_internal(
     } while (0)
 #define pool_get(p, i) get(p, i).data
 #define pool_create(p) (((p).free == 0) ? \
-        aven_pool_next_internal(&(p).used, &(p).len, (p).cap) : \
-        aven_pool_pop_free_internal( \
-            &(p).used, \
-            &(p).free, \
-            get(p, (p).free - 1).parent \
+        ( \
+            assert((p).len < (p).cap and (p).used == (p).len), \
+            aven_pool_next_internal(&(p).used, &(p).len) \
+        ) : ( \
+            assert((p).used < (p).cap), \
+            aven_pool_pop_free_internal( \
+                &(p).used, \
+                &(p).free, \
+                get(p, (p).free - 1).parent \
+            ) \
         ) \
     )
-#define pool_delete(p, i) aven_pool_push_free_internal( \
-        &(p).used, \
-        &(p).free, \
-        &get(p, i).parent, \
-        i \
+#define pool_delete(p, i) ( \
+        assert((p).used > 0), \
+        aven_pool_push_free_internal( \
+            &(p).used, \
+            &(p).free, \
+            &get(p, i).parent, \
+            i \
+        ) \
     )
 #define pool_clear(p) do { \
         (p).used = 0; \
@@ -188,16 +185,19 @@ static inline void aven_pool_push_free_internal(
 #define slice_list(l) { .ptr = (l).ptr, .len = (l).len }
 #define slice_head(s, i) { \
         .ptr = (s).ptr, \
-        .len = aven_assert_lt_internal(i, (s).len + 1) \
+        .len = (assert(i <= (s).len), i) \
     }
 #define slice_tail(s, i) { \
         .ptr = (s).ptr + i, \
-        .len = (s).len - aven_assert_lt_internal(i, (s).len + 1) \
+        .len = (assert(i <= (s).len), (s).len - i) \
     }
 #define slice_range(s, i, j) { \
         .ptr = (s).ptr + i, \
-        .len = aven_assert_lt_internal(j, (s).len + 1) - \
-            aven_assert_lt_internal(i, j + 1) \
+        .len = ( \
+            assert(j <= (s).len), \
+            assert(i <= j), \
+            j - i \
+        ), \
     }
 #define list_array(a) { .ptr = a, .cap = countof(a) }
 #define pool_array(a) { .ptr = a, .cap = countof(a) }
@@ -226,9 +226,12 @@ void *memset(void *ptr, int value, size_t num);
 #define slice_copy(d, s) memcpy( \
         (d).ptr, \
         (s).ptr, \
-        aven_assert_lt_internal( \
-            (s).len * sizeof(*(s).ptr), \
-            (d).len * sizeof(*(d).ptr) + 1 \
+        ( \
+            assert( \
+                (s).len * sizeof(*(s).ptr) <= \
+                (d).len * sizeof(*(d).ptr) \
+            ), \
+            (s).len * sizeof(*(s).ptr) \
         ) \
     )
 
