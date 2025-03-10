@@ -12,6 +12,10 @@ typedef Slice(AvenStr) AvenStrSlice;
         .len = sizeof(a) - 1 \
     }
 
+#define aven_str_head(s, i) (AvenStr)slice_head(s, i)
+#define aven_str_tail(s, i) (AvenStr)slice_tail(s, i)
+#define aven_str_range(s, i, j) (AvenStr)slice_range(s, i, j)
+
 static inline AvenStr aven_str_cstr(char *cstr) {
     size_t len = 0;
     for (char *c = cstr; *c != 0; c += 1) {
@@ -73,7 +77,7 @@ static inline AvenStrSlice aven_str_split(
         }
     }
 
-    aven_arena_shrink_list_to_fit(
+    aven_arena_shrink_list_to_len(
         AvenStr,
         arena,
         split_strs
@@ -94,12 +98,11 @@ static inline AvenStr aven_str_concat_slice(
     AvenStr new_string = { .len = total_len };
     new_string.ptr = aven_arena_alloc(arena, total_len, 1, 1);
 
-    AvenStr rest_string = new_string;
+    AvenStr rest_str = new_string;
     for (size_t i = 0; i < strs.len; i += 1) {
         AvenStr cur_str = get(strs, i);
-        slice_copy(rest_string, cur_str);
-        rest_string.ptr += cur_str.len;
-        rest_string.len -= cur_str.len;
+        slice_copy(rest_str, cur_str);
+        rest_str = aven_str_tail(rest_str, cur_str.len);
     }
 
     return new_string;
@@ -145,14 +148,11 @@ static inline AvenStr aven_str_join(
         }
 
         slice_copy(rest_str, cur_str);
-
-        rest_str.ptr += cur_str.len;
-        rest_str.len -= cur_str.len;
+        rest_str = aven_str_tail(rest_str, cur_str.len);
 
         if ((i + 1) < strings.len) {
             get(rest_str, 0) = separator;
-            rest_str.ptr += 1;
-            rest_str.len -= 1;
+            rest_str = aven_str_tail(rest_str, 1);
         }
     }
 
