@@ -134,7 +134,7 @@ static inline void aven_arena_shrink(
             (l).ptr, \
             (l).cap, \
             (l).len, \
-            alignof(t), \
+            aven_arena_alignof(t), \
             sizeof(t) \
         ); \
         (l).cap = (l).len; \
