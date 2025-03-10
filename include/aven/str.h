@@ -45,6 +45,47 @@ static inline AvenStrSlice aven_str_split(
     char separator,
     AvenArena *arena
 ) {
+    AvenStrSlice split_strs = aven_arena_create_slice(
+        AvenStr,
+        arena,
+        str.len / 2 + 1
+    );
+
+    size_t string_index = 0;
+    size_t after_last_sep = 0;
+    for (size_t i = 0; i <= str.len; i += 1) {
+        if (i == str.len or get(str, i) == separator) {
+            size_t len = i - after_last_sep;
+            if (len > 0) {
+                get(split_strs, string_index) = (AvenStr){
+                    .ptr = str.ptr + after_last_sep,
+                    .len = len,
+                };
+
+                string_index += 1;
+            }
+
+            after_last_sep = i + 1;
+        }
+    }
+
+    split_strs.ptr = aven_arena_resize_array(
+        AvenStr,
+        arena,
+        split_strs.ptr,
+        split_strs.len,
+        string_index
+    );
+    split_strs.len = string_index;
+
+    return split_strs;
+}
+
+static inline AvenStrSlice aven_str_splitz(
+    AvenStr str,
+    char separator,
+    AvenArena *arena
+) {
     size_t nsep = 0;
     size_t after_last_sep = 0;
     for (size_t i = 0; i <= str.len; i += 1) {

@@ -70,7 +70,7 @@ static inline LibAvenBuildOpts libaven_build_opts(
 
     opts.winpthreads.local = aven_arg_get_bool(args, "-winpthreads");
     if (aven_arg_has_arg(args, "-winpthreads-ccflags")) {
-        opts.winpthreads.ccflags.value = aven_str_split(
+        opts.winpthreads.ccflags.value = aven_str_splitz(
             aven_str_cstr(aven_arg_get_str(args, "-winpthreads-ccflags")),
             ' ',
             arena
