@@ -145,8 +145,8 @@ typedef enum {
 } AvenBuildStepRunError;
 
 AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena);
-AVEN_FN void aven_build_step_clean(AvenBuildStep *step);
-AVEN_FN void aven_build_step_reset(AvenBuildStep *step);
+AVEN_FN void aven_build_step_clean(AvenBuildStep *step, AvenArena arena);
+AVEN_FN void aven_build_step_reset(AvenBuildStep *step, AvenArena aren);
 
 #ifdef AVEN_IMPLEMENTATION
 
@@ -210,9 +210,9 @@ AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
             break;
         case AVEN_BUILD_STEP_TYPE_RM:
 #ifndef AVEN_SUPPRESS_LOGS
-            printf("rm %s\n", step->data.rm.ptr);
+            printf("rm %s\n", aven_str_to_cstr(step->data.rm, &arena));
 #endif
-            error = aven_fs_rm(step->data.rm);
+            error = aven_fs_rm(step->data.rm, arena);
             if (error != 0) {
                 return AVEN_BUILD_STEP_RUN_ERROR_RM;
             }
@@ -220,9 +220,9 @@ AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
             break;
         case AVEN_BUILD_STEP_TYPE_RMDIR:
 #ifndef AVEN_SUPPRESS_LOGS
-            printf("rmdir %s\n", step->data.rmdir.ptr);
+            printf("rmdir %s\n", aven_str_to_cstr(step->data.rmdir, &arena));
 #endif
-            error = aven_fs_rmdir(step->data.rmdir);
+            error = aven_fs_rmdir(step->data.rmdir, arena);
             if (error != 0) {
                 return AVEN_BUILD_STEP_RUN_ERROR_RMDIR;
             }
@@ -233,9 +233,12 @@ AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
                 return AVEN_BUILD_STEP_RUN_ERROR_OUTPATH;
             }
 #ifndef AVEN_SUPPRESS_LOGS
-            printf("truncate -s 0 %s\n", step->out_path.value.ptr);
+            printf(
+                "truncate -s 0 %s\n",
+                aven_str_to_cstr(step->out_path.value, &arena)
+            );
 #endif
-            error = aven_fs_trunc(step->out_path.value);
+            error = aven_fs_trunc(step->out_path.value, arena);
             if (error != 0) {
                 return AVEN_BUILD_STEP_RUN_ERROR_TRUNC;
             }
@@ -245,14 +248,17 @@ AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
             if (!step->out_path.valid) {
                 return AVEN_BUILD_STEP_RUN_ERROR_OUTPATH;
             }
-            error = aven_fs_mkdir(step->out_path.value);
+            error = aven_fs_mkdir(step->out_path.value, arena);
             if (error != 0) {
                 if (error != AVEN_FS_MKDIR_ERROR_EXIST) {
                     return AVEN_BUILD_STEP_RUN_ERROR_MKDIR;
                 }
             } else {
 #ifndef AVEN_SUPPRESS_LOGS
-                printf("mkdir %s\n", step->out_path.value.ptr);
+                printf(
+                    "mkdir %s\n",
+                    aven_str_to_cstr(step->out_path.value, &arena)
+                );
 #endif
             }
             step->state = AVEN_BUILD_STEP_STATE_DONE;
@@ -263,13 +269,18 @@ AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
             }
             error = aven_fs_copy(
                 step->data.copy,
-                step->out_path.value
+                step->out_path.value,
+                arena
             );
             if (error != 0) {
                 return AVEN_BUILD_STEP_RUN_ERROR_COPY;
             }
 #ifndef AVEN_SUPPRESS_LOGS
-            printf("cp %s %s\n", step->data.copy.ptr, step->out_path.value.ptr);
+            printf(
+                "cp %s %s\n",
+                aven_str_to_cstr(step->data.copy, &arena),
+                aven_str_to_cstr(step->out_path.value, &arena)
+            );
 #endif
             step->state = AVEN_BUILD_STEP_STATE_DONE;
             break;
@@ -280,23 +291,23 @@ AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
     return 0;
 }
 
-AVEN_FN void aven_build_step_clean(AvenBuildStep *step) {
+AVEN_FN void aven_build_step_clean(AvenBuildStep *step, AvenArena arena) {
     if (step->out_path.valid) {
-        aven_fs_rm(step->out_path.value);
-        aven_fs_rmdir(step->out_path.value);
+        aven_fs_rm(step->out_path.value, arena);
+        aven_fs_rmdir(step->out_path.value, arena);
     }
     step->state = AVEN_BUILD_STEP_STATE_NONE;
 
     for (AvenBuildStepNode *dep = step->dep; dep != NULL; dep = dep->next) {
-        aven_build_step_clean(dep->step);
+        aven_build_step_clean(dep->step, arena);
     }
 }
 
-AVEN_FN void aven_build_step_reset(AvenBuildStep *step) {
+AVEN_FN void aven_build_step_reset(AvenBuildStep *step, AvenArena arena) {
     step->state = AVEN_BUILD_STEP_STATE_NONE;
 
     for (AvenBuildStepNode *dep = step->dep; dep != NULL; dep = dep->next) {
-        aven_build_step_reset(dep->step);
+        aven_build_step_reset(dep->step, arena);
     }
 }
 

@@ -2,6 +2,7 @@
 #define AVEN_WATCH_H
 
 #include "../aven.h"
+#include "arena.h"
 #include "str.h"
 
 #define AVEN_WATCH_MAX_HANDLES 32
@@ -26,7 +27,7 @@ typedef enum {
     AVEN_WATCH_ERROR_UNSUPPORTED,
 } AvenWatchError;
 
-AVEN_FN AvenWatchHandle aven_watch_init(AvenStr dirname);
+AVEN_FN AvenWatchHandle aven_watch_init(AvenStr dirname, AvenArena temp_arena);
 AVEN_FN AvenWatchResult aven_watch_check_multiple(
     AvenWatchHandleSlice handles,
     int timeout
@@ -37,7 +38,10 @@ AVEN_FN void aven_watch_deinit(AvenWatchHandle handle);
 #ifdef AVEN_IMPLEMENTATION
 
 #ifdef _WIN32
-    AVEN_FN AvenWatchHandle aven_watch_init(AvenStr dirname) {
+    AVEN_FN AvenWatchHandle aven_watch_init(
+        AvenStr dirname,
+        AvenArena temp_arena
+    ) {
         AVEN_WIN32_FN(AvenWatchHandle) FindFirstChangeNotificationA(
             const char *path_name,
             int watch_subtree,
@@ -45,7 +49,7 @@ AVEN_FN void aven_watch_deinit(AvenWatchHandle handle);
         );
 
         return FindFirstChangeNotificationA(
-            dirname.ptr,
+            aven_str_to_cstr(dirname, &temp_arena),
             0,
             0x1 | 0x2 | 0x8 | 0x10
         );
@@ -92,8 +96,7 @@ AVEN_FN void aven_watch_deinit(AvenWatchHandle handle);
                 return (AvenWatchResult){ .error = AVEN_WATCH_ERROR_FILE };
             }
 
-            handles.ptr += (result + 1);
-            handles.len -= (result + 1);
+            handles = (AvenWatchHandleSlice)slice_tail(handles, result + 1);
         } while (handles.len > 0);
 
         return (AvenWatchResult){ .payload = signaled };
@@ -121,7 +124,10 @@ AVEN_FN void aven_watch_deinit(AvenWatchHandle handle);
     #include <sys/inotify.h>
     #include <unistd.h>
 
-    AVEN_FN AvenWatchHandle aven_watch_init(AvenStr dirname) {
+    AVEN_FN AvenWatchHandle aven_watch_init(
+        AvenStr dirname,
+        AvenArena temp_arena
+    ) {
         AvenWatchHandle handle = inotify_init();
         if (handle < 0) {
             return AVEN_WATCH_HANDLE_INVALID;
@@ -129,7 +135,7 @@ AVEN_FN void aven_watch_deinit(AvenWatchHandle handle);
 
         int result = inotify_add_watch(
             handle,
-            dirname.ptr,
+            aven_str_to_cstr(dirname, &temp_arena),
             IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_MODIFY
         );
         if (result <= 0) {

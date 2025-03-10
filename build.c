@@ -143,8 +143,8 @@ int main(int argc, char **argv) {
     // Execute the chosen build step
 
     if (opts.clean) {
-        aven_build_step_clean(&root_step);
-        aven_build_step_clean(&test_root_step);
+        aven_build_step_clean(&root_step, arena);
+        aven_build_step_clean(&test_root_step, arena);
     } else if (opts.test) {
         error = aven_build_step_run(&test_root_step, arena);
         if (error != 0) {

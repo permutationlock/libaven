@@ -41,7 +41,7 @@ AVEN_FN void aven_test(
         AvenTestResult result = tcase->fn(arena, tcase->args);
         if (result.error != 0) {
             printf(
-                "\n\ttest \"%s\" failed:\n\t\t\"%s\"\n\t\tcode: %d",
+                "\n    test \"%s\" failed:\n        \"%s\"\n        code: %d",
                 tcase->desc,
                 result.message,
                 result.error

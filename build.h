@@ -70,7 +70,7 @@ static inline LibAvenBuildOpts libaven_build_opts(
 
     opts.winpthreads.local = aven_arg_get_bool(args, "-winpthreads");
     if (aven_arg_has_arg(args, "-winpthreads-ccflags")) {
-        opts.winpthreads.ccflags.value = aven_str_splitz(
+        opts.winpthreads.ccflags.value = aven_str_split(
             aven_str_cstr(aven_arg_get_str(args, "-winpthreads-ccflags")),
             ' ',
             arena
@@ -85,7 +85,7 @@ static inline AvenStr libaven_build_include_path(
     AvenStr root_path,
     AvenArena *arena
 ) {
-    return aven_path(arena, root_path.ptr, "include", NULL);
+    return aven_path(arena, root_path, aven_str("include"));
 }
 
 static inline AvenStr libaven_build_include_winpthreads(
@@ -94,11 +94,10 @@ static inline AvenStr libaven_build_include_winpthreads(
 ) {
     return aven_path(
         arena,
-        root_path.ptr,
-        "deps",
-        "winpthreads",
-        "include",
-        NULL
+        root_path,
+        aven_str("deps"),
+        aven_str("winpthreads"),
+        aven_str("include")
     );
 }
 
@@ -116,7 +115,7 @@ static inline AvenBuildStep libaven_build_step(
         opts,
         includes,
         macros,
-        aven_path(arena, root_path.ptr, "src", "aven.c", NULL),
+        aven_path(arena, root_path, aven_str("src"), aven_str("aven.c")),
         out_dir_step,
         arena
     );
@@ -130,7 +129,13 @@ static inline AvenBuildStep libaven_build_step_windres_manifest(
 ) {
     return aven_build_common_step_windres(
         opts,
-        aven_path(arena, root_path.ptr, "src", "windows", "manifest.rc", NULL),
+        aven_path(
+            arena,
+            root_path,
+            aven_str("src"),
+            aven_str("windows"),
+            aven_str("manifest.rc")
+        ),
         out_dir_step,
         arena
     );
@@ -161,11 +166,10 @@ static inline AvenBuildStep libaven_build_step_winpthreads(
         macros,
         aven_path(
             arena,
-            root_path.ptr,
-            "deps",
-            "winpthreads",
-            "winpthreads.c",
-            NULL
+            root_path,
+            aven_str("deps"),
+            aven_str("winpthreads"),
+            aven_str("winpthreads.c")
         ),
         out_dir_step,
         arena

@@ -133,7 +133,7 @@ AVEN_FN AvenProcIdResult aven_proc_cmd(
 
     int success = CreateProcessA(
         NULL,
-        cmd_str.ptr,
+        aven_str_to_cstr(cmd_str, &arena),
         NULL,
         NULL,
         true,
@@ -165,11 +165,11 @@ AVEN_FN AvenProcIdResult aven_proc_cmd(
         );
 
         for (size_t i = 0; i < cmd.len; i += 1) {
-            args[i] = get(cmd, i).ptr;
+            args[i] = aven_str_to_cstr(get(cmd, i), &arena);
         }
         args[cmd.len] = NULL;
 
-        int error = execvp(get(cmd, 0).ptr, args);
+        int error = execvp(aven_str_to_cstr(get(cmd, 0), &arena), args);
         if (error != 0) {
 #ifndef AVEN_SUPPRESS_LOGS
             fprintf(stderr, "execvp failed: %s\n", cmd_str.ptr);

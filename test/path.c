@@ -17,33 +17,30 @@ AvenTestResult test_aven_path(AvenArena arena, void *args) {
         case 0:
             break;
         case 1:
-            path = aven_path(&arena, pargs->parts[0], NULL);
+            path = aven_path(&arena, aven_str_cstr(pargs->parts[0]));
             break;
         case 2:
             path = aven_path(
                 &arena,
-                pargs->parts[0],
-                pargs->parts[1],
-                NULL
+                aven_str_cstr(pargs->parts[0]),
+                aven_str_cstr(pargs->parts[1])
             );
             break;
         case 3:
             path = aven_path(
                 &arena,
-                pargs->parts[0],
-                pargs->parts[1],
-                pargs->parts[2],
-                NULL
+                aven_str_cstr(pargs->parts[0]),
+                aven_str_cstr(pargs->parts[1]),
+                aven_str_cstr(pargs->parts[2])
             );
             break;
         default:
             path = aven_path(
                 &arena,
-                pargs->parts[0],
-                pargs->parts[1],
-                pargs->parts[2],
-                pargs->parts[3],
-                NULL
+                aven_str_cstr(pargs->parts[0]),
+                aven_str_cstr(pargs->parts[1]),
+                aven_str_cstr(pargs->parts[2]),
+                aven_str_cstr(pargs->parts[3])
             );
             break;
     }
@@ -63,7 +60,12 @@ AvenTestResult test_aven_path(AvenArena arena, void *args) {
             1
         );
 
-        int len = sprintf(buffer, fmt, expected_path.ptr, path.ptr);
+        int len = sprintf(
+            buffer,
+            fmt,
+            aven_str_to_cstr(expected_path, &arena),
+            aven_str_to_cstr(path, &arena)
+        );
         assert(len > 0);
 
         return (AvenTestResult){
@@ -99,7 +101,12 @@ AvenTestResult test_aven_path_rel_dir(AvenArena arena, void *args) {
             1
         );
 
-        int len = sprintf(buffer, fmt, expected_path.ptr, path.ptr);
+        int len = sprintf(
+            buffer,
+            fmt,
+            aven_str_to_cstr(expected_path, &arena),
+            aven_str_to_cstr(path, &arena)
+        );
         assert(len > 0);
 
         return (AvenTestResult){
@@ -140,7 +147,12 @@ AvenTestResult test_aven_path_rel_diff(AvenArena arena, void *args) {
             1
         );
 
-        int len = sprintf(buffer, fmt, expected_path.ptr, path.ptr);
+        int len = sprintf(
+            buffer,
+            fmt,
+            aven_str_to_cstr(expected_path, &arena),
+            aven_str_to_cstr(path, &arena)
+        );
         assert(len > 0);
 
         return (AvenTestResult){

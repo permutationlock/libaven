@@ -574,7 +574,7 @@ static inline AvenBuildCommonOpts aven_build_common_opts(
     opts.cc.objflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ccobjflag"));
     opts.cc.outflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ccoutflag"));
     opts.cc.flagsep = aven_arg_get_bool(arg_slice, "-ccflagsep");
-    opts.cc.flags = aven_str_splitz(
+    opts.cc.flags = aven_str_split(
         aven_str_cstr(aven_arg_get_str(arg_slice, "-ccflags")),
         ' ',
         arena
@@ -592,7 +592,7 @@ static inline AvenBuildCommonOpts aven_build_common_opts(
     opts.ld.winflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ldwinflag"));
     opts.ld.shrflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ldshrflag"));
     opts.ld.flagsep = aven_arg_get_bool(arg_slice, "-ldflagsep");
-    opts.ld.flags = aven_str_splitz(
+    opts.ld.flags = aven_str_split(
         aven_str_cstr(aven_arg_get_str(arg_slice, "-ldflags")),
         ' ',
         arena
@@ -607,7 +607,7 @@ static inline AvenBuildCommonOpts aven_build_common_opts(
         opts.ar.outflag = aven_str("");
     }
     opts.ar.flagsep = aven_arg_get_bool(arg_slice, "-arflagsep");
-    opts.ar.flags = aven_str_splitz(
+    opts.ar.flags = aven_str_split(
         aven_str_cstr(aven_arg_get_str(arg_slice, "-arflags")),
         ' ',
         arena
@@ -618,7 +618,7 @@ static inline AvenBuildCommonOpts aven_build_common_opts(
         opts.windres.compiler.value = aven_str_cstr(
             aven_arg_get_str(arg_slice, "-windres")
         );
-        opts.windres.flags = aven_str_splitz(
+        opts.windres.flags = aven_str_split(
             aven_str_cstr(aven_arg_get_str(arg_slice, "-windresflags")),
             ' ',
             arena
@@ -628,27 +628,27 @@ static inline AvenBuildCommonOpts aven_build_common_opts(
         );
     }
 
-    opts.obexts = aven_str_splitz(
+    opts.obexts = aven_str_split(
         aven_str_cstr(aven_arg_get_str(arg_slice, "-obext")),
         ' ',
         arena
     );
-    opts.exexts = aven_str_splitz(
+    opts.exexts = aven_str_split(
         aven_str_cstr(aven_arg_get_str(arg_slice, "-exext")),
         ' ',
         arena
     );
-    opts.soexts = aven_str_splitz(
+    opts.soexts = aven_str_split(
         aven_str_cstr(aven_arg_get_str(arg_slice, "-soext")),
         ' ',
         arena
     );
-    opts.arexts = aven_str_splitz(
+    opts.arexts = aven_str_split(
         aven_str_cstr(aven_arg_get_str(arg_slice, "-arext")),
         ' ',
         arena
     );
-    opts.wrexts = aven_str_splitz(
+    opts.wrexts = aven_str_split(
         aven_str_cstr(aven_arg_get_str(arg_slice, "-wrext")),
         ' ',
         arena
@@ -666,7 +666,7 @@ static inline AvenBuildStep aven_build_common_step_subdir(
     AvenStr dir_path = dir_step->out_path.value;
 
     AvenBuildStep subdir_step = aven_build_step_mkdir(
-        aven_path(arena, dir_path.ptr, subdir_name.ptr, NULL)
+        aven_path(arena, dir_path, subdir_name)
     );
     aven_build_step_add_dep(&subdir_step, dir_step, arena);
     return subdir_step;
@@ -687,9 +687,8 @@ static inline void aven_build_common_step_add_path_deps(
         *path_step = aven_build_step_path(
             aven_path(
                 arena,
-                dir_path.ptr,
-                aven_str_concat(fname, get(exts, i), arena).ptr,
-                NULL
+                dir_path,
+                aven_str_concat(fname, get(exts, i), arena)
             )
         );
         aven_build_step_add_dep(path_step, dir_step, arena);
@@ -709,7 +708,7 @@ static inline AvenBuildStep aven_build_common_step_cc_ex(
     AvenStr out_dir_path = out_dir_step->out_path.value;
 
     AvenStr src_fname = aven_path_fname(src_path, arena);
-    AvenStrSlice ext_split = aven_str_splitz(
+    AvenStrSlice ext_split = aven_str_split(
         src_fname,
         '.',
         arena
@@ -726,9 +725,8 @@ static inline AvenBuildStep aven_build_common_step_cc_ex(
     }
     AvenStr target_path = aven_path(
         arena,
-        out_dir_path.ptr,
-        out_fname.ptr,
-        NULL
+        out_dir_path,
+        out_fname
     );
 
     AvenStrSlice cmd_slice = {
@@ -865,9 +863,8 @@ static AvenBuildStep aven_build_common_step_ld(
     }
     AvenStr target_path = aven_path(
         arena,
-        out_dir_path.ptr,
-        out_fname.ptr,
-        NULL
+        out_dir_path,
+        out_fname
     );
 
     AvenStrSlice cmd_slice = { 0 };
@@ -1077,9 +1074,8 @@ static inline AvenBuildStep aven_build_common_step_ar(
     }
     AvenStr target_path = aven_path(
         arena,
-        out_dir_path.ptr,
-        out_fname.ptr,
-        NULL
+        out_dir_path,
+        out_fname
     );
 
     AvenStrSlice cmd_slice = { 0 };
@@ -1162,7 +1158,7 @@ static inline AvenBuildStep aven_build_common_step_windres(
     AvenStr out_dir_path = out_dir_step->out_path.value;
 
     AvenStr src_fname = aven_path_fname(src_path, arena);
-    AvenStrSlice ext_split = aven_str_splitz(
+    AvenStrSlice ext_split = aven_str_split(
         src_fname,
         '.',
         arena
@@ -1179,9 +1175,8 @@ static inline AvenBuildStep aven_build_common_step_windres(
     }
     AvenStr target_path = aven_path(
         arena,
-        out_dir_path.ptr,
-        out_fname.ptr,
-        NULL
+        out_dir_path,
+        out_fname
     );
 
     AvenStrSlice cmd_slice = { .len = 4 + opts->windres.flags.len };
