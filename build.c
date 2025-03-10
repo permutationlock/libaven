@@ -30,20 +30,20 @@ int main(int argc, char **argv) {
 
     AvenArgSlice common_args = aven_build_common_args();
     AvenArgSlice libaven_args = libaven_build_args();
-    AvenArgSlice args = aven_arena_create_slice(
+
+    List(AvenArg) arg_list = aven_arena_create_list(
         AvenArg,
         &arena,
         common_args.len + libaven_args.len
     );
-    size_t arg_index = 0;
     for (size_t i = 0; i < common_args.len; i += 1) {
-        get(args, arg_index) = get(common_args, i);
-        arg_index += 1;
+        list_push(arg_list) = get(common_args, i);
     }
     for (size_t i = 0; i < libaven_args.len; i += 1) {
-        get(args, arg_index) = get(libaven_args, i);
-        arg_index += 1;
+        list_push(arg_list) = get(libaven_args, i);
     }
+    AvenArgSlice args = slice_list(arg_list);
+    
     int error = aven_arg_parse(
         args,
         argv,

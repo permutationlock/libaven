@@ -69,6 +69,26 @@ AVEN_FN void *aven_arena_realloc(
     size_t size
 );
 
+static inline void aven_arena_shrink(
+    AvenArena *arena,
+    void *ptr,
+    size_t old_count,
+    size_t new_count,
+    size_t align,
+    size_t size
+) {
+    assert(new_count <= old_count);
+    void *new_ptr = aven_arena_realloc(
+        arena,
+        ptr,
+        old_count,
+        new_count,
+        align,
+        size
+    );
+    assert(new_ptr == ptr);
+}
+
 #define aven_arena_create(t, a) (t *)aven_arena_alloc( \
         a, \
         1, \
@@ -106,6 +126,19 @@ AVEN_FN void *aven_arena_realloc(
         .ptr = (void *)aven_arena_create_array(PoolEntry(t), a, n), \
         .cap = n, \
     }
+
+#define aven_arena_shrink_list_to_fit(t, a, l) \
+    do { \
+        aven_arena_shrink( \
+            a, \
+            (l).ptr, \
+            (l).cap, \
+            (l).len, \
+            alignof(t), \
+            sizeof(t) \
+        ); \
+        (l).cap = (l).len; \
+    } while (0)
 
 #ifdef AVEN_IMPLEMENTATION
 

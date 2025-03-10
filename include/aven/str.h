@@ -52,93 +52,35 @@ static inline AvenStrSlice aven_str_split(
     char separator,
     AvenArena *arena
 ) {
-    AvenStrSlice split_strs = aven_arena_create_slice(
+    List(AvenStr) split_strs = aven_arena_create_list(
         AvenStr,
         arena,
         str.len / 2 + 1
     );
 
-    size_t string_index = 0;
     size_t after_last_sep = 0;
     for (size_t i = 0; i <= str.len; i += 1) {
         if (i == str.len or get(str, i) == separator) {
             size_t len = i - after_last_sep;
             if (len > 0) {
-                get(split_strs, string_index) = (AvenStr){
+                list_push(split_strs) = (AvenStr){
                     .ptr = str.ptr + after_last_sep,
                     .len = len,
                 };
-
-                string_index += 1;
             }
 
             after_last_sep = i + 1;
         }
     }
 
-    split_strs.ptr = aven_arena_resize_array(
+    aven_arena_shrink_list_to_fit(
         AvenStr,
         arena,
-        split_strs.ptr,
-        split_strs.len,
-        string_index
+        split_strs
     );
-    split_strs.len = string_index;
 
-    return split_strs;
+    return (AvenStrSlice)slice_list(split_strs);
 }
-
-// static inline AvenStrSlice aven_str_splitz(
-//     AvenStr str,
-//     char separator,
-//     AvenArena *arena
-// ) {
-//     size_t nsep = 0;
-//     size_t after_last_sep = 0;
-//     for (size_t i = 0; i <= str.len; i += 1) {
-//         if (i == str.len or get(str, i) == separator) {
-//             if (i - after_last_sep > 0) {
-//                 nsep += 1;
-//             }
-//             after_last_sep = i + 1;
-//         }
-//     }
-
-//     AvenStr *split_mem = aven_arena_create_array(
-//         AvenStr,
-//         arena,
-//         nsep
-//     );
-
-//     AvenStrSlice split_strs = {
-//         .ptr = split_mem,
-//         .len = nsep,
-//     };
-
-//     size_t string_index = 0;
-//     after_last_sep = 0;
-//     for (size_t i = 0; i <= str.len; i += 1) {
-//         if (i == str.len or get(str, i) == separator) {
-//             size_t len = i - after_last_sep;
-//             if (len > 0) {
-//                 char *string_mem = aven_arena_alloc(arena, len + 1, 1, 1);
-
-//                 get(split_strs, string_index) = (AvenStr){
-//                     .ptr = string_mem,
-//                     .len = len,
-//                 };
-//                 memcpy(string_mem, str.ptr + after_last_sep, len);
-//                 string_mem[len] = 0;
-
-//                 string_index += 1;
-//             }
-
-//             after_last_sep = i + 1;
-//         }
-//     }
-
-//     return split_strs;
-// }
 
 static inline AvenStr aven_str_concat_slice(
     AvenStrSlice strs,
