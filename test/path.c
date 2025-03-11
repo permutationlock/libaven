@@ -85,7 +85,7 @@ typedef struct {
 AvenTestResult test_aven_path_containing_dir(AvenArena arena, void *args) {
     TestAvenPathDirArgs *pargs = args;
 
-    AvenStr path = aven_path_containing_dir(aven_str_cstr(pargs->path), &arena);
+    AvenStr path = aven_path_containing_dir(aven_str_cstr(pargs->path));
     AvenStr expected_path = aven_str_cstr(pargs->expected);
     bool match = aven_str_compare(path, expected_path);
 

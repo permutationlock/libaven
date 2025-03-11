@@ -21,7 +21,7 @@
     )
 
 AVEN_FN AvenStr aven_path_internal(AvenArena *arena, AvenStr part_str, ...);
-AVEN_FN AvenStr aven_path_containing_dir(AvenStr path, AvenArena *arena);
+AVEN_FN AvenStr aven_path_containing_dir(AvenStr path);
 AVEN_FN AvenStr aven_path_fname(AvenStr path, AvenArena *arena);
 AVEN_FN bool aven_path_is_abs(AvenStr path);
 AVEN_FN AvenStr aven_path_rel_intersect(
@@ -104,7 +104,7 @@ AVEN_FN AvenStr aven_path_fname(AvenStr path, AvenArena *arena) {
     return fname;
 }
 
-AVEN_FN AvenStr aven_path_containing_dir(AvenStr path, AvenArena *arena) {
+AVEN_FN AvenStr aven_path_containing_dir(AvenStr path) {
     if (path.len == 0) {
         return aven_str("./..");
     } else if (path.len == 1) {
