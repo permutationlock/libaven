@@ -21,7 +21,7 @@
     )
 
 AVEN_FN AvenStr aven_path_internal(AvenArena *arena, AvenStr part_str, ...);
-AVEN_FN AvenStr aven_path_rel_dir(AvenStr path, AvenArena *arena);
+AVEN_FN AvenStr aven_path_containing_dir(AvenStr path, AvenArena *arena);
 AVEN_FN AvenStr aven_path_fname(AvenStr path, AvenArena *arena);
 AVEN_FN bool aven_path_is_abs(AvenStr path);
 AVEN_FN AvenStr aven_path_rel_intersect(
@@ -104,20 +104,25 @@ AVEN_FN AvenStr aven_path_fname(AvenStr path, AvenArena *arena) {
     return fname;
 }
 
-AVEN_FN AvenStr aven_path_rel_dir(AvenStr path, AvenArena *arena) {
-    while (path.len > 0 and get(path, 0) == '.') {
-        if (path.len > 1) {
-            if (get(path, 1) == '/') {
-                path = aven_str_tail(path, 2);
-            } else {
-                break;
-            }
+AVEN_FN AvenStr aven_path_containing_dir(AvenStr path, AvenArena *arena) {
+    if (path.len == 0) {
+        return aven_str("./..");
+    } else if (path.len == 1) {
+        if (get(path, 0) == AVEN_PATH_SEP) {
+            static const char up_path[] = { AVEN_PATH_SEP, '.', '.', 0 };
+            return (AvenStr){
+                .ptr = (char *)up_path,
+                .len = countof(up_path) - 1
+            };
+        } else if (get(path, 0) == '.') {
+            return aven_str("./..");
         } else {
-            path = aven_str("");
+            return aven_str(".");
         }
     }
+
     size_t i;
-    for (i = path.len; i > 0; i -= 1) {
+    for (i = path.len - 1; i > 0; i -= 1) {
         if (get(path, i - 1) == AVEN_PATH_SEP) {
             break;
         }
@@ -125,17 +130,8 @@ AVEN_FN AvenStr aven_path_rel_dir(AvenStr path, AvenArena *arena) {
     if (i == 0) {
         return aven_str(".");
     }
-    if (i == path.len) {
-        return aven_str_head(path, path.len - 1);
-    }
-    AvenStr dir = { .len = i + 1 };
-    dir.ptr = aven_arena_alloc(arena, dir.len, 1, 1),
 
-    get(dir, 0) = '.';
-    get(dir, 1) = AVEN_PATH_SEP;
-    slice_copy(aven_str_tail(dir, 2), aven_str_head(path, dir.len - 2));
-
-    return dir;
+    return aven_str_head(path, i - 1);
 }
 
 AVEN_FN bool aven_path_is_abs(AvenStr path) {

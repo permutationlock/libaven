@@ -82,10 +82,10 @@ typedef struct {
     char *path;
 } TestAvenPathDirArgs;
 
-AvenTestResult test_aven_path_rel_dir(AvenArena arena, void *args) {
+AvenTestResult test_aven_path_containing_dir(AvenArena arena, void *args) {
     TestAvenPathDirArgs *pargs = args;
 
-    AvenStr path = aven_path_rel_dir(aven_str_cstr(pargs->path), &arena);
+    AvenStr path = aven_path_containing_dir(aven_str_cstr(pargs->path), &arena);
     AvenStr expected_path = aven_str_cstr(pargs->expected);
     bool match = aven_str_compare(path, expected_path);
 
@@ -270,40 +270,76 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_rel_dir 1 level relative path",
-            .fn = test_aven_path_rel_dir,
+            .desc = "aven_path_containing_dir 1 level relative path",
+            .fn = test_aven_path_containing_dir,
             .args = &(TestAvenPathDirArgs){
                 .expected = ".",
                 .path = "dir",
             },
         },
         {
-            .desc = "aven_path_rel_dir 2 level relative path",
-            .fn = test_aven_path_rel_dir,
+            .desc = "aven_path_containing_dir current dir",
+            .fn = test_aven_path_containing_dir,
             .args = &(TestAvenPathDirArgs){
 #ifdef _WIN32
-                .expected = ".\\a",
-                .path = "a\\b",
+                .expected = ".\\..",
+                .path = ".",
 #else
-                .expected = "./a",
-                .path = "a/b",
+                .expected = "./..",
+                .path = ".",
 #endif
             },
         },
 #ifndef _WIN32
         {
-            .desc = "aven_path_rel_dir filename starting with \'.\'",
-            .fn = test_aven_path_rel_dir,
+            .desc = "aven_path_containing_dir root dir",
+            .fn = test_aven_path_containing_dir,
+            .args = &(TestAvenPathDirArgs){
+                .expected = "/..",
+                .path = "/",
+            },
+        },
+#endif
+        {
+            .desc = "aven_path_containing_dir 2 level relative path",
+            .fn = test_aven_path_containing_dir,
+            .args = &(TestAvenPathDirArgs){
+#ifdef _WIN32
+                .expected = "a",
+                .path = "a\\b",
+#else
+                .expected = "a",
+                .path = "a/b",
+#endif
+            },
+        },
+        {
+            .desc = "aven_path_containing_dir 2 level absolute path",
+            .fn = test_aven_path_containing_dir,
+            .args = &(TestAvenPathDirArgs){
+#ifdef _WIN32
+                .expected = "C:\\a",
+                .path = "C:\\a\\b",
+#else
+                .expected = "/a",
+                .path = "/a/b",
+#endif
+            },
+        },
+#ifndef _WIN32
+        {
+            .desc = "aven_path_containing_dir filename starting with \'.\'",
+            .fn = test_aven_path_containing_dir,
             .args = &(TestAvenPathDirArgs){
                 .expected = ".",
                 .path = ".hidden",
             },
         },
         {
-            .desc = "aven_path_rel_dir 2 level dirname starting with \'.\'",
-            .fn = test_aven_path_rel_dir,
+            .desc = "aven_path_containing_dir 2 level dirname starting with \'.\'",
+            .fn = test_aven_path_containing_dir,
             .args = &(TestAvenPathDirArgs){
-                .expected = "./.hidden",
+                .expected = ".hidden",
                 .path = ".hidden/.file",
             },
         },
