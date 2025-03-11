@@ -164,6 +164,52 @@ AvenTestResult test_aven_path_rel_diff(AvenArena arena, void *args) {
     return (AvenTestResult){ 0 };
 }
 
+typedef struct {
+    char *expected;
+    char *path1;
+    char *path2;
+} TestAvenPathIntersectArgs;
+
+AvenTestResult test_aven_path_rel_intersect(AvenArena arena, void *args) {
+    TestAvenPathIntersectArgs *pargs = args;
+
+    AvenStr path = aven_path_rel_intersect(
+        aven_str_cstr(pargs->path1),
+        aven_str_cstr(pargs->path2),
+        &arena
+    );
+    AvenStr expected_path = aven_str_cstr(pargs->expected);
+    bool match = aven_str_compare(path, expected_path);
+
+    if (!match) {
+        char fmt[] = "expected \"%s\", found \"%s\"";
+       
+        char *buffer = aven_arena_alloc(
+            &arena,
+            sizeof(fmt) +
+            path.len +
+            expected_path.len,
+            1,
+            1
+        );
+
+        int len = sprintf(
+            buffer,
+            fmt,
+            aven_str_to_cstr(expected_path, &arena),
+            aven_str_to_cstr(path, &arena)
+        );
+        assert(len > 0);
+
+        return (AvenTestResult){
+            .error = 3,
+            .message = buffer,
+        };
+    }
+
+    return (AvenTestResult){ 0 };
+}
+
 int test_path(AvenArena arena) {
     AvenTestCase tcase_data[] = {
         {
@@ -236,14 +282,32 @@ int test_path(AvenArena arena) {
             .fn = test_aven_path_rel_dir,
             .args = &(TestAvenPathDirArgs){
 #ifdef _WIN32
-                .expected = "a",
+                .expected = ".\\a",
                 .path = "a\\b",
 #else
-                .expected = "a",
+                .expected = "./a",
                 .path = "a/b",
 #endif
             },
         },
+#ifndef _WIN32
+        {
+            .desc = "aven_path_rel_dir filename starting with \'.\'",
+            .fn = test_aven_path_rel_dir,
+            .args = &(TestAvenPathDirArgs){
+                .expected = ".",
+                .path = ".hidden",
+            },
+        },
+        {
+            .desc = "aven_path_rel_dir 2 level dirname starting with \'.\'",
+            .fn = test_aven_path_rel_dir,
+            .args = &(TestAvenPathDirArgs){
+                .expected = "./.hidden",
+                .path = ".hidden/.file",
+            },
+        },
+#endif
         {
             .desc = "aven_path_rel_diff same dir relative path",
             .fn = test_aven_path_rel_diff,
@@ -334,6 +398,118 @@ int test_path(AvenArena arena) {
 #endif
             },
         },
+#ifndef _WIN32
+        {
+            .desc = "aven_path_rel_diff superdir w/\'.\' in name",
+            .fn = test_aven_path_rel_diff,
+            .args = &(TestAvenPathIntersectArgs){
+                .expected = "./.b",
+                .path1 = ".a/.b",
+                .path2 = ".a",
+            },
+        },
+#endif
+        {
+            .desc = "aven_path_rel_intersect same dir relative path",
+            .fn = test_aven_path_rel_intersect,
+            .args = &(TestAvenPathIntersectArgs){
+#ifdef _WIN32
+                .expected = ".\\dir",
+                .path1 = "dir",
+                .path2 = "dir",
+#else
+                .expected = "./dir",
+                .path1 = "dir",
+                .path2 = "dir",
+#endif
+            },
+        },
+        {
+            .desc = "aven_path_rel_intersect same dir relative path w/ '.' prefix",
+            .fn = test_aven_path_rel_intersect,
+            .args = &(TestAvenPathIntersectArgs){
+#ifdef _WIN32
+                .expected = ".\\dir",
+                .path1 = ".\\dir",
+                .path2 = "dir",
+#else
+                .expected = "./dir",
+                .path1 = "./dir",
+                .path2 = "dir",
+#endif
+            },
+        },
+        {
+            .desc = "aven_path_rel_intersect neighbor relative path",
+            .fn = test_aven_path_rel_intersect,
+            .args = &(TestAvenPathIntersectArgs){
+#ifdef _WIN32
+                .expected = ".",
+                .path1 = "a",
+                .path2 = "b",
+#else
+                .expected = ".",
+                .path1 = "a",
+                .path2 = "b",
+#endif
+            },
+        },
+        {
+            .desc = "aven_path_rel_intersect neighbor relative path w/ '.' prefix",
+            .fn = test_aven_path_rel_intersect,
+            .args = &(TestAvenPathIntersectArgs){
+#ifdef _WIN32
+                .expected = ".",
+                .path1 = "a",
+                .path2 = ".\\b",
+#else
+                .expected = ".",
+                .path1 = "a",
+                .path2 = "./b",
+#endif
+            },
+        },
+        {
+            .desc = "aven_path_rel_intersect subdir relative path",
+            .fn = test_aven_path_rel_intersect,
+            .args = &(TestAvenPathIntersectArgs){
+#ifdef _WIN32
+                .expected = ".\\a",
+                .path1 = "a",
+                .path2 = "a\\b",
+#else
+                .expected = "./a",
+                .path1 = "a",
+                .path2 = "a/b",
+#endif
+            },
+        },
+        {
+            .desc = "aven_path_rel_intersect superdir relative path",
+            .fn = test_aven_path_rel_intersect,
+            .args = &(TestAvenPathIntersectArgs){
+#ifdef _WIN32
+                .expected = ".\\a",
+                .path1 = "a\\b",
+                .path2 = "a",
+#else
+                .expected = "./a",
+                .path1 = "a/b",
+                .path2 = "a",
+#endif
+            },
+        },
+#ifndef _WIN32
+        {
+            .desc = "aven_path_rel_intersect superdir w/\'.\' in name",
+            .fn = test_aven_path_rel_intersect,
+            .args = &(TestAvenPathIntersectArgs){
+                .expected = "./.a",
+                .path1 = ".a/.b",
+                .path2 = ".a",
+            },
+        },
+#endif
     };
     AvenTestCaseSlice tcases = {
         .ptr = tcase_data,

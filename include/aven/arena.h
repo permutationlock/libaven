@@ -69,25 +69,17 @@ AVEN_FN void *aven_arena_realloc(
     size_t size
 );
 
-static inline void aven_arena_realloc_shrink(
-    AvenArena *arena,
-    void *ptr,
-    size_t old_count,
-    size_t new_count,
-    size_t align,
-    size_t size
-) {
-    assert(new_count <= old_count);
-    void *new_ptr = aven_arena_realloc(
-        arena,
-        ptr,
-        old_count,
-        new_count,
-        align,
-        size
-    );
-    assert(new_ptr == ptr);
-}
+#define aven_arena_realloc_shrink(a, p, oc, nc, al, sz) ( \
+        assert(nc <= oc), \
+        aven_arena_realloc( \
+            a, \
+            p, \
+            oc, \
+            nc, \
+            al, \
+            sz \
+        ) \
+    )
 
 #define aven_arena_create(t, a) (t *)aven_arena_alloc( \
         a, \
@@ -139,7 +131,7 @@ static inline void aven_arena_realloc_shrink(
 #define aven_arena_shrink_list(t, a, l, n) \
     do { \
         assert((l).len <= (n)); \
-        aven_arena_realloc_shrink( \
+        (void)aven_arena_realloc_shrink( \
             a, \
             (l).ptr, \
             (l).cap, \
