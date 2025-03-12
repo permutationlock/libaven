@@ -1,4 +1,5 @@
 #include <aven.h>
+#include <aven/arena.h>
 #include <aven/io.h>
 #include <aven/path.h>
 #include <aven/str.h>

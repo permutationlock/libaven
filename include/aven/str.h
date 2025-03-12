@@ -9,7 +9,7 @@ typedef Slice(AvenStr) AvenStrSlice;
 
 #define aven_str(a) (AvenStr){ \
         .ptr = a, \
-        .len = sizeof(a) - 1 \
+        .len = countof(a) - 1 \
     }
 
 #define aven_str_head(s, i) (AvenStr)slice_head(s, i)

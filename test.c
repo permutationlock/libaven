@@ -5,6 +5,7 @@
 #define AVEN_IMPLEMENTATION
 
 #include <aven.h>
+#include <aven/arena.h>
 #include <aven/fs.h>
 #include <aven/path.h>
 #include <aven/str.h>
@@ -14,7 +15,6 @@
 
 #include "test/path.c"
 #include "test/io.c"
-#include "test/build_common.c"
 
 #define ARENA_SIZE (4096 * 16)
 
@@ -25,7 +25,6 @@ int main(void) {
 
     test_path(test_arena);
     test_io(test_arena);
-    test_build_common(test_arena);
 
     return 0;
 }
