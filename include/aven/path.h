@@ -14,13 +14,15 @@
     #define AVEN_PATH_SEP '/'
 #endif
 
-#define aven_path(a, ...) aven_path_internal( \
-        a, \
-        __VA_ARGS__, \
-        (AvenStr){ 0 } \
+#define aven_path(a, ...) aven_str_join( \
+        (AvenStrSlice){ \
+            .ptr = (AvenStr[]){ __VA_ARGS__}, \
+            .len = sizeof((AvenStr[]){ __VA_ARGS__}) / sizeof(AvenStr), \
+        }, \
+        AVEN_PATH_SEP, \
+        a \
     )
 
-AVEN_FN AvenStr aven_path_internal(AvenArena *arena, AvenStr part_str, ...);
 AVEN_FN AvenStr aven_path_containing_dir(AvenStr path);
 AVEN_FN AvenStr aven_path_fname(AvenStr path, AvenArena *arena);
 AVEN_FN bool aven_path_is_abs(AvenStr path);
@@ -46,40 +48,12 @@ AVEN_FN AvenPathResult aven_path_exe(AvenArena *arena);
 
 #ifdef AVEN_IMPLEMENTATION
 
-#include <stdarg.h>
-
 #ifdef __linux__
     #if !defined(_POSIX_C_SOURCE) or _POSIX_C_SOURCE < 200112L
         #error "readlink requires _POSIX_C_SOURCE >= 200112L"
     #endif
     #include <unistd.h>
 #endif
-
-AVEN_FN AvenStr aven_path_internal(AvenArena *arena, AvenStr part_str, ...) {
-    AvenStr part_data[AVEN_PATH_MAX_ARGS];
-    List(AvenStr) part_list = list_array(part_data);
-
-    list_push(part_list) = part_str;
-
-    va_list args;
-    va_start(args, part_str);
-    for (
-        AvenStr str = va_arg(args, AvenStr);
-        str.len != 0;
-        str = va_arg(args, AvenStr)
-    ) {
-        list_push(part_list) = str;
-    }
-    va_end(args);
-
-    AvenStrSlice part_slice = slice_list(part_list);
-
-    return aven_str_join(
-        part_slice,
-        AVEN_PATH_SEP,
-        arena
-    );
-}
 
 AVEN_FN AvenStr aven_path_fname(AvenStr path, AvenArena *arena) {
     size_t i;
