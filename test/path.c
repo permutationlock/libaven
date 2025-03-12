@@ -9,7 +9,11 @@ typedef struct {
     size_t nparts;
 } TestAvenPathArgs;
 
-AvenTestResult test_aven_path(AvenArena arena, void *args) {
+AvenTestResult test_aven_path(
+    AvenArena *emsg_arena,
+    AvenArena arena,
+    void *args
+) {
     TestAvenPathArgs *pargs = args;
 
     AvenStr path = { 0 };
@@ -52,7 +56,7 @@ AvenTestResult test_aven_path(AvenArena arena, void *args) {
         char fmt[] = "expected \"%s\", found \"%s\"";
        
         char *buffer = aven_arena_alloc(
-            &arena,
+            emsg_arena,
             sizeof(fmt) +
                 path.len +
                 expected_path.len,
@@ -82,7 +86,11 @@ typedef struct {
     char *path;
 } TestAvenPathDirArgs;
 
-AvenTestResult test_aven_path_containing_dir(AvenArena arena, void *args) {
+AvenTestResult test_aven_path_containing_dir(
+    AvenArena *emsg_arena,
+    AvenArena arena,
+    void *args
+) {
     TestAvenPathDirArgs *pargs = args;
 
     AvenStr path = aven_path_containing_dir(aven_str_cstr(pargs->path));
@@ -93,7 +101,7 @@ AvenTestResult test_aven_path_containing_dir(AvenArena arena, void *args) {
         char fmt[] = "expected \"%s\", found \"%s\"";
        
         char *buffer = aven_arena_alloc(
-            &arena,
+            emsg_arena,
             sizeof(fmt) +
                 path.len +
                 expected_path.len,
@@ -124,7 +132,11 @@ typedef struct {
     char *path2;
 } TestAvenPathDiffArgs;
 
-AvenTestResult test_aven_path_rel_diff(AvenArena arena, void *args) {
+AvenTestResult test_aven_path_rel_diff(
+    AvenArena *emsg_arena,
+    AvenArena arena,
+    void *args
+) {
     TestAvenPathDiffArgs *pargs = args;
 
     AvenStr path = aven_path_rel_diff(
@@ -139,7 +151,7 @@ AvenTestResult test_aven_path_rel_diff(AvenArena arena, void *args) {
         char fmt[] = "expected \"%s\", found \"%s\"";
        
         char *buffer = aven_arena_alloc(
-            &arena,
+            emsg_arena,
             sizeof(fmt) +
             path.len +
             expected_path.len,
@@ -170,7 +182,11 @@ typedef struct {
     char *path2;
 } TestAvenPathIntersectArgs;
 
-AvenTestResult test_aven_path_rel_intersect(AvenArena arena, void *args) {
+AvenTestResult test_aven_path_rel_intersect(
+    AvenArena *emsg_arena,
+    AvenArena arena,
+    void *args
+) {
     TestAvenPathIntersectArgs *pargs = args;
 
     AvenStr path = aven_path_rel_intersect(
@@ -185,7 +201,7 @@ AvenTestResult test_aven_path_rel_intersect(AvenArena arena, void *args) {
         char fmt[] = "expected \"%s\", found \"%s\"";
        
         char *buffer = aven_arena_alloc(
-            &arena,
+            emsg_arena,
             sizeof(fmt) +
             path.len +
             expected_path.len,

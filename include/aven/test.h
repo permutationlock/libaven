@@ -9,7 +9,11 @@ typedef struct {
     const char *message;
 } AvenTestResult;
 
-typedef AvenTestResult (*AvenTestFn)(AvenArena arena, void *args);
+typedef AvenTestResult (*AvenTestFn)(
+    AvenArena *emsg_arena,
+    AvenArena arena,
+    void *args
+);
 
 typedef struct {
     const char *desc;
@@ -34,11 +38,16 @@ AVEN_FN void aven_test(
     const char *fname,
     AvenArena arena
 ) {
+    char emessage_buffer[4096];
     printf("running %lu test(s) for %s:", (unsigned long)tcases.len, fname);
     size_t passed = 0;
     for (size_t i = 0; i < tcases.len; i += 1) {
+        AvenArena emsg_arena = aven_arena_init(
+            emessage_buffer,
+            countof(emessage_buffer)
+        );
         AvenTestCase *tcase = &get(tcases, i);
-        AvenTestResult result = tcase->fn(arena, tcase->args);
+        AvenTestResult result = tcase->fn(&emsg_arena, arena, tcase->args);
         if (result.error != 0) {
             printf(
                 "\n    test \"%s\" failed:\n        \"%s\"\n        code: %d",
