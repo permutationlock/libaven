@@ -662,8 +662,7 @@ static inline AvenBuildStep aven_build_common_step_subdir(
     AvenStr subdir_name,
     AvenArena *arena
 ) {
-    assert(dir_step->out_path.valid);
-    AvenStr dir_path = dir_step->out_path.value;
+    AvenStr dir_path = unwrap(dir_step->out_path);
 
     AvenBuildStep subdir_step = aven_build_step_mkdir(
         aven_path(arena, dir_path, subdir_name)
@@ -679,8 +678,7 @@ static inline void aven_build_common_step_add_path_deps(
     AvenStrSlice exts,
     AvenArena *arena
 ) {
-    assert(dir_step->out_path.valid);
-    AvenStr dir_path = dir_step->out_path.value;
+    AvenStr dir_path = unwrap(dir_step->out_path);
 
     for (size_t i = 0; i < exts.len; i += 1) {
         AvenBuildStep *path_step = aven_arena_create(AvenBuildStep, arena);
@@ -704,8 +702,7 @@ static inline AvenBuildStep aven_build_common_step_cc_ex(
     AvenBuildStep *out_dir_step,
     AvenArena *arena
 ) {
-    assert(out_dir_step->out_path.valid);
-    AvenStr out_dir_path = out_dir_step->out_path.value;
+    AvenStr out_dir_path = unwrap(out_dir_step->out_path);
 
     AvenStr src_fname = aven_path_fname(src_path, arena);
     AvenStrSlice ext_split = aven_str_split(
@@ -833,8 +830,7 @@ static AvenBuildStep aven_build_common_step_ld(
     AvenBuildCommonBinType bin_type,
     AvenArena *arena
 ) {
-    assert(out_dir_step->out_path.valid);
-    AvenStr out_dir_path = out_dir_step->out_path.value;
+    AvenStr out_dir_path = unwrap(out_dir_step->out_path);
 
     AvenStrSlice exts = opts->exexts;
     if (bin_type == AVEN_BUILD_COMMON_BIN_TYPE_DLL) {
@@ -889,8 +885,7 @@ static AvenBuildStep aven_build_common_step_ld(
 
     for (size_t j = 0; j < obj_steps.len; j += 1) {
         AvenBuildStep *obj_step = get(obj_steps, j);
-        assert(obj_step->out_path.valid);
-        list_push(cmd_list) = obj_step->out_path.value;
+        list_push(cmd_list) = unwrap(obj_step->out_path);
     }
 
     for (size_t j = 0; j < linked_libs.len; j += 1) {
@@ -1017,8 +1012,7 @@ static inline AvenBuildStep aven_build_common_step_ar(
     AvenStr out_fname,
     AvenArena *arena
 ) {
-    assert(out_dir_step->out_path.valid);
-    AvenStr out_dir_path = out_dir_step->out_path.value;
+    AvenStr out_dir_path = unwrap(out_dir_step->out_path);
 
     AvenStr ext_free_fname = out_fname;
     if (opts->arexts.len > 0) {
@@ -1063,8 +1057,7 @@ static inline AvenBuildStep aven_build_common_step_ar(
 
     for (size_t j = 0; j < obj_steps.len; j += 1) {
         AvenBuildStep *obj_step = get(obj_steps, j);
-        assert(obj_step->out_path.valid);
-        list_push(cmd_list) = obj_step->out_path.value;
+        list_push(cmd_list) = unwrap(obj_step->out_path);
     }
 
     aven_arena_shrink_list_to_len(AvenStr, arena, cmd_list);
@@ -1101,8 +1094,7 @@ static inline AvenBuildStep aven_build_common_step_windres(
     AvenBuildStep *out_dir_step,
     AvenArena *arena
 ) {
-    assert(out_dir_step->out_path.valid);
-    AvenStr out_dir_path = out_dir_step->out_path.value;
+    AvenStr out_dir_path = unwrap(out_dir_step->out_path);
 
     AvenStr src_fname = aven_path_fname(src_path, arena);
     AvenStrSlice ext_split = aven_str_split(
@@ -1132,8 +1124,7 @@ static inline AvenBuildStep aven_build_common_step_windres(
         4 + opts->windres.flags.len
     );
 
-    assert(opts->windres.compiler.valid);
-    list_push(cmd_list) = opts->windres.compiler.value;
+    list_push(cmd_list) = unwrap(opts->windres.compiler);
 
     for (size_t j = 0; j < opts->windres.flags.len; j += 1) {
         list_push(cmd_list) = get(opts->windres.flags, j);
@@ -1199,8 +1190,7 @@ static AvenBuildStep aven_build_common_step_cc_ld(
         i += 1;
     }
 
-    assert(obj_step->out_path.valid);
-    AvenStr obj_fname = aven_path_fname(obj_step->out_path.value, arena);
+    AvenStr obj_fname = aven_path_fname(unwrap(obj_step->out_path), arena);
     if (opts->obexts.len > 0) {
         obj_fname.len -= get(opts->obexts, 0).len;
     }
@@ -1316,15 +1306,13 @@ static inline AvenBuildStep aven_build_common_step_run_exe(
     AvenStrSlice args,
     AvenArena *arena
 ) {
-    assert(exe_step->out_path.valid);
-
     List(AvenStr) cmd_list = aven_arena_create_list(
         AvenStr,
         arena,
         1 + args.len
     );
 
-    list_push(cmd_list) = exe_step->out_path.value;
+    list_push(cmd_list) = unwrap(exe_step->out_path);
 
     for (size_t j = 0; j < args.len; j += 1) {
         list_push(cmd_list) = get(args, j);

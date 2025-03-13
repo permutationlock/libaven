@@ -126,6 +126,7 @@ static inline void aven_pool_push_free_internal(
     *free = index + 1;
 }
 
+#define unwrap(o) (assert((o).valid), (o).value)
 #define get(s, i) (s).ptr[(assert(i < (s).len), i)]
 #define list_get(l, i) get(l, i)
 #define list_front(l) get(l, 0)

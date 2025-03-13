@@ -146,7 +146,7 @@ typedef enum {
 
 AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena);
 AVEN_FN void aven_build_step_clean(AvenBuildStep *step, AvenArena arena);
-AVEN_FN void aven_build_step_reset(AvenBuildStep *step, AvenArena aren);
+AVEN_FN void aven_build_step_reset(AvenBuildStep *step, AvenArena arena);
 
 #ifdef AVEN_IMPLEMENTATION
 
