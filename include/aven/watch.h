@@ -19,13 +19,13 @@
     #define AVEN_WATCH_HANDLE_INVALID -1
 #endif
 
-typedef Result(uint32_t) AvenWatchResult;
 typedef enum {
     AVEN_WATCH_ERROR_NONE = 0,
     AVEN_WATCH_ERROR_FILE,
     AVEN_WATCH_ERROR_POLL,
     AVEN_WATCH_ERROR_UNSUPPORTED,
 } AvenWatchError;
+typedef Result(uint32_t, AvenWatchError) AvenWatchResult;
 
 AVEN_FN AvenWatchHandle aven_watch_init(AvenStr dirname, AvenArena temp_arena);
 AVEN_FN AvenWatchResult aven_watch_check_multiple(

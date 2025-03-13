@@ -12,7 +12,7 @@ typedef enum {
     AVEN_FS_RM_ERROR_OTHER,
 } AvenFsRmError;
 
-AVEN_FN int aven_fs_rm(AvenStr path, AvenArena temp_arena);
+AVEN_FN AvenFsRmError aven_fs_rm(AvenStr path, AvenArena temp_arena);
 
 typedef enum {
     AVEN_FS_RMDIR_ERROR_NONE = 0,
@@ -22,7 +22,7 @@ typedef enum {
     AVEN_FS_RMDIR_ERROR_OTHER,
 } AvenFsRmdirError;
 
-AVEN_FN int aven_fs_rmdir(AvenStr path, AvenArena temp_arena);
+AVEN_FN AvenFsRmdirError aven_fs_rmdir(AvenStr path, AvenArena temp_arena);
 
 typedef enum {
     AVEN_FS_MKDIR_ERROR_NONE = 0,
@@ -32,7 +32,7 @@ typedef enum {
     AVEN_FS_MKDIR_ERROR_OTHER,
 } AvenFsMkdirError;
 
-AVEN_FN int aven_fs_mkdir(AvenStr path, AvenArena temp_arena);
+AVEN_FN AvenFsMkdirError aven_fs_mkdir(AvenStr path, AvenArena temp_arena);
 
 typedef enum {
     AVEN_FS_TRUNC_ERROR_NONE = 0,
@@ -41,7 +41,7 @@ typedef enum {
     AVEN_FS_TRUNC_ERROR_OTHER,
 } AvenFsTruncError;
 
-AVEN_FN int aven_fs_trunc(AvenStr path, AvenArena temp_arena);
+AVEN_FN AvenFsTruncError aven_fs_trunc(AvenStr path, AvenArena temp_arena);
 
 typedef enum {
     AVEN_FS_COPY_ERROR_NONE = 0,
@@ -52,7 +52,7 @@ typedef enum {
     AVEN_FS_COPY_ERROR_OTHER,
 } AvenFsCopyError;
 
-AVEN_FN int aven_fs_copy(AvenStr ipath, AvenStr opath, AvenArena temp_arena);
+AVEN_FN AvenFsCopyError aven_fs_copy(AvenStr ipath, AvenStr opath, AvenArena temp_arena);
 
 AVEN_FN void aven_fs_utf8_mode(void);
 
@@ -75,7 +75,7 @@ AVEN_FN void aven_fs_utf8_mode(void);
     #include <unistd.h>
 #endif
 
-AVEN_FN int aven_fs_rm(AvenStr path, AvenArena temp_arena) {
+AVEN_FN AvenFsRmError aven_fs_rm(AvenStr path, AvenArena temp_arena) {
 #ifdef _WIN32
     int error = _unlink(aven_str_to_cstr(path, &temp_arena));
     if (error != 0) {
@@ -89,7 +89,7 @@ AVEN_FN int aven_fs_rm(AvenStr path, AvenArena temp_arena) {
         }
     }
 
-    return 0;
+    return AVEN_FS_RM_ERROR_NONE;
 #else
     int error = unlink(aven_str_to_cstr(path, &temp_arena));
     if (error != 0) {
@@ -108,11 +108,11 @@ AVEN_FN int aven_fs_rm(AvenStr path, AvenArena temp_arena) {
         }
     }
 
-    return 0;
+    return AVEN_FS_RM_ERROR_NONE;
 #endif
 }
 
-AVEN_FN int aven_fs_rmdir(AvenStr path, AvenArena temp_arena) {
+AVEN_FN AvenFsRmdirError aven_fs_rmdir(AvenStr path, AvenArena temp_arena) {
 #ifdef _WIN32
     int error = _rmdir(aven_str_to_cstr(path, &temp_arena));
     if (error != 0) {
@@ -128,7 +128,7 @@ AVEN_FN int aven_fs_rmdir(AvenStr path, AvenArena temp_arena) {
         }
     }
 
-    return 0;
+    return AVEN_FS_RMDIR_ERROR_NONE;
 #else
     int error = rmdir(aven_str_to_cstr(path, &temp_arena));
     if (error != 0) {
@@ -151,11 +151,11 @@ AVEN_FN int aven_fs_rmdir(AvenStr path, AvenArena temp_arena) {
         }
     }
 
-    return 0;
+    return AVEN_FS_RMDIR_ERROR_NONE;
 #endif
 }
 
-AVEN_FN int aven_fs_mkdir(AvenStr path, AvenArena temp_arena) {
+AVEN_FN AvenFsMkdirError aven_fs_mkdir(AvenStr path, AvenArena temp_arena) {
 #ifdef _WIN32
     int error = _mkdir(aven_str_to_cstr(path, &temp_arena));
     if (error != 0) {
@@ -171,7 +171,7 @@ AVEN_FN int aven_fs_mkdir(AvenStr path, AvenArena temp_arena) {
         }
     }
 
-    return 0;
+    return AVEN_FS_MKDIR_ERROR_NONE;
 #else
     int error = mkdir(
         aven_str_to_cstr(path, &temp_arena),
@@ -193,11 +193,11 @@ AVEN_FN int aven_fs_mkdir(AvenStr path, AvenArena temp_arena) {
         }
     }
 
-    return 0;
+    return AVEN_FS_MKDIR_ERROR_NONE;
 #endif
 }
 
-AVEN_FN int aven_fs_trunc(AvenStr path, AvenArena temp_arena) {
+AVEN_FN AvenFsTruncError aven_fs_trunc(AvenStr path, AvenArena temp_arena) {
 #ifdef _WIN32
     int fd = _open(
         aven_str_to_cstr(path, &temp_arena),
@@ -217,7 +217,7 @@ AVEN_FN int aven_fs_trunc(AvenStr path, AvenArena temp_arena) {
 
     _close(fd);
 
-    return 0;
+    return AVEN_FS_TRUNC_ERROR_NONE;
 #else
     int fd = -1;
     do {
@@ -243,11 +243,11 @@ AVEN_FN int aven_fs_trunc(AvenStr path, AvenArena temp_arena) {
 
     close(fd);
 
-    return 0;
+    return AVEN_FS_TRUNC_ERROR_NONE;
 #endif
 }
 
-AVEN_FN int aven_fs_copy(AvenStr ipath, AvenStr opath, AvenArena temp_arena) {
+AVEN_FN AvenFsCopyError aven_fs_copy(AvenStr ipath, AvenStr opath, AvenArena temp_arena) {
 #ifdef _WIN32
     AVEN_WIN32_FN(int) CopyFileA(
         const char *fname,
@@ -272,7 +272,7 @@ AVEN_FN int aven_fs_copy(AvenStr ipath, AvenStr opath, AvenArena temp_arena) {
         }
     }
 
-    return 0;
+    return AVEN_FS_COPY_ERROR_NONE;
 #else
     int ifd = -1;
     do {
@@ -321,7 +321,7 @@ AVEN_FN int aven_fs_copy(AvenStr ipath, AvenStr opath, AvenArena temp_arena) {
     close(ifd);
     close(ofd);
 
-    return 0;
+    return AVEN_FS_COPY_ERROR_NONE;
 #endif
 }
 

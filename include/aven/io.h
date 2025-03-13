@@ -12,7 +12,7 @@ typedef enum {
     AVEN_IO_READ_ERROR_TELL,
     AVEN_IO_READ_ERROR_READ,
 } AvenIoReadError;
-typedef Result(ByteSlice) AvenIoReadResult;
+typedef Result(ByteSlice, AvenIoReadError) AvenIoReadResult;
 
 AVEN_FN AvenIoReadResult aven_io_read(AvenStr file_path, AvenArena *arena);
 
@@ -22,7 +22,7 @@ typedef enum {
     AVEN_IO_WRITE_ERROR_WRITE,
 } AvenIoWriteError;
 
-AVEN_FN int aven_io_write(
+AVEN_FN AvenIoWriteError aven_io_write(
     AvenStr file_path,
     ByteSlice bytes,
     AvenArena temp_arena
@@ -79,7 +79,7 @@ AVEN_FN AvenIoReadResult aven_io_read(AvenStr file_path, AvenArena *arena) {
     return (AvenIoReadResult){ .payload = bytes };
 }
 
-AVEN_FN int aven_io_write(
+AVEN_FN AvenIoWriteError aven_io_write(
     AvenStr file_path,
     ByteSlice bytes,
     AvenArena temp_arena

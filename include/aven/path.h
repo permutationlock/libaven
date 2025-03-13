@@ -37,12 +37,12 @@ AVEN_FN AvenStr aven_path_rel_diff(
     AvenArena *arena
 );
 
-typedef Result(AvenStr) AvenPathResult;
 typedef enum {
     AVEN_PATH_EXE_ERROR_NONE = 0,
     AVEN_PATH_EXE_ERROR_FAIL,
     AVEN_PATH_EXE_ERROR_UNSUPPORTED,
 } AvenPathExeError;
+typedef Result(AvenStr, AvenPathExeError) AvenPathResult;
 
 AVEN_FN AvenPathResult aven_path_exe(AvenArena *arena);
 

@@ -9,7 +9,7 @@
 
 AVEN_FN void *aven_dl_open(AvenStr fname, AvenArena temp_arena);
 AVEN_FN void *aven_dl_sym(void *handle, AvenStr symbol, AvenArena temp_arena);
-AVEN_FN int aven_dl_close(void *handle);
+AVEN_FN void aven_dl_close(void *handle);
 
 #ifdef AVEN_IMPLEMENTATION
 
@@ -74,10 +74,11 @@ AVEN_FN int aven_dl_close(void *handle);
         return GetProcAddress(handle, aven_str_to_cstr(symbol, &temp_arena));
     }
 
-    AVEN_FN int aven_dl_close(void *handle) {
+    AVEN_FN void aven_dl_close(void *handle) {
         AVEN_WIN32_FN(int) FreeLibrary(void *handle);
 
-        return FreeLibrary(handle);
+        int success = FreeLibrary(handle);
+        assert(success != 0);
     }
 #else
     #include <dlfcn.h>
@@ -94,8 +95,9 @@ AVEN_FN int aven_dl_close(void *handle);
         return dlsym(handle, aven_str_to_cstr(symbol, &temp_arena));
     }
 
-    AVEN_FN int aven_dl_close(void *handle) {
-        return dlclose(handle);
+    AVEN_FN void aven_dl_close(void *handle) {
+        int error = dlclose(handle);
+        assert(error == 0);
     }
 #endif
 

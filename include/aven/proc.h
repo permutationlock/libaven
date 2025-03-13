@@ -11,16 +11,13 @@
     typedef int AvenProcId;
 #endif
 
-typedef Result(AvenProcId) AvenProcIdResult;
-
 typedef enum {
     AVEN_PROC_CMD_ERROR_NONE = 0,
     AVEN_PROC_CMD_ERROR_FORK,
 } AvenProcCmdError;
+typedef Result(AvenProcId, AvenProcCmdError) AvenProcCmdResult;
 
-AVEN_FN AvenProcIdResult aven_proc_cmd(AvenStrSlice cmd, AvenArena arena);
-
-typedef Result(int) AvenProcWaitResult;
+AVEN_FN AvenProcCmdResult aven_proc_cmd(AvenStrSlice cmd, AvenArena arena);
 
 typedef enum {
     AVEN_PROC_WAIT_ERROR_NONE = 0,
@@ -30,6 +27,7 @@ typedef enum {
     AVEN_PROC_WAIT_ERROR_SIGNAL,
     AVEN_PROC_WAIT_ERROR_TIMEOUT,
 } AvenProcWaitError;
+typedef Result(int, AvenProcWaitError) AvenProcWaitResult;
 
 AVEN_FN AvenProcWaitResult aven_proc_check(AvenProcId pid);
 AVEN_FN AvenProcWaitResult aven_proc_wait(AvenProcId pid);
@@ -40,7 +38,7 @@ typedef enum {
     AVEN_PROC_KILL_ERROR_OTHER,
 } AvenProcKillError;
 
-AVEN_FN int aven_proc_kill(AvenProcId pid);
+AVEN_FN AvenProcKillError aven_proc_kill(AvenProcId pid);
 
 #ifdef AVEN_IMPLEMENTATION
 
@@ -60,7 +58,7 @@ AVEN_FN int aven_proc_kill(AvenProcId pid);
     #include <unistd.h>
 #endif
 
-AVEN_FN AvenProcIdResult aven_proc_cmd(
+AVEN_FN AvenProcCmdResult aven_proc_cmd(
     AvenStrSlice cmd,
     AvenArena arena
 ) {
@@ -144,16 +142,16 @@ AVEN_FN AvenProcIdResult aven_proc_cmd(
         &process_info
     );
     if (success == 0) {
-        return (AvenProcIdResult){ .error = AVEN_PROC_CMD_ERROR_FORK };
+        return (AvenProcCmdResult){ .error = AVEN_PROC_CMD_ERROR_FORK };
     }
 
     CloseHandle(process_info.thread);
 
-    return (AvenProcIdResult){ .payload = process_info.process };
+    return (AvenProcCmdResult){ .payload = process_info.process };
 #else
     AvenProcId cmd_pid = fork();
     if (cmd_pid < 0) {
-        return (AvenProcIdResult){ .error = AVEN_PROC_CMD_ERROR_FORK };
+        return (AvenProcCmdResult){ .error = AVEN_PROC_CMD_ERROR_FORK };
     }
 
     if (cmd_pid == 0) {
@@ -178,7 +176,7 @@ AVEN_FN AvenProcIdResult aven_proc_cmd(
         }
     }
 
-    return (AvenProcIdResult){ .payload = cmd_pid };
+    return (AvenProcCmdResult){ .payload = cmd_pid };
 #endif
 }
 
@@ -260,7 +258,7 @@ AVEN_FN AvenProcWaitResult aven_proc_wait(AvenProcId pid) {
     return aven_proc_status(pid, true);
 }
 
-AVEN_FN int aven_proc_kill(AvenProcId pid) {
+AVEN_FN AvenProcKillError aven_proc_kill(AvenProcId pid) {
 #ifdef _WIN32
     AVEN_WIN32_FN(int) TerminateProcess(
         AvenProcId pid,
