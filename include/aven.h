@@ -201,6 +201,7 @@ static inline void aven_pool_push_free_internal(
         ), \
     }
 #define list_array(a) { .ptr = a, .cap = countof(a) }
+#define queue_array(a) { .ptr = a, .cap = countof(a) }
 #define pool_array(a) { .ptr = a, .cap = countof(a) }
 
 #define as_bytes(ref) (ByteSlice){ \
