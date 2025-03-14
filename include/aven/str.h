@@ -155,6 +155,32 @@ static inline AvenStr aven_str_join(
     return new_str;
 }
 
+static inline AvenStr aven_str_escape(AvenStr str, AvenArena *arena) {
+    List(char) esc_list = aven_arena_create_list(
+        char,
+        arena,
+        (size_t)2 * str.len
+    );
+
+    for (size_t i = 0; i < str.len; i += 1) {
+        char c = get(str, i);
+        switch (c) {
+            case '\\':
+            case '\"':
+            case '\'':
+                list_push(esc_list) = '\\';
+                break;
+            default:
+                break;
+        }
+        list_push(esc_list) = c;
+    }
+
+    aven_arena_resize_list_to_len(arena, esc_list);
+
+    return (AvenStr)slice_list(esc_list);
+}
+
 static inline AvenStr aven_str_uint_decimal(uint64_t num, AvenArena *arena) {
     uint64_t digits = 1;
     uint64_t coeff = 10;
