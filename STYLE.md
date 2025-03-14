@@ -4,7 +4,7 @@ This document provides a short summary of my personal style of C programming.
 
 ## Debugging
 
-I program for a debugger, e.g. I assume that I will always run debug builds with
+I program for a debugger, i.e. I assume that I will always run debug builds with
 a debugger. I use an unreachable assert macro and compile with `-fsanitize-trap`
 and `-fsanitize=unreachable,undefined`.
 ```
@@ -93,6 +93,7 @@ void foo(T);
 Optional(T) opt = { 0 };
 if (cond) {
     opt.value = my_value;
+    opt.valid = true;
 }
 // ...
 if (opt.valid) {
@@ -108,7 +109,7 @@ foo(unwrap(opt));
 
 ### OptPtr
 
-The `OptPtr(T)` type should be used the same as `Optional(T *)`, but it only
+The `OptPtr(T)` type is used the same as `Optional(T *)`, but it only
 takes the memory space of a `T *`.
 ```C
 #define OptPtr(t) union { t *value; t *valid; }
@@ -116,10 +117,14 @@ takes the memory space of a `T *`.
 
 ### Slice
 
-A slice is a multi-item pointer plus a length, e.g. it refers to part of
-an array in memory.
+A slice is a multi-item pointer plus a length, e.g. it refers to a
+contiguos section of an array in memory.
 ```C
 #define Slice(t) struct { t *ptr; size_t len; }
+```
+The `slice_array` macro constructs a slice from an array.
+```C
+#define slice_array(a) { .ptr = a, .len = countof(a) }
 ```
 Slice elements should be accessed with the bounds checked `get` macro.
 ```C
