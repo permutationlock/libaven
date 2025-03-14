@@ -22,10 +22,32 @@ of type `T` may also be returned, a `Result(T, E)` type is returned instead.
 ```C
 #define Result(t, e) struct { t payload; e error; }
 ```
+```C
+typedef enum {
+    FOO_ERROR_NONE = 0,
+    FOO_ERROR_SCARY_EXTERNAL_FAILED,
+} FooError;
+typedef Result(T, FooError) FooResult;
+
+FooResult foo(void) {
+    T t;
+    int error = scary_external_get_t(&t);
+    if (error != 0) {
+        return (FooResult){ .error = FOO_ERROR_SCARY_EXTERNAL_FAILED };
+    }
+
+    return (FooResult){ .paylaod = t };
+}
+```
 
 Non-recoverable errors should be handled by a call to `aven_panic(msg)`, which
 will dump the source location and string literal `msg` to stderr and call
 `_Exit(1)`.
+```
+if (!necessary_condition) {
+    aven_panic("necessary condition failed");
+}
+```
 
 ## Memory
 
@@ -82,6 +104,14 @@ The `unwrap(opt)` macro asserts `opt.valid` and retrieves `opt.value`.
 void foo(T);
 Optional(T) opt = { .value = my_value, .valid = true };
 foo(unwrap(opt));
+```
+
+### OptPtr
+
+The `OptPtr(T)` type should be used the same as `Optional(T *)`, but it only
+takes the memory space of a `T *`.
+```C
+#define OptPtr(t) union { t *value; t *valid; }
 ```
 
 ### Slice
