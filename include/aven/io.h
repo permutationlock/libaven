@@ -6,6 +6,11 @@
 #include "str.h"
 
 typedef enum {
+    AVEN_IO_MODE_BIN = 0,
+    AVEN_IO_MODE_TEXT,
+} AvenIoMode;
+
+typedef enum {
     AVEN_IO_READ_ERROR_NONE = 0,
     AVEN_IO_READ_ERROR_OPEN,
     AVEN_IO_READ_ERROR_SEEK,
@@ -14,7 +19,11 @@ typedef enum {
 } AvenIoReadError;
 typedef Result(ByteSlice, AvenIoReadError) AvenIoReadResult;
 
-AVEN_FN AvenIoReadResult aven_io_read(AvenStr file_path, AvenArena *arena);
+AVEN_FN AvenIoReadResult aven_io_read(
+    AvenStr file_path,
+    AvenIoMode mode,
+    AvenArena *arena
+);
 
 typedef enum {
     AVEN_IO_WRITE_ERROR_NONE = 0,
@@ -24,6 +33,7 @@ typedef enum {
 
 AVEN_FN AvenIoWriteError aven_io_write(
     AvenStr file_path,
+    AvenIoMode mode,
     ByteSlice bytes,
     AvenArena temp_arena
 );
@@ -32,9 +42,21 @@ AVEN_FN AvenIoWriteError aven_io_write(
 
 #include <stdio.h>
 
-AVEN_FN AvenIoReadResult aven_io_read(AvenStr file_path, AvenArena *arena) {
+AVEN_FN AvenIoReadResult aven_io_read(
+    AvenStr file_path,
+    AvenIoMode mode,
+    AvenArena *arena
+) {
     AvenArena cstr_arena = *arena;
-    FILE *file = fopen(aven_str_to_cstr(file_path, &cstr_arena), "rb");
+#ifdef _WIN32
+    FILE *file = NULL;
+    const char *mstr = mode == (AVEN_IO_MODE_BIN) ? "rb" : "r";
+    if (fopen_s(&file, aven_str_to_cstr(file_path, &cstr_arena), mstr) != 0) {
+        file = NULL;
+    }
+#else
+    FILE *file = fopen(aven_str_to_cstr(file_path, &cstr_arena), "r");
+#endif
     if (file == NULL) {
         return (AvenIoReadResult){ .error = AVEN_IO_READ_ERROR_OPEN };
     }
@@ -70,9 +92,23 @@ AVEN_FN AvenIoReadResult aven_io_read(AvenStr file_path, AvenArena *arena) {
     size_t bytes_read = fread((char *)bytes.ptr, 1, bytes.len, file);
     fclose(file);
 
-    if (bytes_read != bytes.len) {
-        return (AvenIoReadResult){ .error = AVEN_IO_READ_ERROR_READ };        
+#ifdef _WIN32
+    if (mode == AVEN_IO_MODE_BIN) {
+        if (bytes_read != bytes.len) {
+            return (AvenIoReadResult){ .error = AVEN_IO_READ_ERROR_READ };
+        }
+    } else {
+        // Text on Windows translates \r\n -> \n, so bytes_read <= bytes.len
+        if (bytes_read == 0) {
+            return (AvenIoReadResult){ .error = AVEN_IO_READ_ERROR_READ };
+        }
+        bytes.len = bytes_read;
     }
+#else
+    if (bytes_read != bytes.len) {
+        return (AvenIoReadResult){ .error = AVEN_IO_READ_ERROR_READ };
+    }
+#endif
 
     *arena = temp_arena;
 
@@ -81,10 +117,19 @@ AVEN_FN AvenIoReadResult aven_io_read(AvenStr file_path, AvenArena *arena) {
 
 AVEN_FN AvenIoWriteError aven_io_write(
     AvenStr file_path,
+    AvenIoMode mode,
     ByteSlice bytes,
     AvenArena temp_arena
 ) {
-    FILE *file = fopen(aven_str_to_cstr(file_path, &temp_arena), "wb");
+#ifdef _WIN32
+    FILE *file = NULL;
+    const char *mstr = mode == (AVEN_IO_MODE_BIN) ? "wb" : "w";
+    if (fopen_s(&file, aven_str_to_cstr(file_path, &temp_arena), mstr) != 0) {
+        file = NULL;
+    }
+#else
+    FILE *file = fopen(aven_str_to_cstr(file_path, &temp_arena), "w");
+#endif
     if (file == NULL) {
         return AVEN_IO_WRITE_ERROR_OPEN;
     }
@@ -92,9 +137,22 @@ AVEN_FN AvenIoWriteError aven_io_write(
     size_t bytes_written = fwrite(bytes.ptr, 1, bytes.len, file);
     fclose(file);
 
+#ifdef _WIN32
+    if (mode == AVEN_IO_MODE_BIN) {
+        if (bytes_written != bytes.len) {
+            return AVEN_IO_WRITE_ERROR_WRITE;
+        }
+    } else {
+        // Text on Windows translates \r\n -> \n, so bytes_read <= bytes.len
+        if (bytes.len > 0 and bytes_written == 0) {
+            return AVEN_IO_WRITE_ERROR_WRITE;
+        }
+    }
+#else
     if (bytes_written != bytes.len) {
         return AVEN_IO_WRITE_ERROR_WRITE;
     }
+#endif
 
     return AVEN_IO_WRITE_ERROR_NONE;
 }

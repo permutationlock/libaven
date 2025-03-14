@@ -40,7 +40,9 @@ AVEN_FN void aven_dl_close(void *handle);
         char aven_dl_suffix[] = "_aven_dl_loaded.dll";
         char *temp_buffer = aven_arena_alloc(
             &temp_arena,
-            dot_index + sizeof(aven_dl_suffix)
+            dot_index + sizeof(aven_dl_suffix),
+            1,
+            1
         );
         memcpy(temp_buffer, fname.ptr, (size_t)dot_index);
         memcpy(

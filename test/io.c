@@ -17,9 +17,12 @@ AvenTestResult test_aven_io_read(
 ) {
     TestAvenIoReadArgs *io_args = args;
 
-    AvenIoReadResult result = aven_io_read(io_args->fpath, &arena);
+    AvenIoReadResult result = aven_io_read(
+        io_args->fpath,
+        AVEN_IO_MODE_TEXT,
+        &arena
+    );
     if (result.error != 0) {
-        
         char fmt[] = "error opening file \"%s\"";
         char *buffer = aven_arena_alloc(
             emsg_arena,
@@ -46,7 +49,6 @@ AvenTestResult test_aven_io_read(
 
     if (actual.len != io_args->expected.len) {
         char fmt[] = "expected \"%d\" bytes, found \"%d\" bytes";
-       
         char *buffer = aven_arena_alloc(
             emsg_arena,
             sizeof(fmt) + 16,
@@ -77,7 +79,6 @@ AvenTestResult test_aven_io_read(
 
     if (diff > 0) {
         char fmt[] = "file contents differed by \"%d\" bytes";
-       
         char *buffer = aven_arena_alloc(
             emsg_arena,
             sizeof(fmt) + 16,
@@ -142,7 +143,12 @@ AvenTestResult test_aven_io_write_read(
     }
 
     AvenStr tmp_path = aven_path(&arena, tmp_dir_path, aven_str("tmp.bin"));
-    error = aven_io_write(tmp_path, io_args->contents, arena);
+    error = aven_io_write(
+        tmp_path,
+        AVEN_IO_MODE_TEXT,
+        io_args->contents,
+        arena
+    );
     if (error != 0) {
         aven_fs_rm(tmp_path, arena);
         aven_fs_rmdir(tmp_dir_path, arena);
@@ -165,7 +171,7 @@ AvenTestResult test_aven_io_write_read(
         return (AvenTestResult){
             .error = 5,
             .message = buffer,
-        }; 
+        };
     }
 
     TestAvenIoReadArgs read_args = {
@@ -194,8 +200,7 @@ int test_io(AvenArena arena) {
     AvenStr exe_dir_path = aven_path_containing_dir(exe_path);
     AvenStr test_root_path = aven_path(
         &arena,
-        exe_dir_path,
-        aven_str(".."),
+        aven_path_containing_dir(exe_dir_path),
         aven_str("test")
     );
 

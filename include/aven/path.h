@@ -80,7 +80,7 @@ AVEN_FN AvenStr aven_path_fname(AvenStr path, AvenArena *arena) {
 
 AVEN_FN AvenStr aven_path_containing_dir(AvenStr path) {
     if (path.len == 0) {
-        return aven_str("./..");
+        return aven_str("..");
     } else if (path.len == 1) {
         if (get(path, 0) == AVEN_PATH_SEP) {
             static const char up_path[] = { AVEN_PATH_SEP, '.', '.', 0 };
@@ -89,7 +89,7 @@ AVEN_FN AvenStr aven_path_containing_dir(AvenStr path) {
                 .len = countof(up_path) - 1
             };
         } else if (get(path, 0) == '.') {
-            return aven_str("./..");
+            return aven_str("..");
         } else {
             return aven_str(".");
         }
@@ -133,10 +133,18 @@ AVEN_FN AvenStr aven_path_rel_intersect(
     assert(!aven_path_is_abs(path1));
     assert(!aven_path_is_abs(path2));
 
-    while (path1.len > 1 and get(path1, 0) == '.' and get(path1, 1) == '/') {
+    while (
+        path1.len > 1 and
+        get(path1, 0) == '.' and
+        get(path1, 1) == AVEN_PATH_SEP
+    ) {
         path1 = aven_str_tail(path1, 2);
     }
-    while (path2.len > 1 and get(path2, 0) == '.' and get(path2, 1) == '/') {
+    while (
+        path2.len > 1 and
+        get(path2, 0) == '.' and
+        get(path2, 1) == AVEN_PATH_SEP
+    ) {
         path2 = aven_str_tail(path2, 2);
     }
     if (path1.len == 0 or path2.len == 0) {

@@ -55,7 +55,6 @@ AvenTestResult test_aven_path(
 
     if (!match) {
         char fmt[] = "expected \"%s\", found \"%s\"";
-       
         char *buffer = aven_arena_alloc(
             emsg_arena,
             sizeof(fmt) +
@@ -100,7 +99,6 @@ AvenTestResult test_aven_path_containing_dir(
 
     if (!match) {
         char fmt[] = "expected \"%s\", found \"%s\"";
-       
         char *buffer = aven_arena_alloc(
             emsg_arena,
             sizeof(fmt) +
@@ -150,7 +148,6 @@ AvenTestResult test_aven_path_rel_diff(
 
     if (!match) {
         char fmt[] = "expected \"%s\", found \"%s\"";
-       
         char *buffer = aven_arena_alloc(
             emsg_arena,
             sizeof(fmt) +
@@ -200,7 +197,6 @@ AvenTestResult test_aven_path_rel_intersect(
 
     if (!match) {
         char fmt[] = "expected \"%s\", found \"%s\"";
-       
         char *buffer = aven_arena_alloc(
             emsg_arena,
             sizeof(fmt) +
@@ -299,10 +295,10 @@ int test_path(AvenArena arena) {
             .fn = test_aven_path_containing_dir,
             .args = &(TestAvenPathDirArgs){
 #ifdef _WIN32
-                .expected = ".\\..",
+                .expected = "..",
                 .path = ".",
 #else
-                .expected = "./..",
+                .expected = "..",
                 .path = ".",
 #endif
             },
