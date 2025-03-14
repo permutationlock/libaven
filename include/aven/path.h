@@ -196,8 +196,7 @@ AVEN_FN AvenStr aven_path_rel_intersect(
     );
 
     size_t used_mem = (size_t)(join_arena.base - join_mem.ptr);
-    (void)aven_arena_shrink_array(
-        unsigned char,
+    (void)aven_arena_resize_array(
         arena,
         join_mem.ptr,
         join_mem.len,
@@ -275,8 +274,7 @@ AVEN_FN AvenStr aven_path_rel_diff(
 
     AvenStr diff = aven_str_join(diff_parts, AVEN_PATH_SEP, &join_arena);
     size_t used_mem = (size_t)(join_arena.base - join_mem.ptr);
-    (void)aven_arena_shrink_array(
-        unsigned char,
+    (void)aven_arena_resize_array(
         arena,
         join_mem.ptr,
         join_mem.len,

@@ -69,14 +69,14 @@ AVEN_FN void *aven_arena_realloc(
     size_t size
 );
 
-#define aven_arena_realloc_shrink(a, p, oc, nc, al, sz) ( \
-        assert(nc <= oc), \
+#define aven_arena_resize(a, p, oc, nc, sz) (void)( \
+        assert((unsigned char *)p + sz * oc == (a)->base), \
         aven_arena_realloc( \
             a, \
             p, \
             oc, \
             nc, \
-            al, \
+            1, \
             sz \
         ) \
     )
@@ -93,7 +93,7 @@ AVEN_FN void *aven_arena_realloc(
         aven_arena_alignof(t), \
         sizeof(t) \
     )
-#define aven_arena_resize_array(t, a, p, oc, nc) (t *)aven_arena_realloc( \
+#define aven_arena_realloc_array(t, a, p, oc, nc) (t *)aven_arena_realloc( \
         a, \
         p, \
         oc, \
@@ -101,14 +101,12 @@ AVEN_FN void *aven_arena_realloc(
         aven_arena_alignof(t), \
         sizeof(t) \
     )
-#define aven_arena_shrink_array(t, a, p, oc, nc) \
-    (t *)aven_arena_realloc_shrink( \
+#define aven_arena_resize_array(a, p, oc, nc) (void)aven_arena_resize( \
         a, \
         p, \
         oc, \
         nc, \
-        aven_arena_alignof(t), \
-        sizeof(t) \
+        sizeof(*p) \
     )
 
 #define aven_arena_create_slice(t, a, n) { \
@@ -128,22 +126,20 @@ AVEN_FN void *aven_arena_realloc(
         .cap = n, \
     }
 
-#define aven_arena_shrink_list(t, a, l, n) \
+#define aven_arena_resize_list(a, l, n) \
     do { \
+        assert((l).cap != 0); \
         assert((l).len <= (n)); \
-        (void)aven_arena_realloc_shrink( \
+        (void)aven_arena_resize( \
             a, \
             (l).ptr, \
             (l).cap, \
             n, \
-            aven_arena_alignof(t), \
-            sizeof(t) \
+            sizeof(*(l).ptr) \
         ); \
         (l).cap = n; \
     } while (0)
-
-#define aven_arena_shrink_list_to_len(t, a, l) aven_arena_shrink_list( \
-        t, \
+#define aven_arena_resize_list_to_len(a, l) aven_arena_resize_list( \
         a, \
         l, \
         (l).len \

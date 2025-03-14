@@ -19,7 +19,9 @@
     #define __has_builtin(unused) 0
 #endif
 
-#if !defined(AVEN_USE_STD_ASSERT) and __has_builtin(__builtin_unreachable)
+#if defined (AVEN_USE_PANIC_ASSERT)
+    #define assert(c) ((!(c)) ? aven_panic("assert failed") : (void)0)
+#elif !defined(AVEN_USE_STD_ASSERT) and __has_builtin(__builtin_unreachable)
     #define assert(c) ((!(c)) ? __builtin_unreachable() : (void)0)
 #else
     #ifndef AVEN_USE_STD_ASSERT

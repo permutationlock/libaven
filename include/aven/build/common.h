@@ -778,7 +778,6 @@ static inline AvenBuildStep aven_build_common_step_cc_ex(
     }
     list_push(cmd_list) = src_path;
 
-    aven_arena_shrink_list_to_len(AvenStr, arena, cmd_list);
     AvenStrSlice cmd_slice = slice_list(cmd_list);
 
     AvenBuildOptionalPath out_path = { .value = target_path, .valid = true };
@@ -901,7 +900,6 @@ static AvenBuildStep aven_build_common_step_ld(
         }
     }
 
-    aven_arena_shrink_list_to_len(AvenStr, arena, cmd_list);
     AvenStrSlice cmd_slice = slice_list(cmd_list);
 
     AvenBuildOptionalPath out_path = { .value = target_path, .valid = true };
@@ -1060,7 +1058,6 @@ static inline AvenBuildStep aven_build_common_step_ar(
         list_push(cmd_list) = unwrap(obj_step->out_path);
     }
 
-    aven_arena_shrink_list_to_len(AvenStr, arena, cmd_list);
     AvenStrSlice cmd_slice = slice_list(cmd_list);
 
     AvenBuildOptionalPath out_path = { .value = target_path, .valid = true };
@@ -1318,7 +1315,6 @@ static inline AvenBuildStep aven_build_common_step_run_exe(
         list_push(cmd_list) = get(args, j);
     }
 
-    aven_arena_shrink_list_to_len(AvenStr, arena, cmd_list);
     AvenStrSlice cmd_slice = slice_list(cmd_list);
 
     AvenBuildOptionalPath out_path = { 0 };

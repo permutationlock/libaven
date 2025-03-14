@@ -68,7 +68,7 @@ AVEN_FN AvenProcCmdResult aven_proc_cmd(
         &arena
     );
 #ifndef AVEN_SUPPRESS_LOGS
-    printf("%s\n", cmd_str.ptr);
+    printf("%s\n", aven_str_to_cstr(cmd_str, &arena));
 #endif
 #ifdef _WIN32
     typedef struct {
@@ -167,10 +167,14 @@ AVEN_FN AvenProcCmdResult aven_proc_cmd(
         }
         args[cmd.len] = NULL;
 
-        int error = execvp(aven_str_to_cstr(get(cmd, 0), &arena), args);
+        int error = execvp(args[0], args);
         if (error != 0) {
 #ifndef AVEN_SUPPRESS_LOGS
-            fprintf(stderr, "execvp failed: %s\n", cmd_str.ptr);
+            fprintf(
+                stderr,
+                "execvp failed: %s\n",
+                aven_str_to_cstr(cmd_str, &arena)
+            );
 #endif
             exit(errno);
         }

@@ -77,11 +77,7 @@ static inline AvenStrSlice aven_str_split(
         }
     }
 
-    aven_arena_shrink_list_to_len(
-        AvenStr,
-        arena,
-        split_strs
-    );
+    aven_arena_resize_list_to_len(arena, split_strs);
 
     return (AvenStrSlice)slice_list(split_strs);
 }

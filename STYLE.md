@@ -15,10 +15,17 @@ location and allow for program state inspection, backtraces, etc. Assertions
 should be true assertions, that is, the programmer should truly believe that they
 cannot fail.
 
+If high memory safety is desired for cases that may have not come up during
+debug tests, the `AVEN_USE_PANIC_ASSERT` macro may be defined.
+Such a build will panic on all common memory errors.
+
 ## Errors
 
-Recoverable errors should be handled by returning an error enum `E`. If a value
-of type `T` may also be returned, a `Result(T, E)` type is returned instead.
+Recoverable errors should generally be handled immediately. If they cannot be
+handled immediately, they may be be bubbled the stack up by returning an error
+enum `E`.
+If a value of type `T` will returned when no error occurs, then a `Result(T, E)`
+struct is used as the return type.
 ```C
 #define Result(t, e) struct { t payload; e error; }
 ```
@@ -51,21 +58,22 @@ if (!necessary_condition) {
 
 ## Memory
 
-I use arenas for all memory allocation except for allocating arenas. Arenas are
-allocated using either `malloc` or the OS page allocator. Arenas are backed by a
-single fixed size chunk of memory and are not expandable.
+I use arenas for all memory allocation, except potentially for allocating
+the arenas themselves. Arenas may be allocated using other arenas,
+`malloc`, or the OS page allocator. Arenas are
+backed by a single fixed size chunk of memory and are not expandable.
 ```C
 typedef struct {
     unsigned char *base;
     unsigned char *top;
 } AvenArena;
-AVEN_FN void *aven_arena_alloc(
+void *aven_arena_alloc(
     AvenArena *arena,
     size_t count,
     size_t align,
     size_t size
 );
-AVEN_FN void *aven_arena_realloc(
+void *aven_arena_realloc(
     AvenArena *arena,
     void *ptr,
     size_t old_count,
@@ -74,8 +82,15 @@ AVEN_FN void *aven_arena_realloc(
     size_t size
 );
 ```
-The `alloc` and `realloc` functions will never return `NULL`,
-allocating more space than available triggers a panic.
+The `aven_arena_alloc` and `aven_arena_realloc` functions will always
+return a valid pointer, allocating more space than available triggers a panic.
+
+The `aven_arena_realloc` function re-sizes in place if the given `ptr` was
+the last allocation by the given arena. The `aven_arena_resize` macro
+asserts that re-sizing must be possible.
+
+A variety of helper macros are provided for the core data structures
+described below, e.g. `aven_arena_create_slice` and `aven_arena_resize_list`.
 
 ## Core generic data structures
 
@@ -109,11 +124,14 @@ foo(unwrap(opt));
 
 ### OptPtr
 
-The `OptPtr(T)` type is used the same as `Optional(T *)`, but it only
+The `OptPtr(T)` type may be used in the same way as `Optional(T *)`, but it only
 takes the memory space of a `T *`.
 ```C
 #define OptPtr(t) union { t *value; t *valid; }
 ```
+This works because `if (ptr)` is false if and only if `ptr==NULL`.
+It is essentially no different than a `T *`, but forces the programmer
+to unwrap the pointer from the union and consider the `NULL` case.
 
 ### Slice
 
@@ -151,6 +169,23 @@ int back = list_pop(int_list);
 assert(back == 5);
 assert(int_list.len == 1);
 ```
+A common strategy is to allocate a list with some maximum capacity, push elements
+based on various conditions, then shrink the list to fit and take a slice.
+```C
+List(int) int_list = aven_arena_create_list(int, arena, MAX_LIST_LEN);
+list_push(int_list) = 1;
+list_push(int_list) = 2;
+// ...
+if (cond_a) {
+    list_push(int_list) = 3;
+}
+if (cond_b) {
+    list_push(int_list) = 3;
+}
+// ...
+aven_arena_resize_list_to_len(arena, int_list);
+Slice(int) int_slice = slice_list(int_list);
+```
 
 ### Queue
 
@@ -179,12 +214,15 @@ pool_get(int_pool, handle) = 14;
 // then delete and release back to the pool
 pool_delete(int_pool, handle);
 ```
+A pool is an extension of a list of `PoolEntry(T)` union objects,
+so the special `pool_get` macro must be used in lieu of `get` to extract
+the underlying `T` member of the union.
 
 ## Pointers
 
-All pointer parameters and variables are assumed to be non-null, single-item
-pointers. E.g. if a function has the signature `void foo(S *s)`,
-then it is never valid to call `foo(NULL)`.
+All parameters and variables of type `T *` are assumed to be non-null,
+single-item pointers. E.g. if a function has the signature `void foo(S *s)`,
+it is never valid to call `foo(NULL)`.
 
 If a multi-item pointer is desired, a slice struct `Slice(s)` should b used
 instead.
@@ -194,21 +232,24 @@ void foo(SSlice s);
 
 S arr[] = { s1, s2, s3 };
 foo((SSlice){ .ptr = arr, .len = countof(arr) }); // Pass an array to foo
-foo((SSlice)slice_array(arr)); // Pass an array to foo using helper macro
+foo((SSlice)slice_array(arr)); // Pass array to foo with the slice_array macro
 ```
 
 If an optional pointer is truly desired, then the `OptPtr(T)` union type should
-be used instaed. I have not yet found a need for `OptPtr` in my own code.
+be used instead. I have not yet found a need for `OptPtr` in my own code.
 ```C
 typedef OptPtr(S) SOptPtr;
 void foo(SOptPtr s);
 
 foo((SOptPtr){ 0 }); // Pass a null OptPtr(S) to foo
+S s;
+foo((SOptPtr){ .value = &s, .valid = true }); // Pass a valid OptPtr(S) to foo
 ```
 
-Multi-item data structures should not store pointers. E.g., if we store a
+Multi-item data structures should never store pointers. E.g., if we store a
 `Slice(S)`, then the struct `S` should not contain member of type `T*`. Instead,
 a corresponding `Slice(T)`, `List(T)`, or `Pool(T)` structure should be stored,
-and `S` should contain an index into that structure. This allows for smaller
-storage (often a 32-bit index suffices), and allows data structures to be copied
-from memory to disk and back without modification.
+and `S` should contain an index into that structure. This usually allows for a
+reduced memory footprint (often a 32-bit index will suffice), and allows data
+structures to be copied from memory to disk or over a network and back without
+modification.
