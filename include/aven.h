@@ -129,7 +129,7 @@ static inline void aven_pool_push_free_internal(
 }
 
 #define unwrap(o) (assert((o).valid), (o).value)
-#define get(s, i) (s).ptr[(assert(i < (s).len), i)]
+#define get(s, i) (s).ptr[(assert((i) < (s).len), i)]
 #define list_get(l, i) get(l, i)
 #define list_front(l) get(l, 0)
 #define list_back(l) get(l, (l).len - 1)
@@ -188,18 +188,18 @@ static inline void aven_pool_push_free_internal(
 #define slice_list(l) { .ptr = (l).ptr, .len = (l).len }
 #define slice_head(s, i) { \
         .ptr = (s).ptr, \
-        .len = (assert(i <= (s).len), i) \
+        .len = (assert((i) <= (s).len), (i)) \
     }
 #define slice_tail(s, i) { \
-        .ptr = (s).ptr + i, \
-        .len = (assert(i <= (s).len), (s).len - i) \
+        .ptr = (s).ptr + (i), \
+        .len = (assert((i) <= (s).len), (s).len - (i)) \
     }
 #define slice_range(s, i, j) { \
         .ptr = (s).ptr + i, \
         .len = ( \
-            assert(j <= (s).len), \
-            assert(i <= j), \
-            j - i \
+            assert((j) <= (s).len), \
+            assert((i) <= (j)), \
+            (j) - (i) \
         ), \
     }
 #define list_array(a) { .ptr = a, .cap = countof(a) }
