@@ -56,42 +56,6 @@ if (!necessary_condition) {
 }
 ```
 
-## Memory
-
-I use arenas for all memory allocation, except potentially for allocating
-the arenas themselves. Arenas may be allocated using other arenas,
-`malloc`, or the OS page allocator. Arenas are
-backed by a single fixed size chunk of memory and are not expandable.
-```C
-typedef struct {
-    unsigned char *base;
-    unsigned char *top;
-} AvenArena;
-void *aven_arena_alloc(
-    AvenArena *arena,
-    size_t count,
-    size_t align,
-    size_t size
-);
-void *aven_arena_realloc(
-    AvenArena *arena,
-    void *ptr,
-    size_t old_count,
-    size_t new_count,
-    size_t align,
-    size_t size
-);
-```
-The `aven_arena_alloc` and `aven_arena_realloc` functions will always
-return a valid pointer, allocating more space than available triggers a panic.
-
-The `aven_arena_realloc` function re-sizes in place if the given `ptr` was
-the last allocation by the given arena. The `aven_arena_resize` macro
-asserts that re-sizing must be possible.
-
-A variety of helper macros are provided for the core data structures
-described below, e.g. `aven_arena_create_slice` and `aven_arena_resize_list`.
-
 ## Core generic data structures
 
 There are several simple "generic" data structures that I use frequently.
@@ -169,23 +133,6 @@ int back = list_pop(int_list);
 assert(back == 5);
 assert(int_list.len == 1);
 ```
-A common strategy is to allocate a list with some maximum capacity, push elements
-based on various conditions, then shrink the list to fit and take a slice.
-```C
-List(int) int_list = aven_arena_create_list(int, arena, MAX_LIST_LEN);
-list_push(int_list) = 1;
-list_push(int_list) = 2;
-// ...
-if (cond_a) {
-    list_push(int_list) = 3;
-}
-if (cond_b) {
-    list_push(int_list) = 3;
-}
-// ...
-aven_arena_resize_list_to_len(arena, int_list);
-Slice(int) int_slice = slice_list(int_list);
-```
 
 ### Queue
 
@@ -241,9 +188,10 @@ be used instead. I have not yet found a need for `OptPtr` in my own code.
 typedef OptPtr(S) SOptPtr;
 void foo(SOptPtr s);
 
-foo((SOptPtr){ 0 }); // Pass a null OptPtr(S) to foo
+foo((SOptPtr){ .valid = false }); // Pass a null OptPtr(S) to foo
+foo((SOptPtr){ .value = NULL }); // Pass a null OptPtr(S) to foo
 S s;
-foo((SOptPtr){ .value = &s, .valid = true }); // Pass a valid OptPtr(S) to foo
+foo((SOptPtr){ .value = &s }); // Pass a valid OptPtr(S) to foo
 ```
 
 Multi-item data structures should never store pointers. E.g., if we store a
@@ -253,3 +201,97 @@ and `S` should contain an index into that structure. This usually allows for a
 reduced memory footprint (often a 32-bit index will suffice), and allows data
 structures to be copied from memory to disk or over a network and back without
 modification.
+
+## Memory
+
+I use arenas for all memory allocation, except potentially for allocating
+the arenas themselves. Arenas may be allocated using other arenas,
+`malloc`, or the OS page allocator. Arenas are
+backed by a single fixed size chunk of memory and are not expandable.
+```C
+typedef struct {
+    unsigned char *base;
+    unsigned char *top;
+} AvenArena;
+void *aven_arena_alloc(
+    AvenArena *arena,
+    size_t count,
+    size_t align,
+    size_t size
+);
+void *aven_arena_realloc(
+    AvenArena *arena,
+    void *ptr,
+    size_t old_count,
+    size_t new_count,
+    size_t align,
+    size_t size
+);
+```
+The `aven_arena_alloc` and `aven_arena_realloc` functions will always
+return a valid pointer, allocating more space than available triggers a panic.
+
+The `aven_arena_realloc` function re-sizes in place if the given `ptr` was
+the last allocation by the given arena. The `aven_arena_resize` macro
+asserts that re-sizing must be possible.
+
+A variety of helper macros are provided for the core data structures
+described below, e.g. `aven_arena_create_slice` and `aven_arena_resize_list`.
+
+A common pattern is to allocate a list with some maximum capacity, push elements
+based on various conditions, then "commit" the list by shrinking the
+list memory to fit the current length and converting a slice.
+```C
+typedef Slice(int) IntSlice;
+List(int) int_list = aven_arena_create_list(int, arena, MAX_LIST_LEN);
+list_push(int_list) = 1;
+list_push(int_list) = 2;
+// ...
+if (cond_a) {
+    list_push(int_list) = 3;
+}
+if (cond_b) {
+    list_push(int_list) = 4;
+}
+// ...
+// Resize list memory to current len and return a slice of the current contents
+IntSlice int_slice = aven_arena_commit_list_to_slice(IntSlice, arena, int_list);
+```
+A more generic version of the same pattern is to allocate a child arena with some
+maximum space for the result value, and then use the remaining arena space as temporary
+work space. After allocating as much as needed from the child arena,
+the memory can be resized to free up unused space.
+```C
+// A simple and flawed funciton to find the intersection of two relative file paths
+AvenStr relative_path_intersect(AvenStr path1, AvenStr path2, AvenArena *arena) {
+    AvenArenaChild join_child = aven_arena_child_init(arena, min(path1.len, path2.len));
+    AvenArena temp_arena = *arena;
+
+    AvenStrSlice path1_parts = aven_str_split(path1, '/', &temp_arena);
+    AvenStrSlice path2_parts = aven_str_split(path2, '/', &temp_arena);
+
+    size_t len = min(path1_parts.len, path2_parts.len);
+    size_t same_index = 0;
+    for (; same_index < len; same_index += 1) {
+        bool match = aven_str_compare(
+            get(path1_parts, same_index),
+            get(path2_parts, same_index)
+        );
+        if (!match) {
+            break;
+        }
+    }
+
+    List(AvenStr) int_list = aven_arena_create_list(AvenStr, &temp_arena, same_index);
+    for (size_t i = 0; i < same_index; i += 1) {
+        list_push(int_list) = get(path1_parts, i);
+    }
+    AvenStrSlice int_parts = slice_list(int_list);
+
+    AvenStr int_path = aven_str_join(int_parts, '/', &join_child.arena);
+    aven_arena_child_commit(arena, &join_child);
+
+    // Only the space taken by `int_path` has been allocated from `arena`
+    return int_path;
+}
+```

@@ -55,6 +55,7 @@ AVEN_FN AvenIoReadResult aven_io_read(
         file = NULL;
     }
 #else
+    (void)mode;
     FILE *file = fopen(aven_str_to_cstr(file_path, &cstr_arena), "r");
 #endif
     if (file == NULL) {
@@ -128,6 +129,7 @@ AVEN_FN AvenIoWriteError aven_io_write(
         file = NULL;
     }
 #else
+    (void)mode;
     FILE *file = fopen(aven_str_to_cstr(file_path, &temp_arena), "w");
 #endif
     if (file == NULL) {

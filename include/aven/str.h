@@ -77,9 +77,7 @@ static inline AvenStrSlice aven_str_split(
         }
     }
 
-    aven_arena_resize_list_to_len(arena, split_strs);
-
-    return (AvenStrSlice)slice_list(split_strs);
+    return aven_arena_commit_list_to_slice(AvenStrSlice, arena, split_strs);
 }
 
 static inline AvenStr aven_str_concat_slice(
@@ -176,9 +174,7 @@ static inline AvenStr aven_str_escape(AvenStr str, AvenArena *arena) {
         list_push(esc_list) = c;
     }
 
-    aven_arena_resize_list_to_len(arena, esc_list);
-
-    return (AvenStr)slice_list(esc_list);
+    return aven_arena_commit_list_to_slice(AvenStr, arena, esc_list);
 }
 
 static inline AvenStr aven_str_uint_decimal(uint64_t num, AvenArena *arena) {

@@ -126,24 +126,53 @@ AVEN_FN void *aven_arena_realloc(
         .cap = n, \
     }
 
-#define aven_arena_resize_list(a, l, n) \
-    do { \
-        assert((l).cap != 0); \
-        assert((l).len <= (n)); \
+#define aven_arena_resize_list(a, l, n) ( \
+        assert((l).cap != 0), \
+        assert((l).len <= (n)), \
         (void)aven_arena_resize( \
             a, \
             (l).ptr, \
             (l).cap, \
             n, \
             sizeof(*(l).ptr) \
-        ); \
-        (l).cap = n; \
-    } while (0)
-#define aven_arena_resize_list_to_len(a, l) aven_arena_resize_list( \
-        a, \
-        l, \
-        (l).len \
+        ), \
+        (l).cap = n, \
+        (void)0 \
     )
+#define aven_arena_commit_list_to_slice(st, a, l) ( \
+        aven_arena_resize_list( \
+            a, \
+            l, \
+            (l).len \
+        ), \
+        (st)slice_list(l) \
+    )
+
+typedef struct {
+    AvenArena arena;
+    unsigned char *og_base;
+} AvenArenaChild;
+
+static inline AvenArenaChild aven_arena_child_init(
+    AvenArena *parent,
+    size_t size
+) {
+    unsigned char *base = aven_arena_alloc(parent, size, 1, 1);
+    return (AvenArenaChild){
+        .arena = aven_arena_init(base, size),
+        .og_base = base,
+    };
+}
+
+static inline void aven_arena_child_commit(
+    AvenArena *arena,
+    AvenArenaChild *child
+) {
+    size_t cap = (size_t)(child->arena.top - child->og_base);
+    size_t used = (size_t)(child->arena.base - child->og_base);
+    aven_arena_resize(arena, child->og_base, cap, used, 1);
+    child->arena.top = child->arena.base;
+}
 
 #ifdef AVEN_IMPLEMENTATION
 

@@ -489,6 +489,21 @@ int test_path(AvenArena arena) {
             },
         },
         {
+            .desc = "aven_path_rel_intersect same dir relative path w/ '.' prefix",
+            .fn = test_aven_path_rel_intersect,
+            .args = &(TestAvenPathIntersectArgs){
+#ifdef _WIN32
+                .expected = ".\\dir",
+                .path1 = "dir",
+                .path2 = ".\\dir",
+#else
+                .expected = "./dir",
+                .path1 = "dir",
+                .path2 = "./dir",
+#endif
+            },
+        },
+        {
             .desc = "aven_path_rel_intersect neighbor relative path",
             .fn = test_aven_path_rel_intersect,
             .args = &(TestAvenPathIntersectArgs){

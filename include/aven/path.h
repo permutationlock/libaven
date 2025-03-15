@@ -154,13 +154,10 @@ AVEN_FN AvenStr aven_path_rel_intersect(
         return aven_str(".");
     }
 
-    ByteSlice join_mem = aven_arena_create_slice(
-        unsigned char,
+    AvenArenaChild join_child = aven_arena_child_init(
         arena,
-        2 + min(path1.len, path2.len)
+        (size_t)2 + min(path1.len, path2.len)
     );
-    AvenArena join_arena = aven_arena_init(join_mem.ptr, join_mem.len);
-
     AvenArena temp_arena = *arena;
 
     AvenStrSlice path1_parts = aven_str_split(
@@ -200,16 +197,9 @@ AVEN_FN AvenStr aven_path_rel_intersect(
     AvenStr intersect = aven_str_join(
         intersect_parts,
         AVEN_PATH_SEP,
-        &join_arena
+        &join_child.arena
     );
-
-    size_t used_mem = (size_t)(join_arena.base - join_mem.ptr);
-    (void)aven_arena_resize_array(
-        arena,
-        join_mem.ptr,
-        join_mem.len,
-        used_mem
-    );
+    aven_arena_child_commit(arena, &join_child);
 
     return intersect;
 }
@@ -222,13 +212,10 @@ AVEN_FN AvenStr aven_path_rel_diff(
     assert(!aven_path_is_abs(path1));
     assert(!aven_path_is_abs(path2));
 
-    ByteSlice join_mem = aven_arena_create_slice(
-        unsigned char,
+    AvenArenaChild join_child = aven_arena_child_init(
         arena,
-        2 * path1.len + 2 * path2.len + 3
+        (size_t)2 * path1.len + (size_t)2 * path2.len + 3
     );
-    AvenArena join_arena = aven_arena_init(join_mem.ptr, join_mem.len);
-
     AvenArena temp_arena = *arena;
 
     AvenStrSlice path1_parts = aven_str_split(
@@ -280,14 +267,8 @@ AVEN_FN AvenStr aven_path_rel_diff(
     }
     AvenStrSlice diff_parts = slice_list(diff_list);
 
-    AvenStr diff = aven_str_join(diff_parts, AVEN_PATH_SEP, &join_arena);
-    size_t used_mem = (size_t)(join_arena.base - join_mem.ptr);
-    (void)aven_arena_resize_array(
-        arena,
-        join_mem.ptr,
-        join_mem.len,
-        used_mem
-    );
+    AvenStr diff = aven_str_join(diff_parts, AVEN_PATH_SEP, &join_child.arena);
+    aven_arena_child_commit(arena, &join_child);
 
     return diff;
 }
