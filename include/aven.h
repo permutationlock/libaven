@@ -40,7 +40,7 @@
     #error "C99 or later is required"
 #endif
 
-#define countof(array) (sizeof(array) / sizeof(*array))
+#define countof(...) (sizeof(__VA_ARGS__) / sizeof(*(__VA_ARGS__)))
 
 #define Optional(t) struct { t value; bool valid; }
 #define OptPtr(t) union { t *value; t *valid; }
@@ -184,27 +184,27 @@ static inline void aven_pool_push_free_internal(
         (p).len = 0; \
     } while (0)
 
-#define slice_array(a) { .ptr = a, .len = countof(a) }
+#define slice_array(...) { .ptr = (__VA_ARGS__), .len = countof(__VA_ARGS__) }
 #define slice_list(l) { .ptr = (l).ptr, .len = (l).len }
 #define slice_head(s, i) { \
         .ptr = (s).ptr, \
-        .len = (assert((i) <= (s).len), (i)) \
+        .len = (assert((i) <= (s).len), (i)), \
     }
 #define slice_tail(s, i) { \
-        .ptr = (s).ptr + (i), \
-        .len = (assert((i) <= (s).len), (s).len - (i)) \
+        .ptr = ((s).len > 0) ? (s).ptr + (i) : NULL, \
+        .len = (assert((i) <= (s).len), (s).len - (i)), \
     }
 #define slice_range(s, i, j) { \
-        .ptr = (s).ptr + i, \
+        .ptr = ((s).len > 0) ? (s).ptr + (i) : NULL, \
         .len = ( \
             assert((j) <= (s).len), \
             assert((i) <= (j)), \
             (j) - (i) \
         ), \
     }
-#define list_array(a) { .ptr = a, .cap = countof(a) }
-#define queue_array(a) { .ptr = a, .cap = countof(a) }
-#define pool_array(a) { .ptr = a, .cap = countof(a) }
+#define list_array(...) { .ptr = (__VA_ARGS__), .cap = countof(__VA_ARGS__) }
+#define queue_array(...) { .ptr = (__VA_ARGS__), .cap = countof(__VA_ARGS__) }
+#define pool_array(...) { .ptr = (__VA_ARGS__), .cap = countof(__VA_ARGS__) }
 
 #define as_bytes(ref) (ByteSlice){ \
         .ptr = (unsigned char *)ref, \
