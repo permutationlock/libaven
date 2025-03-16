@@ -38,6 +38,66 @@ AVEN_FN AvenIoWriteError aven_io_write(
     AvenArena temp_arena
 );
 
+typedef struct {
+    ByteSlice buffer;
+    size_t index;
+} AvenIoReader;
+
+static inline ByteSlice aven_io_reader_pop(AvenIoReader *reader, ByteSlice data) {
+    ByteSlice rem = slice_tail(reader->buffer, reader->index);
+    ByteSlice fit = slice_head(rem, min(rem.len, data.len));
+    slice_copy(data, fit);
+    reader->index += fit.len;
+    return fit;
+}
+
+typedef Result(AvenIoReader, AvenIoReadError) AvenIoReaderResult;
+static inline AvenIoReaderResult aven_io_reader_init(
+    AvenStr file_path,
+    AvenIoMode mode,
+    AvenArena *arena
+) {
+    AvenIoReadResult result = aven_io_read(file_path, mode, arena);
+    if (result.error != 0) {
+        return (AvenIoReaderResult){ .error = result.error };
+    }
+    return (AvenIoReaderResult){ .payload = { .buffer = result.payload } };
+}
+
+typedef struct {
+    ByteSlice buffer;
+    size_t index;
+} AvenIoWriter;
+
+static inline AvenIoWriter aven_io_writer_init(size_t size, AvenArena *arena) {
+    return (AvenIoWriter){
+        .buffer = aven_arena_create_slice(unsigned char, arena, size),
+    };
+}
+
+static inline ByteSlice aven_io_writer_push(AvenIoWriter *writer, ByteSlice data) {
+    ByteSlice rem = slice_tail(writer->buffer, writer->index);
+    ByteSlice fit = slice_head(data, min(data.len, rem.len));
+    slice_copy(rem, fit);
+    writer->index += fit.len;
+    return (ByteSlice)slice_tail(data, fit.len);
+}
+
+static inline AvenIoWriteError aven_io_writer_commit(
+    AvenIoWriter *writer,
+    AvenStr file_path,
+    AvenIoMode mode,
+    AvenArena temp_arena
+) {
+    ByteSlice used = slice_head(writer->buffer, writer->index);
+    AvenIoWriteError error = aven_io_write(file_path, mode, used, temp_arena);
+    if (error != 0) {
+        return error;
+    }
+    writer->index = 0;
+    return error;
+}
+
 #ifdef AVEN_IMPLEMENTATION
 
 #include <stdio.h>

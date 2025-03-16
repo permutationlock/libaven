@@ -15,10 +15,7 @@
 #endif
 
 #define aven_path(a, ...) aven_str_join( \
-        (AvenStrSlice){ \
-            .ptr = (AvenStr[]){ __VA_ARGS__}, \
-            .len = sizeof((AvenStr[]){ __VA_ARGS__}) / sizeof(AvenStr), \
-        }, \
+        (AvenStrSlice)slice_array((AvenStr[]){ __VA_ARGS__ }), \
         AVEN_PATH_SEP, \
         a \
     )
