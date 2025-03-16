@@ -227,12 +227,10 @@ AvenTestResult test_aven_io_reader(
         };
     }
 
-    ByteSlice space = aven_arena_create_slice(
-        unsigned char,
-        &arena,
+    ByteSlice actual = aven_io_reader_pop(
+        &result.payload,
         io_args->expected.len
     );
-    ByteSlice actual = aven_io_reader_pop(&result.payload, space);
 
     if (actual.len != io_args->expected.len) {
         char fmt[] = "expected \"%d\" bytes, found \"%d\" bytes";

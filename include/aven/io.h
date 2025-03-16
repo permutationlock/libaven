@@ -43,10 +43,9 @@ typedef struct {
     size_t index;
 } AvenIoReader;
 
-static inline ByteSlice aven_io_reader_pop(AvenIoReader *reader, ByteSlice data) {
+static inline ByteSlice aven_io_reader_pop(AvenIoReader *reader, size_t n) {
     ByteSlice rem = slice_tail(reader->buffer, reader->index);
-    ByteSlice fit = slice_head(rem, min(rem.len, data.len));
-    slice_copy(data, fit);
+    ByteSlice fit = slice_head(rem, min(rem.len, n));
     reader->index += fit.len;
     return fit;
 }
