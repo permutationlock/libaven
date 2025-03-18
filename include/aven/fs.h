@@ -201,7 +201,7 @@ AVEN_FN AvenFsTruncError aven_fs_trunc(AvenStr path, AvenArena temp_arena) {
 #ifdef _WIN32
     int fd = _open(
         aven_str_to_cstr(path, &temp_arena),
-        _O_CREAT | _O_TRUNC | _O_WRONLY,
+        _O_CREAT | _O_TRUNC | _O_WRONLY | _O_BINARY,
         _S_IREAD | _S_IWRITE
     );
     if (fd < 0) {
