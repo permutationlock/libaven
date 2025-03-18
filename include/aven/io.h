@@ -498,7 +498,7 @@ AVEN_FN AvenIoReadResult aven_io_read(AvenIoFd fd, ByteSlice dest) {
     while (dest_rem.len > 0) {
         int result = _read(fd, dest_rem.ptr, (unsigned int)dest_rem.len);
         if (result >= 0) {
-            dest_rem = slice_tail(dest_rem, (size_t)result);
+            dest_rem = (ByteSlice)slice_tail(dest_rem, (size_t)result);
         } else {
             switch (errno) {
                 case EBADF:
