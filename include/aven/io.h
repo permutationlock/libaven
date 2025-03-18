@@ -273,6 +273,45 @@ static inline AvenIoResult aven_io_writer_push(
     return (AvenIoResult){ .payload = src.len - src_rem.len };
 }
 
+#define aven_io_writer_push_struct(w, s) aven_io_writer_push_struct_internal( \
+        w, \
+        as_bytes(s) \
+    )
+#define aven_io_reader_pop_struct(w, s) aven_io_reader_pop_struct_internal( \
+        w, \
+        as_bytes(s) \
+    )
+
+static inline int aven_io_reader_pop_struct_internal(
+    AvenIoReader *reader,
+    ByteSlice dest
+) {
+    AvenIoResult res = aven_io_reader_pop(reader, dest);
+    if (res.error != 0) {
+        return res.error;
+    }
+    if (res.payload < dest.len) {
+        return AVEN_IO_ERROR_NOSPACE;
+    }
+
+    return 0;
+}
+
+static inline int aven_io_writer_push_struct_internal(
+    AvenIoWriter *writer,
+    ByteSlice src
+) {
+    AvenIoResult res = aven_io_writer_push(writer, src);
+    if (res.error != 0) {
+        return res.error;
+    }
+    if (res.payload < src.len) {
+        return AVEN_IO_ERROR_NOSPACE;
+    }
+
+    return 0;
+}
+
 #define aven_io_writer_push_slice(w, s) aven_io_writer_push_slice_internal( \
         w, \
         slice_as_bytes(s), \
@@ -320,14 +359,9 @@ static inline AvenIoSliceResult aven_io_reader_pop_slice_internal(
     AvenArena *arena
 ) {
     AvenIoSliceHeader header = { 0 };
-    ByteSlice header_bytes = as_bytes(&header);
-
-    AvenIoResult hd_res = aven_io_reader_pop(reader, header_bytes);
-    if (hd_res.error != 0) {
-        return (AvenIoSliceResult){ .error = hd_res.error };
-    }
-    if (hd_res.payload < header_bytes.len) {
-        return (AvenIoSliceResult){ .error = AVEN_IO_ERROR_NOSPACE };
+    int hd_error = aven_io_reader_pop_struct(reader, &header);
+    if (hd_error != 0) {
+        return (AvenIoSliceResult){ .error = hd_error };
     }
     if (header.fp != AVEN_IO_SLICE_FINGERPRINT) {
         return (AvenIoSliceResult){ .error = AVEN_IO_ERROR_FINGERPRINT };
@@ -371,14 +405,9 @@ static inline int aven_io_writer_push_slice_internal(
         .fp = AVEN_IO_SLICE_FINGERPRINT,
         .slice = { .size = size, .count = count },
     };
-    ByteSlice header_bytes = as_bytes(&header);
-
-    AvenIoResult hd_res = aven_io_writer_push(writer, header_bytes);
-    if (hd_res.error != 0) {
-        return hd_res.error;
-    }
-    if (hd_res.payload < header_bytes.len) {
-        return AVEN_IO_ERROR_NOSPACE;
+    int hd_error = aven_io_writer_push_struct(writer, &header);
+    if (hd_error != 0) {
+        return hd_error;
     }
 
     AvenIoResult sl_res = aven_io_writer_push(writer, bytes);
