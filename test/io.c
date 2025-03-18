@@ -506,14 +506,10 @@ AvenTestResult test_aven_io_writer_slice(
 ) {
     TestAvenIoWriterSliceArgs *io_args = args;
 
-    ByteSlice space = {
-        .len = aven_io_slice_size(io_args->slice),
-    };
-    space.ptr = aven_arena_alloc(
+    ByteSlice space = aven_arena_create_slice(
+        unsigned char,
         &arena,
-        space.len,
-        1,
-        1
+        aven_io_slice_size(io_args->slice)
     );
 
     AvenIoWriter writer = aven_io_writer_init_bytes(space);
@@ -563,6 +559,7 @@ AvenTestResult test_aven_io_writer_slice(
         assert(len > 0);
 
         return (AvenTestResult){
+            .error = 1,
             .message = buffer,
         };
     }
@@ -599,6 +596,7 @@ AvenTestResult test_aven_io_writer_slice(
         assert(len > 0);
 
         return (AvenTestResult){
+            .error = 1,
             .message = buffer,
         };
     }
