@@ -649,8 +649,8 @@ int test_io(AvenArena arena) {
                     aven_str("hello.txt")
                 ),
                 .expected = {
-                    .ptr = (unsigned char *)"Hello, World!\n",
-                    .len = countof("Hello, World!\n") - 1,
+                    .ptr = (unsigned char *)"Hello, World!",
+                    .len = countof("Hello, World!") - 1,
                 },
             },
         },
@@ -668,8 +668,8 @@ int test_io(AvenArena arena) {
             .args = &(TestAvenIoWriteArgs){
                 .exe_dir_path = exe_dir_path,
                 .contents = {
-                    .ptr = (unsigned char *)"Hello, World!\n",
-                    .len = countof("Hello, World!\n") - 1,
+                    .ptr = (unsigned char *)"Hello, World!",
+                    .len = countof("Hello, World!") - 1,
                 },
             },
         },
@@ -707,8 +707,8 @@ int test_io(AvenArena arena) {
                     aven_str("hello.txt")
                 ),
                 .expected = {
-                    .ptr = (unsigned char *)"Hello, World!\n",
-                    .len = countof("Hello, World!\n") - 1,
+                    .ptr = (unsigned char *)"Hello, World!",
+                    .len = countof("Hello, World!") - 1,
                 },
             },
         },
@@ -726,8 +726,8 @@ int test_io(AvenArena arena) {
             .args = &(TestAvenIoWriteArgs){
                 .exe_dir_path = exe_dir_path,
                 .contents = {
-                    .ptr = (unsigned char *)"Hello, World!\n",
-                    .len = countof("Hello, World!\n") - 1,
+                    .ptr = (unsigned char *)"Hello, World!",
+                    .len = countof("Hello, World!") - 1,
                 },
             },
         },
