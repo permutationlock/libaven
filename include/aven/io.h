@@ -327,7 +327,7 @@ static inline int aven_io_writer_push_struct_internal(
     )
 #define aven_io_slice(t, g) { \
         .ptr = (assert(sizeof(t) == (size_t)(g).slice.size), (t *)(g).ptr), \
-        .len = (size_t)(g).slice.count, \
+        .len = (size_t)(g).slice.len, \
     }
 #define aven_io_slice_size(s) ( \
         sizeof(AvenIoSliceHeader) + \
@@ -337,7 +337,7 @@ static inline int aven_io_writer_push_struct_internal(
 
 typedef struct {
     uint64_t size;
-    uint64_t count;
+    uint64_t len;
 } AvenIoSlice;
 
 typedef struct {
@@ -370,14 +370,15 @@ static inline AvenIoSliceResult aven_io_reader_pop_slice_internal(
         return (AvenIoSliceResult){ .error = AVEN_IO_ERROR_MISMATCH };
     }
 
+    AvenArena temp_arena = *arena;
     ByteSlice slice_bytes = {
         .ptr = aven_arena_alloc(
-            arena,
-            header.slice.count,
+            &temp_arena,
+            header.slice.len,
             align,
             (size_t)header.slice.size
         ),
-        .len = (size_t)(header.slice.count * header.slice.size),
+        .len = (size_t)(header.slice.len * header.slice.size),
     };
     AvenIoResult sl_res = aven_io_reader_pop(reader, slice_bytes);
     if (sl_res.error != 0) {
@@ -386,6 +387,8 @@ static inline AvenIoSliceResult aven_io_reader_pop_slice_internal(
     if (sl_res.payload < slice_bytes.len) {
         return (AvenIoSliceResult){ .error = AVEN_IO_ERROR_NOSPACE };
     }
+
+    *arena = temp_arena;
 
     return (AvenIoSliceResult){
         .payload = {
@@ -399,11 +402,11 @@ static inline int aven_io_writer_push_slice_internal(
     AvenIoWriter *writer,
     ByteSlice bytes,
     size_t size,
-    size_t count
+    size_t len
 ) {
     AvenIoSliceHeader header = {
         .fp = AVEN_IO_SLICE_FINGERPRINT,
-        .slice = { .size = size, .count = count },
+        .slice = { .size = size, .len = len },
     };
     int hd_error = aven_io_writer_push_struct(writer, &header);
     if (hd_error != 0) {
@@ -417,6 +420,273 @@ static inline int aven_io_writer_push_slice_internal(
     if (sl_res.payload < bytes.len) {
         return AVEN_IO_ERROR_NOSPACE;
     }
+    return AVEN_IO_ERROR_NONE;
+}
+
+#define aven_io_writer_push_list(w, l) aven_io_writer_push_list_internal( \
+        w, \
+        list_as_bytes(l), \
+        sizeof(*(l).ptr), \
+        (l).len, \
+        (l).cap \
+    )
+#define aven_io_reader_pop_list(t, r, a) \
+    aven_io_reader_pop_list_internal( \
+        r, \
+        sizeof(t), \
+        aven_arena_alignof(t), \
+        a \
+    )
+#define aven_io_list(t, g) { \
+        .ptr = (assert(sizeof(t) == (size_t)(g).list.size), (t *)(g).ptr), \
+        .cap = (size_t)(g).list.cap, \
+        .len = (size_t)(g).list.len, \
+    }
+#define aven_io_list_size(s) ( \
+        sizeof(AvenIoListHeader) + \
+        (s).len * sizeof(*(s).ptr) \
+    )
+#define AVEN_IO_LIST_FINGERPRINT ((uint64_t)0x715704eade2)
+
+typedef struct {
+    uint64_t size;
+    uint64_t len;
+    uint64_t cap;
+} AvenIoList;
+
+typedef struct {
+    void *ptr;
+    AvenIoList list;
+} AvenIoListGeneric;
+
+typedef struct {
+    uint64_t fp;
+    AvenIoList list;
+} AvenIoListHeader;
+
+typedef Result(AvenIoListGeneric, int) AvenIoListResult;
+
+static inline AvenIoListResult aven_io_reader_pop_list_internal(
+    AvenIoReader *reader,
+    size_t size,
+    size_t align,
+    AvenArena *arena
+) {
+    AvenIoListHeader header = { 0 };
+    int hd_error = aven_io_reader_pop_struct(reader, &header);
+    if (hd_error != 0) {
+        return (AvenIoListResult){ .error = hd_error };
+    }
+    if (header.fp != AVEN_IO_LIST_FINGERPRINT) {
+        return (AvenIoListResult){ .error = AVEN_IO_ERROR_FINGERPRINT };
+    }
+    if ((size_t)header.list.size != size) {
+        return (AvenIoListResult){ .error = AVEN_IO_ERROR_MISMATCH };
+    }
+    if (header.list.len > header.list.cap) {
+        return (AvenIoListResult){ .error = AVEN_IO_ERROR_MISMATCH };
+    }
+
+    AvenArena temp_arena = *arena;
+
+    ByteSlice list_bytes = {
+        .ptr = aven_arena_alloc(
+            arena,
+            header.list.cap,
+            align,
+            (size_t)header.list.size
+        ),
+        .len = (size_t)(header.list.cap * header.list.size),
+    };
+    ByteSlice used_list_bytes = slice_head(
+        list_bytes,
+        header.list.len * header.list.size
+    );
+    AvenIoResult sl_res = aven_io_reader_pop(reader, used_list_bytes);
+    if (sl_res.error != 0) {
+        return (AvenIoListResult){ .error = sl_res.error };
+    }
+    if (sl_res.payload < used_list_bytes.len) {
+        return (AvenIoListResult){ .error = AVEN_IO_ERROR_NOSPACE };
+    }
+
+    *arena = temp_arena;
+
+    return (AvenIoListResult){
+        .payload = {
+            .ptr = list_bytes.ptr,
+            .list = header.list,
+        },
+    };
+}
+
+static inline int aven_io_writer_push_list_internal(
+    AvenIoWriter *writer,
+    ByteSlice bytes,
+    size_t size,
+    size_t len,
+    size_t cap
+) {
+    AvenIoListHeader header = {
+        .fp = AVEN_IO_LIST_FINGERPRINT,
+        .list = {
+            .size = size,
+            .cap = cap,
+            .len = len,
+        },
+    };
+    int hd_error = aven_io_writer_push_struct(writer, &header);
+    if (hd_error != 0) {
+        return hd_error;
+    }
+
+    AvenIoResult lt_res = aven_io_writer_push(writer, bytes);
+    if (lt_res.error != 0) {
+        return lt_res.error;
+    }
+    if (lt_res.payload < bytes.len) {
+        return AVEN_IO_ERROR_NOSPACE;
+    }
+    
+    return AVEN_IO_ERROR_NONE;
+}
+
+#define aven_io_writer_push_queue(w, q) aven_io_writer_push_queue_internal( \
+        w, \
+        queue_front_as_bytes(q), \
+        queue_back_as_bytes(q), \
+        sizeof(*(q).ptr), \
+        (q).used, \
+        (q).cap \
+    )
+#define aven_io_reader_pop_queue(t, r, a) \
+    aven_io_reader_pop_queue_internal( \
+        r, \
+        sizeof(t), \
+        aven_arena_alignof(t), \
+        a \
+    )
+#define aven_io_queue(t, g) { \
+        .ptr = (assert(sizeof(t) == (size_t)(g).queue.size), (t *)(g).ptr), \
+        .cap = (size_t)(g).queue.cap, \
+        .front = 0, \
+        .back = (size_t)(g).queue.used, \
+        .used = (size_t)(g).queue.used, \
+    }
+#define aven_io_queue_size(s) ( \
+        sizeof(AvenIoQueueHeader) + \
+        (s).used * sizeof(*(s).ptr) \
+    )
+#define AVEN_IO_QUEUE_FINGERPRINT ((uint64_t)0x98e8e04eade2)
+
+typedef struct {
+    uint64_t size;
+    uint64_t used;
+    uint64_t cap;
+} AvenIoQueue;
+
+typedef struct {
+    void *ptr;
+    AvenIoQueue queue;
+} AvenIoQueueGeneric;
+
+typedef struct {
+    uint64_t fp;
+    AvenIoQueue queue;
+} AvenIoQueueHeader;
+
+typedef Result(AvenIoQueueGeneric, int) AvenIoQueueResult;
+
+static inline AvenIoQueueResult aven_io_reader_pop_queue_internal(
+    AvenIoReader *reader,
+    size_t size,
+    size_t align,
+    AvenArena *arena
+) {
+    AvenIoQueueHeader header = { 0 };
+    int hd_error = aven_io_reader_pop_struct(reader, &header);
+    if (hd_error != 0) {
+        return (AvenIoQueueResult){ .error = hd_error };
+    }
+    if (header.fp != AVEN_IO_QUEUE_FINGERPRINT) {
+        return (AvenIoQueueResult){ .error = AVEN_IO_ERROR_FINGERPRINT };
+    }
+    if ((size_t)header.queue.size != size) {
+        return (AvenIoQueueResult){ .error = AVEN_IO_ERROR_MISMATCH };
+    }
+    if (header.queue.used > header.queue.cap) {
+        return (AvenIoQueueResult){ .error = AVEN_IO_ERROR_MISMATCH };
+    }
+
+    AvenArena temp_arena = *arena;
+
+    ByteSlice queue_bytes = {
+        .ptr = aven_arena_alloc(
+            arena,
+            header.queue.cap,
+            align,
+            (size_t)header.queue.size
+        ),
+        .len = (size_t)(header.queue.cap * header.queue.size),
+    };
+    ByteSlice used_queue_bytes = slice_head(
+        queue_bytes,
+        header.queue.used * header.queue.size
+    );
+    AvenIoResult sl_res = aven_io_reader_pop(reader, used_queue_bytes);
+    if (sl_res.error != 0) {
+        return (AvenIoQueueResult){ .error = sl_res.error };
+    }
+    if (sl_res.payload < used_queue_bytes.len) {
+        return (AvenIoQueueResult){ .error = AVEN_IO_ERROR_NOSPACE };
+    }
+
+    *arena = temp_arena;
+
+    return (AvenIoQueueResult){
+        .payload = {
+            .ptr = queue_bytes.ptr,
+            .queue = header.queue,
+        },
+    };
+}
+
+static inline int aven_io_writer_push_queue_internal(
+    AvenIoWriter *writer,
+    ByteSlice front_bytes,
+    ByteSlice back_bytes,
+    size_t size,
+    size_t used,
+    size_t cap
+) {
+    AvenIoQueueHeader header = {
+        .fp = AVEN_IO_QUEUE_FINGERPRINT,
+        .queue = {
+            .size = size,
+            .cap = cap,
+            .used = used,
+        },
+    };
+    int hd_error = aven_io_writer_push_struct(writer, &header);
+    if (hd_error != 0) {
+        return hd_error;
+    }
+
+    AvenIoResult ft_res = aven_io_writer_push(writer, front_bytes);
+    if (ft_res.error != 0) {
+        return ft_res.error;
+    }
+    if (ft_res.payload < front_bytes.len) {
+        return AVEN_IO_ERROR_NOSPACE;
+    }
+    AvenIoResult bk_res = aven_io_writer_push(writer, back_bytes);
+    if (bk_res.error != 0) {
+        return bk_res.error;
+    }
+    if (bk_res.payload < back_bytes.len) {
+        return AVEN_IO_ERROR_NOSPACE;
+    }
+    
     return AVEN_IO_ERROR_NONE;
 }
 

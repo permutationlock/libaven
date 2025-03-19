@@ -136,6 +136,14 @@ static inline void aven_pool_push_free_internal(
 #define list_pop(l) (l).ptr[(assert((l).len > 0), --(l).len)]
 #define list_push(l) (l).ptr[(assert((l).len < (l).cap), (l).len++)]
 #define list_clear(l) do { (l).len = 0; } while (0)
+#define queue_get(q, i) (q).ptr[ \
+        ( \
+            assert((i) < (q).used), \
+            ((q).front + (i) < (q).cap) ? \
+                (q).front + (i) : \
+                (q).front + (i) - (q).cap \
+        ) \
+    ]
 #define queue_front(q) (q).ptr[(assert((q).used > 0), (q).front)]
 #define queue_back(q) (q).ptr[(assert((q).used > 0), (q).back)]
 #define queue_pop(q) (q).ptr[ \
@@ -186,6 +194,14 @@ static inline void aven_pool_push_free_internal(
 
 #define slice_array(...) { .ptr = (__VA_ARGS__), .len = countof(__VA_ARGS__) }
 #define slice_list(l) { .ptr = (l).ptr, .len = (l).len }
+#define slice_queue_front(q) { \
+        .ptr = ((q).used > 0) ? (q).ptr + (q).front : NULL, \
+        .len = min((q).cap, (q).front + (q).used) - (q).front, \
+    }
+#define slice_queue_back(q) { \
+        .ptr = (q).ptr, \
+        .len = ((q).front + (q).used <= (q).cap) ? 0 : (q).back, \
+    }
 #define slice_head(s, i) { \
         .ptr = (s).ptr, \
         .len = (assert((i) <= (s).len), (i)), \
@@ -217,6 +233,22 @@ static inline void aven_pool_push_free_internal(
 #define slice_as_bytes(s) (ByteSlice){ \
         .ptr = (unsigned char *)(s).ptr, \
         .len = (s).len * sizeof(*(s).ptr), \
+    }
+#define list_as_bytes(l) (ByteSlice){ \
+        .ptr = (unsigned char *)(l).ptr, \
+        .len = (l).len * sizeof(*(l).ptr), \
+    }
+#define queue_front_as_bytes(q) (ByteSlice){ \
+        .ptr = ((q).used > 0) ? (unsigned char *)((q).ptr + (q).front) : NULL, \
+        .len = sizeof(*(q).ptr) * ( \
+            min((q).cap, (q).front + (q).used) - (q).front \
+        ), \
+    }
+#define queue_back_as_bytes(q) (ByteSlice){ \
+        .ptr = (unsigned char *)(q).ptr, \
+        .len = sizeof(*(q).ptr) * ( \
+            ((q).front + (q).used <= (q).cap) ? 0 : (q).back \
+        ), \
     }
 
 #if defined(_WIN32) and defined(_MSC_VER)

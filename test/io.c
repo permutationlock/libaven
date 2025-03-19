@@ -494,6 +494,8 @@ typedef struct {
     uint64_t c;
 } TestAvenIoStruct;
 typedef Slice(TestAvenIoStruct) TestAvenIoStructSlice;
+typedef List(TestAvenIoStruct) TestAvenIoStructList;
+typedef Queue(TestAvenIoStruct) TestAvenIoStructQueue;
 
 typedef struct {
     TestAvenIoStructSlice slice;
@@ -519,6 +521,13 @@ AvenTestResult test_aven_io_writer_slice(
         return (AvenTestResult){
             .error = error,
             .message = "error writing slice",
+        };
+    }
+
+    if (writer.index != space.len) {
+        return (AvenTestResult){
+            .error = 1,
+            .message = "written slice too small",
         };
     }
 
@@ -592,6 +601,284 @@ AvenTestResult test_aven_io_writer_slice(
             fmt,
             (unsigned long)(read_slice.len - entries_equal),
             (unsigned long)read_slice.len
+        );
+        assert(len > 0);
+
+        return (AvenTestResult){
+            .error = 1,
+            .message = buffer,
+        };
+    }
+
+    return (AvenTestResult){ 0 };
+}
+
+typedef struct {
+    TestAvenIoStructList list;
+} TestAvenIoWriterListArgs;
+
+AvenTestResult test_aven_io_writer_list(
+    AvenArena *emsg_arena,
+    AvenArena arena,
+    void *args
+) {
+    TestAvenIoWriterListArgs *io_args = args;
+
+    ByteSlice space = aven_arena_create_slice(
+        unsigned char,
+        &arena,
+        aven_io_list_size(io_args->list)
+    );
+
+    AvenIoWriter writer = aven_io_writer_init_bytes(space);
+    int error = aven_io_writer_push_list(&writer, io_args->list);
+
+    if (error != 0) {
+        return (AvenTestResult){
+            .error = error,
+            .message = "error writing list",
+        };
+    }
+
+    if (writer.index != space.len) {
+        return (AvenTestResult){
+            .error = 1,
+            .message = "written list too small",
+        };
+    }
+
+    AvenIoReader reader = aven_io_reader_init_bytes(space);
+    AvenIoListResult rd_res = aven_io_reader_pop_list(
+        TestAvenIoStruct,
+        &reader,
+        &arena
+    );
+
+    if (rd_res.error != 0) {
+        return (AvenTestResult){
+            .error = rd_res.error,
+            .message = "error reading list",
+        };
+    }
+
+    TestAvenIoStructList read_list = aven_io_list(
+        TestAvenIoStruct,
+        rd_res.payload
+    );
+
+    if (read_list.cap != io_args->list.cap) {
+        char fmt[] = "expected list cap %ul, found %ul";
+        char *buffer = aven_arena_alloc(
+            emsg_arena,
+            sizeof(fmt) + 8,
+            1,
+            1
+        );
+
+        int len = sprintf(
+            buffer,
+            fmt,
+            (unsigned long)io_args->list.cap,
+            (unsigned long)read_list.cap
+        );
+        assert(len > 0);
+
+        return (AvenTestResult){
+            .error = 1,
+            .message = buffer,
+        };
+    }
+
+    if (read_list.len != io_args->list.len) {
+        char fmt[] = "expected list len %ul, found %ul";
+        char *buffer = aven_arena_alloc(
+            emsg_arena,
+            sizeof(fmt) + 8,
+            1,
+            1
+        );
+
+        int len = sprintf(
+            buffer,
+            fmt,
+            (unsigned long)io_args->list.len,
+            (unsigned long)read_list.len
+        );
+        assert(len > 0);
+
+        return (AvenTestResult){
+            .error = 1,
+            .message = buffer,
+        };
+    }
+    
+    size_t entries_equal = 0;
+    for (size_t i = 0; i < read_list.len; i += 1) {
+        TestAvenIoStruct actual = get(read_list, i);
+        TestAvenIoStruct expected = get(io_args->list, i);
+        if (
+            actual.a == expected.a and
+            actual.b == expected.b and
+            actual.c == expected.c
+        ) {
+            entries_equal += 1;
+        }
+    }
+
+    if (entries_equal != io_args->list.len) {
+        char fmt[] =
+            "read list and written list differed in %ul / %ul entries";
+        char *buffer = aven_arena_alloc(
+            emsg_arena,
+            sizeof(fmt) + 8,
+            1,
+            1
+        );
+
+        int len = sprintf(
+            buffer,
+            fmt,
+            (unsigned long)(read_list.len - entries_equal),
+            (unsigned long)read_list.len
+        );
+        assert(len > 0);
+
+        return (AvenTestResult){
+            .error = 1,
+            .message = buffer,
+        };
+    }
+
+    return (AvenTestResult){ 0 };
+}
+
+typedef struct {
+    TestAvenIoStructQueue queue;
+} TestAvenIoWriterQueueArgs;
+
+AvenTestResult test_aven_io_writer_queue(
+    AvenArena *emsg_arena,
+    AvenArena arena,
+    void *args
+) {
+    TestAvenIoWriterQueueArgs *io_args = args;
+
+    ByteSlice space = aven_arena_create_slice(
+        unsigned char,
+        &arena,
+        aven_io_queue_size(io_args->queue)
+    );
+
+    AvenIoWriter writer = aven_io_writer_init_bytes(space);
+    int error = aven_io_writer_push_queue(&writer, io_args->queue);
+
+    if (error != 0) {
+        return (AvenTestResult){
+            .error = error,
+            .message = "error writing queue",
+        };
+    }
+
+    if (writer.index != space.len) {
+        return (AvenTestResult){
+            .error = 1,
+            .message = "written queue too small",
+        };
+    }
+
+    AvenIoReader reader = aven_io_reader_init_bytes(space);
+    AvenIoQueueResult rd_res = aven_io_reader_pop_queue(
+        TestAvenIoStruct,
+        &reader,
+        &arena
+    );
+
+    if (rd_res.error != 0) {
+        return (AvenTestResult){
+            .error = rd_res.error,
+            .message = "error reading queue",
+        };
+    }
+
+    TestAvenIoStructQueue read_queue = aven_io_queue(
+        TestAvenIoStruct,
+        rd_res.payload
+    );
+
+    if (read_queue.cap != io_args->queue.cap) {
+        char fmt[] = "expected queue cap %ul, found %ul";
+        char *buffer = aven_arena_alloc(
+            emsg_arena,
+            sizeof(fmt) + 8,
+            1,
+            1
+        );
+
+        int len = sprintf(
+            buffer,
+            fmt,
+            (unsigned long)io_args->queue.cap,
+            (unsigned long)read_queue.cap
+        );
+        assert(len > 0);
+
+        return (AvenTestResult){
+            .error = 1,
+            .message = buffer,
+        };
+    }
+
+    if (read_queue.used != io_args->queue.used) {
+        char fmt[] = "expected queue used %ul, found %ul";
+        char *buffer = aven_arena_alloc(
+            emsg_arena,
+            sizeof(fmt) + 8,
+            1,
+            1
+        );
+
+        int len = sprintf(
+            buffer,
+            fmt,
+            (unsigned long)io_args->queue.used,
+            (unsigned long)read_queue.used
+        );
+        assert(len > 0);
+
+        return (AvenTestResult){
+            .error = 1,
+            .message = buffer,
+        };
+    }
+    
+    size_t entries_equal = 0;
+    for (size_t i = 0; i < read_queue.used; i += 1) {
+        TestAvenIoStruct actual = queue_get(read_queue, i);
+        TestAvenIoStruct expected = queue_get(io_args->queue, i);
+        if (
+            actual.a == expected.a and
+            actual.b == expected.b and
+            actual.c == expected.c
+        ) {
+            entries_equal += 1;
+        }
+    }
+
+    if (entries_equal != io_args->queue.used) {
+        char fmt[] =
+            "read queue and written queue differed in %ul / %ul entries";
+        char *buffer = aven_arena_alloc(
+            emsg_arena,
+            sizeof(fmt) + 8,
+            1,
+            1
+        );
+
+        int len = sprintf(
+            buffer,
+            fmt,
+            (unsigned long)(read_queue.used - entries_equal),
+            (unsigned long)read_queue.used
         );
         assert(len > 0);
 
@@ -768,6 +1055,172 @@ int test_io(AvenArena arena) {
                         { .a = 111, .b = 222, .c = 333 },
                     }
                 ),
+            },
+        },
+        {
+            .desc = "aven_io_writer_push_list empty",
+            .fn = test_aven_io_writer_list,
+            .args = &(TestAvenIoWriterListArgs){
+                .list = { 0 },
+            },
+        },
+        {
+            .desc = "aven_io_writer_push_list one element empty",
+            .fn = test_aven_io_writer_list,
+            .args = &(TestAvenIoWriterListArgs){
+                .list = {
+                    .ptr = (TestAvenIoStruct[]){
+                        { .a = 1, .b = 2, .c = 3 },
+                    },
+                    .cap = 1,
+                    .len = 0,
+                },
+            },
+        },
+        {
+            .desc = "aven_io_writer_push_list one element len",
+            .fn = test_aven_io_writer_list,
+            .args = &(TestAvenIoWriterListArgs){
+                .list = {
+                    .ptr = (TestAvenIoStruct[]){
+                        { .a = 1, .b = 2, .c = 3 },
+                    },
+                    .cap = 1,
+                    .len = 1,
+                },
+            },
+        },
+        {
+            .desc = "aven_io_writer_push_list three elements empty",
+            .fn = test_aven_io_writer_list,
+            .args = &(TestAvenIoWriterListArgs){
+                .list = {
+                    .ptr = (TestAvenIoStruct[]){
+                        { .a = 1, .b = 2, .c = 3 },
+                        { .a = 11, .b = 22, .c = 33 },
+                        { .a = 111, .b = 222, .c = 333 },
+                    },
+                    .cap = 3,
+                    .len = 0,
+                },
+            },
+        },
+        {
+            .desc = "aven_io_writer_push_list three elements two used",
+            .fn = test_aven_io_writer_list,
+            .args = &(TestAvenIoWriterListArgs){
+                .list = {
+                    .ptr = (TestAvenIoStruct[]){
+                        { .a = 1, .b = 2, .c = 3 },
+                        { .a = 11, .b = 22, .c = 33 },
+                        { .a = 111, .b = 222, .c = 333 },
+                    },
+                    .cap = 3,
+                    .len = 2,
+                },
+            },
+        },
+        {
+            .desc = "aven_io_writer_push_list three elements full",
+            .fn = test_aven_io_writer_list,
+            .args = &(TestAvenIoWriterListArgs){
+                .list = {
+                    .ptr = (TestAvenIoStruct[]){
+                        { .a = 1, .b = 2, .c = 3 },
+                        { .a = 11, .b = 22, .c = 33 },
+                        { .a = 111, .b = 222, .c = 333 },
+                    },
+                    .cap = 3,
+                    .len = 3,
+                },
+            },
+        },
+        {
+            .desc = "aven_io_writer_push_queue empty",
+            .fn = test_aven_io_writer_queue,
+            .args = &(TestAvenIoWriterQueueArgs){
+                .queue = { 0 },
+            },
+        },
+        {
+            .desc = "aven_io_writer_push_queue one element empty",
+            .fn = test_aven_io_writer_queue,
+            .args = &(TestAvenIoWriterQueueArgs){
+                .queue = {
+                    .ptr = (TestAvenIoStruct[]){
+                        { .a = 1, .b = 2, .c = 3 },
+                    },
+                    .cap = 1,
+                    .used = 0,
+                    .front = 0,
+                    .back = 0,
+                },
+            },
+        },
+        {
+            .desc = "aven_io_writer_push_queue one element used",
+            .fn = test_aven_io_writer_queue,
+            .args = &(TestAvenIoWriterQueueArgs){
+                .queue = {
+                    .ptr = (TestAvenIoStruct[]){
+                        { .a = 1, .b = 2, .c = 3 },
+                    },
+                    .cap = 1,
+                    .used = 1,
+                    .front = 0,
+                    .back = 0,
+                },
+            },
+        },
+        {
+            .desc = "aven_io_writer_push_queue three elements empty",
+            .fn = test_aven_io_writer_queue,
+            .args = &(TestAvenIoWriterQueueArgs){
+                .queue = {
+                    .ptr = (TestAvenIoStruct[]){
+                        { .a = 1, .b = 2, .c = 3 },
+                        { .a = 11, .b = 22, .c = 33 },
+                        { .a = 111, .b = 222, .c = 333 },
+                    },
+                    .cap = 3,
+                    .used = 0,
+                    .front = 0,
+                    .back = 0,
+                },
+            },
+        },
+        {
+            .desc = "aven_io_writer_push_queue three elements two used",
+            .fn = test_aven_io_writer_queue,
+            .args = &(TestAvenIoWriterQueueArgs){
+                .queue = {
+                    .ptr = (TestAvenIoStruct[]){
+                        { .a = 1, .b = 2, .c = 3 },
+                        { .a = 11, .b = 22, .c = 33 },
+                        { .a = 111, .b = 222, .c = 333 },
+                    },
+                    .cap = 3,
+                    .used = 2,
+                    .front = 1,
+                    .back = 0,
+                },
+            },
+        },
+        {
+            .desc = "aven_io_writer_push_queue three elements full",
+            .fn = test_aven_io_writer_queue,
+            .args = &(TestAvenIoWriterQueueArgs){
+                .queue = {
+                    .ptr = (TestAvenIoStruct[]){
+                        { .a = 1, .b = 2, .c = 3 },
+                        { .a = 11, .b = 22, .c = 33 },
+                        { .a = 111, .b = 222, .c = 333 },
+                    },
+                    .cap = 3,
+                    .used = 3,
+                    .front = 2,
+                    .back = 2,
+                },
             },
         },
     };
