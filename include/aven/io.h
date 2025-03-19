@@ -326,18 +326,18 @@ static inline int aven_io_writer_push_struct_internal(
         a \
     )
 #define aven_io_slice(t, g) { \
-        .ptr = (assert(sizeof(t) == (g).slice.size), (t *)(g).ptr), \
-        .len = (g).slice.count, \
+        .ptr = (assert(sizeof(t) == (size_t)(g).slice.size), (t *)(g).ptr), \
+        .len = (size_t)(g).slice.count, \
     }
 #define aven_io_slice_size(s) ( \
         sizeof(AvenIoSliceHeader) + \
         (s).len * sizeof(*(s).ptr) \
     )
-#define AVEN_IO_SLICE_FINGERPRINT (0x571ce4ed)
+#define AVEN_IO_SLICE_FINGERPRINT ((uint64_t)0x571ce04eade2)
 
 typedef struct {
-    size_t size;
-    size_t count;
+    uint64_t size;
+    uint64_t count;
 } AvenIoSlice;
 
 typedef struct {
@@ -346,7 +346,7 @@ typedef struct {
 } AvenIoSliceGeneric;
 
 typedef struct {
-    size_t fp;
+    uint64_t fp;
     AvenIoSlice slice;
 } AvenIoSliceHeader;
 
@@ -366,7 +366,7 @@ static inline AvenIoSliceResult aven_io_reader_pop_slice_internal(
     if (header.fp != AVEN_IO_SLICE_FINGERPRINT) {
         return (AvenIoSliceResult){ .error = AVEN_IO_ERROR_FINGERPRINT };
     }
-    if (header.slice.size != size) {
+    if ((size_t)header.slice.size != size) {
         return (AvenIoSliceResult){ .error = AVEN_IO_ERROR_MISMATCH };
     }
 
@@ -375,9 +375,9 @@ static inline AvenIoSliceResult aven_io_reader_pop_slice_internal(
             arena,
             header.slice.count,
             align,
-            header.slice.size
+            (size_t)header.slice.size
         ),
-        .len = header.slice.count * header.slice.size,
+        .len = (size_t)(header.slice.count * header.slice.size),
     };
     AvenIoResult sl_res = aven_io_reader_pop(reader, slice_bytes);
     if (sl_res.error != 0) {
