@@ -1043,19 +1043,43 @@ AvenTestResult test_aven_io_writer_pool(
     }
 
     bool valid = true;
+    size_t count = 0;
     size_t free = read_pool.free;
-    while (free != 0 and free <= read_pool.len) {
+    while (free != 0 and free <= read_pool.len and count < read_pool.len) {
         if (get(valid_entries, free - 1)) {
             valid = false;
             break;
         }
         free = get(read_pool, free - 1).parent;
+        count += 1;
     }
 
     if (!valid) {
         return (AvenTestResult){
             .error = 1,
             .message = "valid pool entry in read pool's free list",
+        };
+    }
+    if (count != pool.len - pool.used) {
+        char fmt[] = "expected %lu element(s) in free list, found %lu";
+        char *buffer = aven_arena_alloc(
+            emsg_arena,
+            sizeof(fmt) + 8,
+            1,
+            1
+        );
+
+        int len = sprintf(
+            buffer,
+            fmt,
+            (unsigned long)(pool.len - pool.used),
+            (unsigned long)count
+        );
+        assert(len > 0);
+
+        return (AvenTestResult){
+            .error = 1,
+            .message = buffer,
         };
     }
 

@@ -531,8 +531,8 @@ static inline int aven_io_writer_push_list_internal(
         .fp = AVEN_IO_LIST_FINGERPRINT,
         .list = {
             .size = size,
-            .cap = cap,
             .len = len,
+            .cap = cap,
         },
     };
     int hd_error = aven_io_writer_push_struct(writer, &header);
@@ -663,8 +663,8 @@ static inline int aven_io_writer_push_queue_internal(
         .fp = AVEN_IO_QUEUE_FINGERPRINT,
         .queue = {
             .size = size,
-            .cap = cap,
             .used = used,
+            .cap = cap,
         },
     };
     int hd_error = aven_io_writer_push_struct(writer, &header);
