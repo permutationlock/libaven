@@ -1055,7 +1055,7 @@ AVEN_FN void aven_io_close(AvenIoFd fd) {
     int error = 0;
     do {
         error = close(fd);
-    } while (error != 0 and errno != EINTR);
+    } while (error != 0 and errno == EINTR);
 #endif
 }
 
