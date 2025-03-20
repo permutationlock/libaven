@@ -1,3 +1,6 @@
+#ifndef TEST_IO_H
+#define TEST_IO_H
+
 #include <aven.h>
 #include <aven/arena.h>
 #include <aven/io.h>
@@ -496,6 +499,7 @@ typedef struct {
 typedef Slice(TestAvenIoStruct) TestAvenIoStructSlice;
 typedef List(TestAvenIoStruct) TestAvenIoStructList;
 typedef Queue(TestAvenIoStruct) TestAvenIoStructQueue;
+typedef Pool(TestAvenIoStruct) TestAvenIoStructPool;
 
 typedef struct {
     TestAvenIoStructSlice slice;
@@ -572,7 +576,7 @@ AvenTestResult test_aven_io_writer_slice(
             .message = buffer,
         };
     }
-    
+
     size_t entries_equal = 0;
     for (size_t i = 0; i < read_slice.len; i += 1) {
         TestAvenIoStruct actual = get(read_slice, i);
@@ -711,7 +715,7 @@ AvenTestResult test_aven_io_writer_list(
             .message = buffer,
         };
     }
-    
+
     size_t entries_equal = 0;
     for (size_t i = 0; i < read_list.len; i += 1) {
         TestAvenIoStruct actual = get(read_list, i);
@@ -850,7 +854,7 @@ AvenTestResult test_aven_io_writer_queue(
             .message = buffer,
         };
     }
-    
+
     size_t entries_equal = 0;
     for (size_t i = 0; i < read_queue.used; i += 1) {
         TestAvenIoStruct actual = queue_get(read_queue, i);
@@ -879,6 +883,213 @@ AvenTestResult test_aven_io_writer_queue(
             fmt,
             (unsigned long)(read_queue.used - entries_equal),
             (unsigned long)read_queue.used
+        );
+        assert(len > 0);
+
+        return (AvenTestResult){
+            .error = 1,
+            .message = buffer,
+        };
+    }
+
+    return (AvenTestResult){ 0 };
+}
+
+typedef Slice(size_t) TestAvenIoPoolIndexSlice;
+
+typedef struct {
+    size_t size;
+    TestAvenIoStructSlice inserts;
+    TestAvenIoPoolIndexSlice deletes;
+} TestAvenIoWriterPoolArgs;
+
+AvenTestResult test_aven_io_writer_pool(
+    AvenArena *emsg_arena,
+    AvenArena arena,
+    void *args
+) {
+    TestAvenIoWriterPoolArgs *io_args = args;
+
+    TestAvenIoStructPool pool = aven_arena_create_pool(
+        TestAvenIoStruct,
+        &arena,
+        io_args->size
+    );
+    Slice(bool) valid_entries = aven_arena_create_slice(
+        bool,
+        &arena,
+        io_args->inserts.len
+    );
+    for (size_t i = 0; i < io_args->inserts.len; i += 1) {
+        size_t idx = pool_create(pool);
+        pool_get(pool, idx) = get(io_args->inserts, i);
+        get(valid_entries, idx) = true;
+    }
+    for (size_t i = 0; i < io_args->deletes.len; i += 1) {
+        size_t idx = get(io_args->deletes, i);
+        pool_delete(pool, idx);
+        get(valid_entries, idx) = false;
+    }
+
+    ByteSlice space = aven_arena_create_slice(
+        unsigned char,
+        &arena,
+        aven_io_pool_size(pool)
+    );
+
+    AvenIoWriter writer = aven_io_writer_init_bytes(space);
+    int error = aven_io_writer_push_pool(&writer, pool);
+
+    if (error != 0) {
+        return (AvenTestResult){
+            .error = error,
+            .message = "error writing pool",
+        };
+    }
+
+    if (writer.index != space.len) {
+        return (AvenTestResult){
+            .error = 1,
+            .message = "written pool too small",
+        };
+    }
+
+    AvenIoReader reader = aven_io_reader_init_bytes(space);
+    AvenIoPoolResult rd_res = aven_io_reader_pop_pool(
+        TestAvenIoStruct,
+        &reader,
+        &arena
+    );
+
+    if (rd_res.error != 0) {
+        return (AvenTestResult){
+            .error = rd_res.error,
+            .message = "error reading pool",
+        };
+    }
+
+    TestAvenIoStructPool read_pool = aven_io_pool(
+        TestAvenIoStruct,
+        rd_res.payload
+    );
+
+    if (read_pool.cap != pool.cap) {
+        char fmt[] = "expected pool cap %ul, found %ul";
+        char *buffer = aven_arena_alloc(
+            emsg_arena,
+            sizeof(fmt) + 8,
+            1,
+            1
+        );
+
+        int len = sprintf(
+            buffer,
+            fmt,
+            (unsigned long)pool.cap,
+            (unsigned long)read_pool.cap
+        );
+        assert(len > 0);
+
+        return (AvenTestResult){
+            .error = 1,
+            .message = buffer,
+        };
+    }
+
+    if (read_pool.free != pool.free) {
+        char fmt[] = "expected pool free %ul, found %ul";
+        char *buffer = aven_arena_alloc(
+            emsg_arena,
+            sizeof(fmt) + 8,
+            1,
+            1
+        );
+
+        int len = sprintf(
+            buffer,
+            fmt,
+            (unsigned long)pool.free,
+            (unsigned long)read_pool.free
+        );
+        assert(len > 0);
+
+        return (AvenTestResult){
+            .error = 1,
+            .message = buffer,
+        };
+    }
+
+    if (read_pool.used != pool.used) {
+        char fmt[] = "expected pool used %ul, found %ul";
+        char *buffer = aven_arena_alloc(
+            emsg_arena,
+            sizeof(fmt) + 8,
+            1,
+            1
+        );
+
+        int len = sprintf(
+            buffer,
+            fmt,
+            (unsigned long)pool.used,
+            (unsigned long)read_pool.used
+        );
+        assert(len > 0);
+
+        return (AvenTestResult){
+            .error = 1,
+            .message = buffer,
+        };
+    }
+
+    bool valid = true;
+    size_t free = read_pool.free;
+    while (free != 0 and free <= read_pool.len) {
+        if (get(valid_entries, free - 1)) {
+            valid = false;
+            break;
+        }
+        free = get(read_pool, free - 1).parent;
+    }
+
+    if (!valid) {
+        return (AvenTestResult){
+            .error = 1,
+            .message = "valid pool entry in read pool's free list",
+        };
+    }
+
+    size_t entries_equal = 0;
+    for (size_t i = 0; i < read_pool.len; i += 1) {
+        if (!get(valid_entries, i)) {
+            continue;
+        }
+        TestAvenIoStruct actual = pool_get(read_pool, i);
+        TestAvenIoStruct expected = pool_get(pool, i);
+        if (
+            actual.a == expected.a and
+            actual.b == expected.b and
+            actual.c == expected.c
+        ) {
+            entries_equal += 1;
+        }
+    }
+
+    if (entries_equal != pool.used) {
+        char fmt[] =
+            "read pool and written pool differed in %ul / %ul entries";
+        char *buffer = aven_arena_alloc(
+            emsg_arena,
+            sizeof(fmt) + 8,
+            1,
+            1
+        );
+
+        int len = sprintf(
+            buffer,
+            fmt,
+            (unsigned long)(read_pool.used - entries_equal),
+            (unsigned long)read_pool.used
         );
         assert(len > 0);
 
@@ -1223,6 +1434,104 @@ int test_io(AvenArena arena) {
                 },
             },
         },
+        {
+            .desc = "aven_io_writer_push_pool empty",
+            .fn = test_aven_io_writer_pool,
+            .args = &(TestAvenIoWriterPoolArgs){
+                .size = 0,
+                .inserts = { 0 },
+                .deletes = { 0 },
+            },
+        },
+        {
+            .desc = "aven_io_writer_push_pool one element inserted",
+            .fn = test_aven_io_writer_pool,
+            .args = &(TestAvenIoWriterPoolArgs){
+                .size = 1,
+                .inserts = slice_array(
+                    (TestAvenIoStruct[]){ {.a = 1, .b = 1, .c = 1 } }
+                ),
+                .deletes = { 0 },
+            },
+        },
+        {
+            .desc =
+                "aven_io_writer_push_pool one element inserted then deleted",
+            .fn = test_aven_io_writer_pool,
+            .args = &(TestAvenIoWriterPoolArgs){
+                .size = 1,
+                .inserts = slice_array(
+                    (TestAvenIoStruct[]){ {.a = 1, .b = 1, .c = 1 } }
+                ),
+                .deletes = slice_array((size_t[]){ 0 }),
+            },
+        },
+        {
+            .desc =
+                "aven_io_writer_push_pool two elements inserted",
+            .fn = test_aven_io_writer_pool,
+            .args = &(TestAvenIoWriterPoolArgs){
+                .size = 3,
+                .inserts = slice_array(
+                    (TestAvenIoStruct[]){
+                        {.a = 1, .b = 1, .c = 1 },
+                        {.a = 2, .b = 2, .c = 2 },
+                    }
+                ),
+                .deletes = { 0 },
+            },
+        },
+        {
+            .desc =
+                "aven_io_writer_push_pool two elements inserted, one deleted",
+            .fn = test_aven_io_writer_pool,
+            .args = &(TestAvenIoWriterPoolArgs){
+                .size = 3,
+                .inserts = slice_array(
+                    (TestAvenIoStruct[]){
+                        {.a = 1, .b = 1, .c = 1 },
+                        {.a = 2, .b = 2, .c = 2 },
+                    }
+                ),
+                .deletes = slice_array((size_t[]){ 0 }),
+            },
+        },
+        {
+            .desc =
+                "aven_io_writer_push_pool five elements inserted",
+            .fn = test_aven_io_writer_pool,
+            .args = &(TestAvenIoWriterPoolArgs){
+                .size = 7,
+                .inserts = slice_array(
+                    (TestAvenIoStruct[]){
+                        {.a = 1, .b = 1, .c = 1 },
+                        {.a = 2, .b = 2, .c = 2 },
+                        {.a = 3, .b = 3, .c = 3 },
+                        {.a = 4, .b = 4, .c = 4 },
+                        {.a = 5, .b = 5, .c = 5 },
+                    }
+                ),
+                .deletes = { 0 },
+            },
+        },
+        {
+            .desc =
+                "aven_io_writer_push_pool five elements inserted, two deleted",
+            .fn = test_aven_io_writer_pool,
+            .args = &(TestAvenIoWriterPoolArgs){
+                .size = 7,
+                .inserts = slice_array(
+                    (TestAvenIoStruct[]){
+                        {.a = 1, .b = 1, .c = 1 },
+                        {.a = 2, .b = 2, .c = 2 },
+                        {.a = 3, .b = 3, .c = 3 },
+                        {.a = 4, .b = 4, .c = 4 },
+                        {.a = 5, .b = 5, .c = 5 },
+                    }
+                ),
+                .deletes = slice_array((size_t[]){ 1, 3 }),
+            },
+        },
     };
     AvenTestCaseSlice tcases = {
         .ptr = tcase_data,
@@ -1234,3 +1543,4 @@ int test_io(AvenArena arena) {
     return 0;
 }
 
+#endif // TEST_IO_H

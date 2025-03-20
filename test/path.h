@@ -1,3 +1,6 @@
+#ifndef TEST_PATH_H
+#define TEST_PATH_H
+
 #include <aven.h>
 #include <aven/arena.h>
 #include <aven/path.h>
@@ -585,3 +588,4 @@ int test_path(AvenArena arena) {
     return 0;
 }
 
+#endif // TEST_PATH_H

@@ -13,8 +13,8 @@
 
 #include <stdlib.h>
 
-#include "test/path.c"
-#include "test/io.c"
+#include "test/path.h"
+#include "test/io.h"
 
 #define ARENA_SIZE (4096 * 16)
 

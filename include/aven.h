@@ -42,7 +42,7 @@
 
 #define countof(...) (sizeof(__VA_ARGS__) / sizeof(*(__VA_ARGS__)))
 
-#define Optional(t) struct { t value; bool valid; }
+#define Optional(t) struct { t value; uint8_t valid; }
 #define OptPtr(t) union { t *value; t *valid; }
 #define Result(t, e) struct { t payload; e error; }
 #define Slice(t) struct { t *ptr; size_t len; }
@@ -55,13 +55,13 @@
         size_t used; \
     }
 
-#define PoolEntry(t) union { t data; size_t parent; }
+#define PoolEntry(t) union { t data; uint64_t parent; }
 #define PoolExplicit(e) struct { \
         e *ptr; \
         size_t len; \
         size_t cap; \
-        size_t free; \
         size_t used; \
+        size_t free; \
     }
 #define Pool(t) PoolExplicit(PoolEntry(t))
 
@@ -108,31 +108,32 @@ static inline size_t aven_pool_next_internal(
 static inline size_t aven_pool_pop_free_internal(
     size_t *used,
     size_t *free,
-    size_t parent
+    uint64_t parent
 ) {
     *used += 1;
 
     size_t index = *free;
-    *free = parent;
+    *free = (size_t)parent;
     return index - 1;
 }
 
 static inline void aven_pool_push_free_internal(
     size_t *used,
     size_t *free,
-    size_t *parent,
+    uint64_t *parent,
     size_t index
 ) {
     *used -= 1;
     *parent = *free;
     *free = index + 1;
-}
+} 
 
 #define unwrap(o) (assert((o).valid), (o).value)
 #define get(s, i) (s).ptr[(assert((i) < (s).len), i)]
 #define list_get(l, i) get(l, i)
 #define list_front(l) get(l, 0)
 #define list_back(l) get(l, (l).len - 1)
+#define list_delete(l, i) (assert(i <= (l).len), l.ptr[i] = list_pop(l))
 #define list_pop(l) (l).ptr[(assert((l).len > 0), --(l).len)]
 #define list_push(l) (l).ptr[(assert((l).len < (l).cap), (l).len++)]
 #define list_clear(l) do { (l).len = 0; } while (0)
@@ -234,10 +235,7 @@ static inline void aven_pool_push_free_internal(
         .ptr = (unsigned char *)(s).ptr, \
         .len = (s).len * sizeof(*(s).ptr), \
     }
-#define list_as_bytes(l) (ByteSlice){ \
-        .ptr = (unsigned char *)(l).ptr, \
-        .len = (l).len * sizeof(*(l).ptr), \
-    }
+#define list_as_bytes(l) slice_as_bytes(l)
 #define queue_front_as_bytes(q) (ByteSlice){ \
         .ptr = ((q).used > 0) ? (unsigned char *)((q).ptr + (q).front) : NULL, \
         .len = sizeof(*(q).ptr) * ( \
@@ -250,6 +248,7 @@ static inline void aven_pool_push_free_internal(
             ((q).front + (q).used <= (q).cap) ? 0 : (q).back \
         ), \
     }
+#define pool_as_bytes(p) slice_as_bytes(p)
 
 #if defined(_WIN32) and defined(_MSC_VER)
     void *memcpy(void *s1, const void *s2, size_t n);

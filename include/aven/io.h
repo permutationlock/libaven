@@ -222,7 +222,7 @@ static int aven_io_writer_flush(AvenIoWriter *writer) {
         return res.error;
     }
 
-    return 0;
+    return AVEN_IO_ERROR_NONE;
 }
 
 static inline AvenIoResult aven_io_writer_push(
@@ -294,7 +294,7 @@ static inline int aven_io_reader_pop_struct_internal(
         return AVEN_IO_ERROR_NOSPACE;
     }
 
-    return 0;
+    return AVEN_IO_ERROR_NONE;
 }
 
 static inline int aven_io_writer_push_struct_internal(
@@ -309,7 +309,7 @@ static inline int aven_io_writer_push_struct_internal(
         return AVEN_IO_ERROR_NOSPACE;
     }
 
-    return 0;
+    return AVEN_IO_ERROR_NONE;
 }
 
 #define aven_io_writer_push_slice(w, s) aven_io_writer_push_slice_internal( \
@@ -547,7 +547,7 @@ static inline int aven_io_writer_push_list_internal(
     if (lt_res.payload < bytes.len) {
         return AVEN_IO_ERROR_NOSPACE;
     }
-    
+
     return AVEN_IO_ERROR_NONE;
 }
 
@@ -686,7 +686,160 @@ static inline int aven_io_writer_push_queue_internal(
     if (bk_res.payload < back_bytes.len) {
         return AVEN_IO_ERROR_NOSPACE;
     }
-    
+
+    return AVEN_IO_ERROR_NONE;
+}
+
+#define aven_io_writer_push_pool(w, p) aven_io_writer_push_pool_internal( \
+        w, \
+        pool_as_bytes(p), \
+        sizeof(*(p).ptr), \
+        (p).free, \
+        (p).used, \
+        (p).len, \
+        (p).cap \
+    )
+#define aven_io_reader_pop_pool(t, r, a) \
+    aven_io_reader_pop_pool_internal( \
+        r, \
+        sizeof(PoolEntry(t)), \
+        aven_arena_alignof(PoolEntry(t)), \
+        a \
+    )
+#define aven_io_pool(t, g) { \
+        .ptr = ( \
+            assert(sizeof(PoolEntry(t)) == (size_t)(g).pool.size), \
+            (void *)(g).ptr \
+        ), \
+        .free = (size_t)(g).pool.free, \
+        .used = (size_t)(g).pool.used, \
+        .len = (size_t)(g).pool.len, \
+        .cap = (size_t)(g).pool.cap, \
+    }
+#define aven_io_pool_size(s) ( \
+        sizeof(AvenIoPoolHeader) + \
+        (s).len * sizeof(*(s).ptr) \
+    )
+#define AVEN_IO_POOL_FINGERPRINT ((uint64_t)0x700704eade2)
+
+typedef struct {
+    uint64_t size;
+    uint64_t free;
+    uint64_t used;
+    uint64_t len;
+    uint64_t cap;
+} AvenIoPool;
+
+typedef struct {
+    void *ptr;
+    AvenIoPool pool;
+} AvenIoPoolGeneric;
+
+typedef struct {
+    uint64_t fp;
+    AvenIoPool pool;
+} AvenIoPoolHeader;
+
+typedef Result(AvenIoPoolGeneric, int) AvenIoPoolResult;
+
+static inline AvenIoPoolResult aven_io_reader_pop_pool_internal(
+    AvenIoReader *reader,
+    size_t size,
+    size_t align,
+    AvenArena *arena
+) {
+    AvenIoPoolHeader header = { 0 };
+    int hd_error = aven_io_reader_pop_struct(reader, &header);
+    if (hd_error != 0) {
+        return (AvenIoPoolResult){ .error = hd_error };
+    }
+    if (header.fp != AVEN_IO_POOL_FINGERPRINT) {
+        return (AvenIoPoolResult){ .error = AVEN_IO_ERROR_FINGERPRINT };
+    }
+    if ((size_t)header.pool.size != size) {
+        return (AvenIoPoolResult){ .error = AVEN_IO_ERROR_MISMATCH };
+    }
+    if (header.pool.len > header.pool.cap) {
+        return (AvenIoPoolResult){ .error = AVEN_IO_ERROR_MISMATCH };
+    }
+    if (header.pool.free > header.pool.len) {
+        return (AvenIoPoolResult){ .error = AVEN_IO_ERROR_MISMATCH };
+    }
+    if (header.pool.used > header.pool.len) {
+        return (AvenIoPoolResult){ .error = AVEN_IO_ERROR_MISMATCH };
+    }
+    if (header.pool.used < header.pool.len and header.pool.free == 0) {
+        return (AvenIoPoolResult){ .error = AVEN_IO_ERROR_MISMATCH };
+    }
+    if (header.pool.used == header.pool.len and header.pool.free != 0) {
+        return (AvenIoPoolResult){ .error = AVEN_IO_ERROR_MISMATCH };
+    }
+
+    AvenArena temp_arena = *arena;
+
+    ByteSlice pool_bytes = {
+        .ptr = aven_arena_alloc(
+            arena,
+            header.pool.cap,
+            align,
+            (size_t)header.pool.size
+        ),
+        .len = (size_t)(header.pool.cap * header.pool.size),
+    };
+    ByteSlice used_pool_bytes = slice_head(
+        pool_bytes,
+        header.pool.len * header.pool.size
+    );
+    AvenIoResult sl_res = aven_io_reader_pop(reader, used_pool_bytes);
+    if (sl_res.error != 0) {
+        return (AvenIoPoolResult){ .error = sl_res.error };
+    }
+    if (sl_res.payload < used_pool_bytes.len) {
+        return (AvenIoPoolResult){ .error = AVEN_IO_ERROR_NOSPACE };
+    }
+
+    *arena = temp_arena;
+
+    return (AvenIoPoolResult){
+        .payload = {
+            .ptr = pool_bytes.ptr,
+            .pool = header.pool,
+        },
+    };
+}
+
+static inline int aven_io_writer_push_pool_internal(
+    AvenIoWriter *writer,
+    ByteSlice bytes,
+    size_t size,
+    size_t free,
+    size_t used,
+    size_t len,
+    size_t cap
+) {
+    AvenIoPoolHeader header = {
+        .fp = AVEN_IO_POOL_FINGERPRINT,
+        .pool = {
+            .size = size,
+            .free = free,
+            .used = used,
+            .len = len,
+            .cap = cap,
+        },
+    };
+    int hd_error = aven_io_writer_push_struct(writer, &header);
+    if (hd_error != 0) {
+        return hd_error;
+    }
+
+    AvenIoResult pl_res = aven_io_writer_push(writer, bytes);
+    if (pl_res.error != 0) {
+        return pl_res.error;
+    }
+    if (pl_res.payload < bytes.len) {
+        return AVEN_IO_ERROR_NOSPACE;
+    }
+
     return AVEN_IO_ERROR_NONE;
 }
 
