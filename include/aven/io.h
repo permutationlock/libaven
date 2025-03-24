@@ -117,6 +117,9 @@ static inline AvenIoReader aven_io_reader_init_bytes(ByteSlice bytes) {
     };
 }
 
+#if __has_attribute(unused)
+    __attribute__((unused))
+#endif
 static AvenIoReader aven_io_stdin = {
     .read = aven_io_fd_read_stub,
     .ctx = (void *)0,
@@ -212,10 +215,16 @@ static inline AvenIoWriter aven_io_writer_init_bytes(ByteSlice bytes) {
     };
 }
 
+#if __has_attribute(unused)
+    __attribute__((unused))
+#endif
 static AvenIoWriter aven_io_stdout = {
     .write = aven_io_fd_write_stub,
     .ctx = (void *)1,
 };
+#if __has_attribute(unused)
+    __attribute__((unused))
+#endif
 static AvenIoWriter aven_io_stderr = {
     .write = aven_io_fd_write_stub,
     .ctx = (void *)2,
@@ -1014,7 +1023,7 @@ AVEN_FN AvenIoOpenResult aven_io_open(
     return (AvenIoOpenResult){ .payload = fd };
 #else
     AvenIoFd fd = -1;
-    unsigned int oflag = 0;
+    int oflag = 0;
     switch (mode) {
         case AVEN_IO_OPEN_MODE_WRITE:
             oflag = O_CREAT | O_TRUNC | O_WRONLY;
