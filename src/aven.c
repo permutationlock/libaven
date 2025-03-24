@@ -8,6 +8,7 @@
 #include <aven/build.h>
 #include <aven/dl.h>
 #include <aven/fs.h>
+#include <aven/io.h>
 #include <aven/path.h>
 #include <aven/test.h>
 #include <aven/watch.h>

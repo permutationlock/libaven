@@ -43,7 +43,7 @@ AVEN_FN AvenProcKillError aven_proc_kill(AvenProcId pid);
 #ifdef AVEN_IMPLEMENTATION
 
 #ifndef AVEN_SUPPRESS_LOGS
-#include <stdio.h>
+#include "io.h"
 #endif
 
 #ifndef _WIN32
@@ -68,7 +68,7 @@ AVEN_FN AvenProcCmdResult aven_proc_cmd(
         &arena
     );
 #ifndef AVEN_SUPPRESS_LOGS
-    printf("%s\n", aven_str_to_cstr(cmd_str, &arena));
+    aven_io_printf("{}\n", aven_fmt_str(cmd_str));
 #endif
 #ifdef _WIN32
     typedef struct {
@@ -170,10 +170,9 @@ AVEN_FN AvenProcCmdResult aven_proc_cmd(
         int error = execvp(args[0], args);
         if (error != 0) {
 #ifndef AVEN_SUPPRESS_LOGS
-            fprintf(
-                stderr,
-                "execvp failed: %s\n",
-                aven_str_to_cstr(cmd_str, &arena)
+            aven_io_perrf(
+                "execvp failed: {}\n",
+                aven_fmt_str(cmd_str)
             );
 #endif
             exit(errno);

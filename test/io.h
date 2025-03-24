@@ -26,25 +26,13 @@ AvenTestResult test_aven_io_read(
         arena
     );
     if (fd_res.error != 0) {
-        char fmt[] = "error opening file \"%s\"";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) +
-                io_args->fpath.len,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            aven_str_to_cstr(io_args->fpath, &arena)
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 1,
-            .message = buffer,
+            .error = fd_res.error,
+            .message = aven_fmt(
+                emsg_arena,
+                "error opening file \"{}\"",
+                aven_fmt_str(io_args->fpath)
+            ),
         };
     }
 
@@ -57,48 +45,25 @@ AvenTestResult test_aven_io_read(
     aven_io_close(fd_res.payload);
 
     if (rd_res.error != 0) {
-        char fmt[] = "error reading file \"%s\"";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) +
-                io_args->fpath.len,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            aven_str_to_cstr(io_args->fpath, &arena)
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 2,
-            .message = buffer,
+            .error = rd_res.error,
+            .message = aven_fmt(
+                emsg_arena,
+                "error reading file \"{}\"",
+                aven_fmt_str(io_args->fpath)
+            ),
         };
     }
 
     if (rd_res.payload != io_args->expected.len) {
-        char fmt[] = "expected \"%d\" bytes, found \"%d\" bytes";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 16,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (int)io_args->expected.len,
-            (int)rd_res.payload
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 3,
-            .message = buffer,
+            .error = 1,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected {} bytes, found {} bytes",
+                aven_fmt_uint(io_args->expected.len),
+                aven_fmt_uint(rd_res.payload)
+            ),
         };
     }
 
@@ -110,24 +75,13 @@ AvenTestResult test_aven_io_read(
     }
 
     if (diff > 0) {
-        char fmt[] = "file contents differed by \"%d\" bytes";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 16,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (int)diff
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 4,
-            .message = buffer,
+            .error = 1,
+            .message = aven_fmt(
+                emsg_arena,
+                "file contents differed by {} bytes",
+                aven_fmt_uint(diff)
+            ),
         };
     }
 
@@ -153,24 +107,13 @@ AvenTestResult test_aven_io_write_read(
     );
     int error = aven_fs_mkdir(tmp_dir_path, arena);
     if (error != 0) {
-        char fmt[] = "error creating directory \"%s\"";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + tmp_dir_path.len,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            aven_str_to_cstr(tmp_dir_path, &arena)
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 5,
-            .message = buffer,
+            .error = error,
+            .message = aven_fmt(
+                emsg_arena,
+                "error creating directory \"{}\"",
+                aven_fmt_str(tmp_dir_path)
+            ),
         };
     }
 
@@ -184,25 +127,13 @@ AvenTestResult test_aven_io_write_read(
     if (fd_res.error != 0) {
         aven_fs_rm(tmp_path, arena);
         aven_fs_rmdir(tmp_dir_path, arena);
-
-        char fmt[] = "error opening file \"%s\"";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + tmp_path.len,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            aven_str_to_cstr(tmp_path, &arena)
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 6,
-            .message = buffer,
+            .error = fd_res.error,
+            .message = aven_fmt(
+                emsg_arena,
+                "error opening file\"{}\"",
+                aven_fmt_str(tmp_path)
+            ),
         };
     }
 
@@ -215,25 +146,13 @@ AvenTestResult test_aven_io_write_read(
     if (wr_res.error != 0) {
         aven_fs_rm(tmp_path, arena);
         aven_fs_rmdir(tmp_dir_path, arena);
-
-        char fmt[] = "error writing to file \"%s\"";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + tmp_path.len,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            aven_str_to_cstr(tmp_path, &arena)
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 7,
-            .message = buffer,
+            .error = wr_res.error,
+            .message = aven_fmt(
+                emsg_arena,
+                "error writing to file\"{}\"",
+                aven_fmt_str(tmp_path)
+            ),
         };
     }
 
@@ -262,25 +181,13 @@ AvenTestResult test_aven_io_reader(
         arena
     );
     if (fd_res.error != 0) {
-        char fmt[] = "error opening file \"%s\"";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) +
-                io_args->fpath.len,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            aven_str_to_cstr(io_args->fpath, &arena)
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 1,
-            .message = buffer,
+            .error = fd_res.error,
+            .message = aven_fmt(
+                emsg_arena,
+                "error opening file\"{}\"",
+                aven_fmt_str(io_args->fpath)
+            ),
         };
     }
 
@@ -298,48 +205,25 @@ AvenTestResult test_aven_io_reader(
     aven_io_close(fd_res.payload);
 
     if (rd_res.error != 0) {
-        char fmt[] = "error reading file \"%s\"";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) +
-                io_args->fpath.len,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            aven_str_to_cstr(io_args->fpath, &arena)
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 2,
-            .message = buffer,
+            .error = rd_res.error,
+            .message = aven_fmt(
+                emsg_arena,
+                "error reading from file\"{}\"",
+                aven_fmt_str(io_args->fpath)
+            ),
         };
     }
 
     if (rd_res.payload != io_args->expected.len) {
-        char fmt[] = "expected \"%d\" bytes, found \"%d\" bytes";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 16,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (int)io_args->expected.len,
-            (int)rd_res.payload
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 3,
-            .message = buffer,
+            .error = 1,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected {} bytes, found {} bytes",
+                aven_fmt_uint(io_args->expected.len),
+                aven_fmt_uint(rd_res.payload)
+            ),
         };
     }
 
@@ -351,24 +235,13 @@ AvenTestResult test_aven_io_reader(
     }
 
     if (diff > 0) {
-        char fmt[] = "file contents differed by \"%d\" bytes";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 16,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (int)diff
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 4,
-            .message = buffer,
+            .error = 1,
+            .message = aven_fmt(
+                emsg_arena,
+                "file contents differed by {} bytes",
+                aven_fmt_uint(diff)
+            ),
         };
     }
 
@@ -389,24 +262,13 @@ AvenTestResult test_aven_io_writer(
     );
     int error = aven_fs_mkdir(tmp_dir_path, arena);
     if (error != 0) {
-        char fmt[] = "error creating directory \"%s\"";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + tmp_dir_path.len,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            aven_str_to_cstr(tmp_dir_path, &arena)
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 5,
-            .message = buffer,
+            .error = error,
+            .message = aven_fmt(
+                emsg_arena,
+                "error creating directory \"{}\"",
+                aven_fmt_str(tmp_dir_path)
+            ),
         };
     }
 
@@ -420,25 +282,13 @@ AvenTestResult test_aven_io_writer(
     if (fd_res.error != 0) {
         aven_fs_rm(tmp_path, arena);
         aven_fs_rmdir(tmp_dir_path, arena);
-
-        char fmt[] = "error opening file \"%s\"";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + tmp_path.len,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            aven_str_to_cstr(tmp_path, &arena)
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 6,
-            .message = buffer,
+            .error = fd_res.error,
+            .message = aven_fmt(
+                emsg_arena,
+                "error opening file \"{}\"",
+                aven_fmt_str(tmp_path)
+            ),
         };
     }
 
@@ -457,25 +307,13 @@ AvenTestResult test_aven_io_writer(
     if (wr_res.error != 0 or fl_error != 0) {
         aven_fs_rm(tmp_path, arena);
         aven_fs_rmdir(tmp_dir_path, arena);
-
-        char fmt[] = "error writing to file \"%s\"";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + tmp_path.len,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            aven_str_to_cstr(tmp_path, &arena)
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 7,
-            .message = buffer,
+            .error = wr_res.error,
+            .message = aven_fmt(
+                emsg_arena,
+                "error writing to file\"{}\"",
+                aven_fmt_str(tmp_path)
+            ),
         };
     }
 
@@ -524,14 +362,14 @@ AvenTestResult test_aven_io_writer_slice(
     if (error != 0) {
         return (AvenTestResult){
             .error = error,
-            .message = "error writing slice",
+            .message = aven_str("error writing slice"),
         };
     }
 
     if (writer.index != space.len) {
         return (AvenTestResult){
             .error = 1,
-            .message = "written slice too small",
+            .message = aven_str("written slice too small"),
         };
     }
 
@@ -545,7 +383,7 @@ AvenTestResult test_aven_io_writer_slice(
     if (rd_res.error != 0) {
         return (AvenTestResult){
             .error = rd_res.error,
-            .message = "error reading slice",
+            .message = aven_str("error reading slice"),
         };
     }
 
@@ -555,25 +393,14 @@ AvenTestResult test_aven_io_writer_slice(
     );
 
     if (read_slice.len != io_args->slice.len) {
-        char fmt[] = "expected slice len %ul, found %ul";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 8,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (unsigned long)io_args->slice.len,
-            (unsigned long)read_slice.len
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
             .error = 1,
-            .message = buffer,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected slice len {}, found {}",
+                aven_fmt_uint(io_args->slice.len),
+                aven_fmt_uint(read_slice.len)
+            ),
         };
     }
 
@@ -591,26 +418,14 @@ AvenTestResult test_aven_io_writer_slice(
     }
 
     if (entries_equal != io_args->slice.len) {
-        char fmt[] =
-            "read slice and written slice differed in %ul / %ul entries";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 8,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (unsigned long)(read_slice.len - entries_equal),
-            (unsigned long)read_slice.len
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
             .error = 1,
-            .message = buffer,
+            .message = aven_fmt(
+                emsg_arena,
+                "read slice and written slice differed in {} / {} entries",
+                aven_fmt_uint(io_args->slice.len - entries_equal),
+                aven_fmt_uint(io_args->slice.len)
+            ),
         };
     }
 
@@ -640,14 +455,14 @@ AvenTestResult test_aven_io_writer_list(
     if (error != 0) {
         return (AvenTestResult){
             .error = error,
-            .message = "error writing list",
+            .message = aven_str("error writing list"),
         };
     }
 
     if (writer.index != space.len) {
         return (AvenTestResult){
             .error = 1,
-            .message = "written list too small",
+            .message = aven_str("written list too small"),
         };
     }
 
@@ -661,7 +476,7 @@ AvenTestResult test_aven_io_writer_list(
     if (rd_res.error != 0) {
         return (AvenTestResult){
             .error = rd_res.error,
-            .message = "error reading list",
+            .message = aven_str("error reading list"),
         };
     }
 
@@ -671,48 +486,26 @@ AvenTestResult test_aven_io_writer_list(
     );
 
     if (read_list.cap != io_args->list.cap) {
-        char fmt[] = "expected list cap %ul, found %ul";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 8,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (unsigned long)io_args->list.cap,
-            (unsigned long)read_list.cap
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
             .error = 1,
-            .message = buffer,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected list cap {}, found {}",
+                aven_fmt_uint(io_args->list.cap),
+                aven_fmt_uint(read_list.cap)
+            ),
         };
     }
 
     if (read_list.len != io_args->list.len) {
-        char fmt[] = "expected list len %ul, found %ul";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 8,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (unsigned long)io_args->list.len,
-            (unsigned long)read_list.len
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
             .error = 1,
-            .message = buffer,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected list len {}, found {}",
+                aven_fmt_uint(io_args->list.len),
+                aven_fmt_uint(read_list.len)
+            ),
         };
     }
 
@@ -730,26 +523,14 @@ AvenTestResult test_aven_io_writer_list(
     }
 
     if (entries_equal != io_args->list.len) {
-        char fmt[] =
-            "read list and written list differed in %ul / %ul entries";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 8,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (unsigned long)(read_list.len - entries_equal),
-            (unsigned long)read_list.len
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
             .error = 1,
-            .message = buffer,
+            .message = aven_fmt(
+                emsg_arena,
+                "read list and written list differed in {} / {} entries",
+                aven_fmt_uint(io_args->list.len - entries_equal),
+                aven_fmt_uint(io_args->list.len)
+            ),
         };
     }
 
@@ -779,14 +560,14 @@ AvenTestResult test_aven_io_writer_queue(
     if (error != 0) {
         return (AvenTestResult){
             .error = error,
-            .message = "error writing queue",
+            .message = aven_str("error writing queue"),
         };
     }
 
     if (writer.index != space.len) {
         return (AvenTestResult){
             .error = 1,
-            .message = "written queue too small",
+            .message = aven_str("written queue too small"),
         };
     }
 
@@ -800,7 +581,7 @@ AvenTestResult test_aven_io_writer_queue(
     if (rd_res.error != 0) {
         return (AvenTestResult){
             .error = rd_res.error,
-            .message = "error reading queue",
+            .message = aven_str("error reading queue"),
         };
     }
 
@@ -810,48 +591,26 @@ AvenTestResult test_aven_io_writer_queue(
     );
 
     if (read_queue.cap != io_args->queue.cap) {
-        char fmt[] = "expected queue cap %ul, found %ul";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 8,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (unsigned long)io_args->queue.cap,
-            (unsigned long)read_queue.cap
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
             .error = 1,
-            .message = buffer,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected queue cap {}, found {}",
+                aven_fmt_uint(io_args->queue.cap),
+                aven_fmt_uint(read_queue.cap)
+            ),
         };
     }
 
     if (read_queue.used != io_args->queue.used) {
-        char fmt[] = "expected queue used %ul, found %ul";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 8,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (unsigned long)io_args->queue.used,
-            (unsigned long)read_queue.used
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
             .error = 1,
-            .message = buffer,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected queue used {}, found {}",
+                aven_fmt_uint(io_args->queue.used),
+                aven_fmt_uint(read_queue.used)
+            ),
         };
     }
 
@@ -869,26 +628,14 @@ AvenTestResult test_aven_io_writer_queue(
     }
 
     if (entries_equal != io_args->queue.used) {
-        char fmt[] =
-            "read queue and written queue differed in %ul / %ul entries";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 8,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (unsigned long)(read_queue.used - entries_equal),
-            (unsigned long)read_queue.used
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
             .error = 1,
-            .message = buffer,
+            .message = aven_fmt(
+                emsg_arena,
+                "read queue and written queue differed in {} / {} entries",
+                aven_fmt_uint(io_args->queue.used - entries_equal),
+                aven_fmt_uint(io_args->queue.used)
+            ),
         };
     }
 
@@ -896,7 +643,6 @@ AvenTestResult test_aven_io_writer_queue(
 }
 
 typedef Slice(size_t) TestAvenIoPoolIndexSlice;
-
 typedef struct {
     size_t size;
     TestAvenIoStructSlice inserts;
@@ -943,14 +689,14 @@ AvenTestResult test_aven_io_writer_pool(
     if (error != 0) {
         return (AvenTestResult){
             .error = error,
-            .message = "error writing pool",
+            .message = aven_str("error writing pool"),
         };
     }
 
     if (writer.index != space.len) {
         return (AvenTestResult){
             .error = 1,
-            .message = "written pool too small",
+            .message = aven_str("written pool too small"),
         };
     }
 
@@ -964,7 +710,7 @@ AvenTestResult test_aven_io_writer_pool(
     if (rd_res.error != 0) {
         return (AvenTestResult){
             .error = rd_res.error,
-            .message = "error reading pool",
+            .message = aven_str("error reading pool"),
         };
     }
 
@@ -974,71 +720,50 @@ AvenTestResult test_aven_io_writer_pool(
     );
 
     if (read_pool.cap != pool.cap) {
-        char fmt[] = "expected pool cap %ul, found %ul";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 8,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (unsigned long)pool.cap,
-            (unsigned long)read_pool.cap
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
             .error = 1,
-            .message = buffer,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected pool cap {}, found {}",
+                aven_fmt_uint(pool.cap),
+                aven_fmt_uint(read_pool.cap)
+            ),
+        };
+    }
+
+    if (read_pool.len != pool.len) {
+        return (AvenTestResult){
+            .error = 1,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected pool len {}, found {}",
+                aven_fmt_uint(pool.len),
+                aven_fmt_uint(read_pool.len)
+            ),
         };
     }
 
     if (read_pool.free != pool.free) {
-        char fmt[] = "expected pool free %ul, found %ul";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 8,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (unsigned long)pool.free,
-            (unsigned long)read_pool.free
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
             .error = 1,
-            .message = buffer,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected pool free {}, found {}",
+                aven_fmt_uint(pool.free),
+                aven_fmt_uint(read_pool.free)
+            ),
         };
     }
 
     if (read_pool.used != pool.used) {
-        char fmt[] = "expected pool used %ul, found %ul";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 8,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (unsigned long)pool.used,
-            (unsigned long)read_pool.used
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
             .error = 1,
-            .message = buffer,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected pool used {}, found {}",
+                aven_fmt_uint(pool.used),
+                aven_fmt_uint(read_pool.used)
+            ),
         };
     }
 
@@ -1057,29 +782,18 @@ AvenTestResult test_aven_io_writer_pool(
     if (!valid) {
         return (AvenTestResult){
             .error = 1,
-            .message = "valid pool entry in read pool's free list",
+            .message = aven_str("valid pool entry in read pool's free list"),
         };
     }
     if (count != pool.len - pool.used) {
-        char fmt[] = "expected %lu element(s) in free list, found %lu";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 8,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (unsigned long)(pool.len - pool.used),
-            (unsigned long)count
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
             .error = 1,
-            .message = buffer,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected {} element(s) in free list, found {}",
+                aven_fmt_uint(pool.len - pool.used),
+                aven_fmt_uint(count)
+            ),
         };
     }
 
@@ -1100,26 +814,14 @@ AvenTestResult test_aven_io_writer_pool(
     }
 
     if (entries_equal != pool.used) {
-        char fmt[] =
-            "read pool and written pool differed in %ul / %ul entries";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) + 8,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            (unsigned long)(read_pool.used - entries_equal),
-            (unsigned long)read_pool.used
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
             .error = 1,
-            .message = buffer,
+            .message = aven_fmt(
+                emsg_arena,
+                "read pool and written pool differed in {} / {} entries",
+                aven_fmt_uint(pool.len - entries_equal),
+                aven_fmt_uint(pool.len)
+            ),
         };
     }
 
@@ -1129,9 +831,9 @@ AvenTestResult test_aven_io_writer_pool(
 int test_io(AvenArena arena) {
     AvenPathResult exe_res = aven_path_exe(&arena);
     if (exe_res.error != 0) {
-        printf(
+        aven_io_printf(
             "unable to run tests for %s: could not find path to test exe",
-            __FILE__
+            aven_fmt_str(aven_str(__FILE__))
         );
         return 1;
     }
@@ -1146,7 +848,7 @@ int test_io(AvenArena arena) {
 
     AvenTestCase tcase_data[] = {
         {
-            .desc = "aven_io_read empty file",
+            .desc = aven_str("aven_io_read empty file"),
             .fn = test_aven_io_read,
             .args = &(TestAvenIoReadArgs){
                 .fpath = aven_path(
@@ -1159,7 +861,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_read text file",
+            .desc = aven_str("aven_io_read text file"),
             .fn = test_aven_io_read,
             .args = &(TestAvenIoReadArgs){
                 .fpath = aven_path(
@@ -1175,7 +877,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_write empty file",
+            .desc = aven_str("aven_io_write empty file"),
             .fn = test_aven_io_write_read,
             .args = &(TestAvenIoWriteArgs){
                 .exe_dir_path = exe_dir_path,
@@ -1183,7 +885,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_write text file",
+            .desc = aven_str("aven_io_write text file"),
             .fn = test_aven_io_write_read,
             .args = &(TestAvenIoWriteArgs){
                 .exe_dir_path = exe_dir_path,
@@ -1194,7 +896,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_write bin file",
+            .desc = aven_str("aven_io_write bin file"),
             .fn = test_aven_io_write_read,
             .args = &(TestAvenIoWriteArgs){
                 .exe_dir_path = exe_dir_path,
@@ -1204,7 +906,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_reader_pop empty file",
+            .desc = aven_str("aven_io_reader_pop empty file"),
             .fn = test_aven_io_reader,
             .args = &(TestAvenIoReadArgs){
                 .fpath = aven_path(
@@ -1217,7 +919,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_reader_pop text file",
+            .desc = aven_str("aven_io_reader_pop text file"),
             .fn = test_aven_io_reader,
             .args = &(TestAvenIoReadArgs){
                 .fpath = aven_path(
@@ -1233,7 +935,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push empty file",
+            .desc = aven_str("aven_io_writer_push empty file"),
             .fn = test_aven_io_writer,
             .args = &(TestAvenIoWriteArgs){
                 .exe_dir_path = exe_dir_path,
@@ -1241,7 +943,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push text file",
+            .desc = aven_str("aven_io_writer_push text file"),
             .fn = test_aven_io_writer,
             .args = &(TestAvenIoWriteArgs){
                 .exe_dir_path = exe_dir_path,
@@ -1252,7 +954,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push bin file",
+            .desc = aven_str("aven_io_writer_push bin file"),
             .fn = test_aven_io_writer,
             .args = &(TestAvenIoWriteArgs){
                 .exe_dir_path = exe_dir_path,
@@ -1262,14 +964,14 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push_slice empty",
+            .desc = aven_str("aven_io_writer_push_slice empty"),
             .fn = test_aven_io_writer_slice,
             .args = &(TestAvenIoWriterSliceArgs){
                 .slice = { 0 },
             },
         },
         {
-            .desc = "aven_io_writer_push_slice one element",
+            .desc = aven_str("aven_io_writer_push_slice one element"),
             .fn = test_aven_io_writer_slice,
             .args = &(TestAvenIoWriterSliceArgs){
                 .slice = slice_array(
@@ -1280,7 +982,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push_slice three elements",
+            .desc = aven_str("aven_io_writer_push_slice three elements"),
             .fn = test_aven_io_writer_slice,
             .args = &(TestAvenIoWriterSliceArgs){
                 .slice = slice_array(
@@ -1293,14 +995,14 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push_list empty",
+            .desc = aven_str("aven_io_writer_push_list empty"),
             .fn = test_aven_io_writer_list,
             .args = &(TestAvenIoWriterListArgs){
                 .list = { 0 },
             },
         },
         {
-            .desc = "aven_io_writer_push_list one element empty",
+            .desc = aven_str("aven_io_writer_push_list one element empty"),
             .fn = test_aven_io_writer_list,
             .args = &(TestAvenIoWriterListArgs){
                 .list = {
@@ -1313,7 +1015,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push_list one element len",
+            .desc = aven_str("aven_io_writer_push_list one element len"),
             .fn = test_aven_io_writer_list,
             .args = &(TestAvenIoWriterListArgs){
                 .list = {
@@ -1326,7 +1028,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push_list three elements empty",
+            .desc = aven_str("aven_io_writer_push_list three elements empty"),
             .fn = test_aven_io_writer_list,
             .args = &(TestAvenIoWriterListArgs){
                 .list = {
@@ -1341,7 +1043,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push_list three elements two used",
+            .desc = aven_str("aven_io_writer_push_list three elements two used"),
             .fn = test_aven_io_writer_list,
             .args = &(TestAvenIoWriterListArgs){
                 .list = {
@@ -1356,7 +1058,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push_list three elements full",
+            .desc = aven_str("aven_io_writer_push_list three elements full"),
             .fn = test_aven_io_writer_list,
             .args = &(TestAvenIoWriterListArgs){
                 .list = {
@@ -1371,14 +1073,14 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push_queue empty",
+            .desc = aven_str("aven_io_writer_push_queue empty"),
             .fn = test_aven_io_writer_queue,
             .args = &(TestAvenIoWriterQueueArgs){
                 .queue = { 0 },
             },
         },
         {
-            .desc = "aven_io_writer_push_queue one element empty",
+            .desc = aven_str("aven_io_writer_push_queue one element empty"),
             .fn = test_aven_io_writer_queue,
             .args = &(TestAvenIoWriterQueueArgs){
                 .queue = {
@@ -1393,7 +1095,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push_queue one element used",
+            .desc = aven_str("aven_io_writer_push_queue one element used"),
             .fn = test_aven_io_writer_queue,
             .args = &(TestAvenIoWriterQueueArgs){
                 .queue = {
@@ -1408,7 +1110,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push_queue three elements empty",
+            .desc = aven_str("aven_io_writer_push_queue three elements empty"),
             .fn = test_aven_io_writer_queue,
             .args = &(TestAvenIoWriterQueueArgs){
                 .queue = {
@@ -1425,7 +1127,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push_queue three elements two used",
+            .desc = aven_str("aven_io_writer_push_queue three elements two used"),
             .fn = test_aven_io_writer_queue,
             .args = &(TestAvenIoWriterQueueArgs){
                 .queue = {
@@ -1442,7 +1144,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push_queue three elements full",
+            .desc = aven_str("aven_io_writer_push_queue three elements full"),
             .fn = test_aven_io_writer_queue,
             .args = &(TestAvenIoWriterQueueArgs){
                 .queue = {
@@ -1459,7 +1161,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push_pool empty",
+            .desc = aven_str("aven_io_writer_push_pool empty"),
             .fn = test_aven_io_writer_pool,
             .args = &(TestAvenIoWriterPoolArgs){
                 .size = 0,
@@ -1468,7 +1170,7 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_io_writer_push_pool one element inserted",
+            .desc = aven_str("aven_io_writer_push_pool one element inserted"),
             .fn = test_aven_io_writer_pool,
             .args = &(TestAvenIoWriterPoolArgs){
                 .size = 1,
@@ -1479,8 +1181,9 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc =
-                "aven_io_writer_push_pool one element inserted then deleted",
+            .desc = aven_str(
+                "aven_io_writer_push_pool one element inserted then deleted"
+            ),
             .fn = test_aven_io_writer_pool,
             .args = &(TestAvenIoWriterPoolArgs){
                 .size = 1,
@@ -1491,8 +1194,9 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc =
-                "aven_io_writer_push_pool two elements inserted",
+            .desc = aven_str(
+                "aven_io_writer_push_pool two elements inserted"
+            ),
             .fn = test_aven_io_writer_pool,
             .args = &(TestAvenIoWriterPoolArgs){
                 .size = 3,
@@ -1506,8 +1210,9 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc =
-                "aven_io_writer_push_pool two elements inserted, one deleted",
+            .desc = aven_str(
+                "aven_io_writer_push_pool two elements inserted, one deleted"
+            ),
             .fn = test_aven_io_writer_pool,
             .args = &(TestAvenIoWriterPoolArgs){
                 .size = 3,
@@ -1521,8 +1226,9 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc =
-                "aven_io_writer_push_pool five elements inserted",
+            .desc = aven_str(
+                "aven_io_writer_push_pool five elements inserted"
+            ),
             .fn = test_aven_io_writer_pool,
             .args = &(TestAvenIoWriterPoolArgs){
                 .size = 7,
@@ -1539,8 +1245,9 @@ int test_io(AvenArena arena) {
             },
         },
         {
-            .desc =
-                "aven_io_writer_push_pool five elements inserted, two deleted",
+            .desc = aven_str(
+                "aven_io_writer_push_pool five elements inserted, two deleted"
+            ),
             .fn = test_aven_io_writer_pool,
             .args = &(TestAvenIoWriterPoolArgs){
                 .size = 7,
@@ -1557,12 +1264,9 @@ int test_io(AvenArena arena) {
             },
         },
     };
-    AvenTestCaseSlice tcases = {
-        .ptr = tcase_data,
-        .len = countof(tcase_data),
-    };
+    AvenTestCaseSlice tcases = slice_array(tcase_data);
 
-    aven_test(tcases, __FILE__, arena);
+    aven_test(tcases, arena);
 
     return 0;
 }

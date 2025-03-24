@@ -3,6 +3,7 @@
 
 #include <aven.h>
 #include <aven/arena.h>
+#include <aven/fmt.h>
 #include <aven/path.h>
 #include <aven/str.h>
 #include <aven/test.h>
@@ -57,27 +58,14 @@ AvenTestResult test_aven_path(
     bool match = aven_str_compare(path, expected_path);
 
     if (!match) {
-        char fmt[] = "expected \"%s\", found \"%s\"";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) +
-                path.len +
-                expected_path.len,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            aven_str_to_cstr(expected_path, &arena),
-            aven_str_to_cstr(path, &arena)
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
             .error = 2,
-            .message = buffer,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected \"{}\", found \"{}\"",
+                aven_fmt_str(expected_path),
+                aven_fmt_str(path)
+            ),
         };
     }
 
@@ -94,6 +82,7 @@ AvenTestResult test_aven_path_containing_dir(
     AvenArena arena,
     void *args
 ) {
+    (void)arena;
     TestAvenPathDirArgs *pargs = args;
 
     AvenStr path = aven_path_containing_dir(aven_str_cstr(pargs->path));
@@ -101,27 +90,14 @@ AvenTestResult test_aven_path_containing_dir(
     bool match = aven_str_compare(path, expected_path);
 
     if (!match) {
-        char fmt[] = "expected \"%s\", found \"%s\"";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) +
-                path.len +
-                expected_path.len,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            aven_str_to_cstr(expected_path, &arena),
-            aven_str_to_cstr(path, &arena)
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 2,
-            .message = buffer,
+            .error = 1,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected \"{}\", found \"{}\"",
+                aven_fmt_str(expected_path),
+                aven_fmt_str(path)
+            ),
         };
     }
 
@@ -150,27 +126,14 @@ AvenTestResult test_aven_path_rel_diff(
     bool match = aven_str_compare(path, expected_path);
 
     if (!match) {
-        char fmt[] = "expected \"%s\", found \"%s\"";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) +
-            path.len +
-            expected_path.len,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            aven_str_to_cstr(expected_path, &arena),
-            aven_str_to_cstr(path, &arena)
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 3,
-            .message = buffer,
+            .error = 1,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected \"{}\", found \"{}\"",
+                aven_fmt_str(expected_path),
+                aven_fmt_str(path)
+            ),
         };
     }
 
@@ -199,27 +162,14 @@ AvenTestResult test_aven_path_rel_intersect(
     bool match = aven_str_compare(path, expected_path);
 
     if (!match) {
-        char fmt[] = "expected \"%s\", found \"%s\"";
-        char *buffer = aven_arena_alloc(
-            emsg_arena,
-            sizeof(fmt) +
-            path.len +
-            expected_path.len,
-            1,
-            1
-        );
-
-        int len = sprintf(
-            buffer,
-            fmt,
-            aven_str_to_cstr(expected_path, &arena),
-            aven_str_to_cstr(path, &arena)
-        );
-        assert(len > 0);
-
         return (AvenTestResult){
-            .error = 3,
-            .message = buffer,
+            .error = 1,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected \"{}\", found \"{}\"",
+                aven_fmt_str(expected_path),
+                aven_fmt_str(path)
+            ),
         };
     }
 
@@ -229,7 +179,7 @@ AvenTestResult test_aven_path_rel_intersect(
 int test_path(AvenArena arena) {
     AvenTestCase tcase_data[] = {
         {
-            .desc = "aven_path empty path",
+            .desc = aven_str("aven_path empty path"),
             .fn = test_aven_path,
             .args = &(TestAvenPathArgs){
                 .expected = "",
@@ -238,7 +188,7 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path 1 level path",
+            .desc = aven_str("aven_path 1 level path"),
             .fn = test_aven_path,
             .args = &(TestAvenPathArgs){
                 .expected = "dir",
@@ -247,7 +197,7 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path 2 level path",
+            .desc = aven_str("aven_path 2 level path"),
             .fn = test_aven_path,
             .args = &(TestAvenPathArgs){
 #ifdef _WIN32
@@ -260,7 +210,7 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path 3 level path",
+            .desc = aven_str("aven_path 3 level path"),
             .fn = test_aven_path,
             .args = &(TestAvenPathArgs){
 #ifdef _WIN32
@@ -273,7 +223,7 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path 4 level path",
+            .desc = aven_str("aven_path 4 level path"),
             .fn = test_aven_path,
             .args = &(TestAvenPathArgs){
 #ifdef _WIN32
@@ -286,7 +236,7 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_containing_dir 1 level relative path",
+            .desc = aven_str("aven_path_containing_dir 1 level relative path"),
             .fn = test_aven_path_containing_dir,
             .args = &(TestAvenPathDirArgs){
                 .expected = ".",
@@ -294,7 +244,7 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_containing_dir current dir",
+            .desc = aven_str("aven_path_containing_dir current dir"),
             .fn = test_aven_path_containing_dir,
             .args = &(TestAvenPathDirArgs){
 #ifdef _WIN32
@@ -308,7 +258,7 @@ int test_path(AvenArena arena) {
         },
 #ifndef _WIN32
         {
-            .desc = "aven_path_containing_dir root dir",
+            .desc = aven_str("aven_path_containing_dir root dir"),
             .fn = test_aven_path_containing_dir,
             .args = &(TestAvenPathDirArgs){
                 .expected = "/..",
@@ -317,7 +267,7 @@ int test_path(AvenArena arena) {
         },
 #endif
         {
-            .desc = "aven_path_containing_dir 2 level relative path",
+            .desc = aven_str("aven_path_containing_dir 2 level relative path"),
             .fn = test_aven_path_containing_dir,
             .args = &(TestAvenPathDirArgs){
 #ifdef _WIN32
@@ -330,7 +280,7 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_containing_dir 2 level absolute path",
+            .desc = aven_str("aven_path_containing_dir 2 level absolute path"),
             .fn = test_aven_path_containing_dir,
             .args = &(TestAvenPathDirArgs){
 #ifdef _WIN32
@@ -344,7 +294,9 @@ int test_path(AvenArena arena) {
         },
 #ifndef _WIN32
         {
-            .desc = "aven_path_containing_dir filename starting with \'.\'",
+            .desc = aven_str(
+                "aven_path_containing_dir filename starting with \'.\'"
+            ),
             .fn = test_aven_path_containing_dir,
             .args = &(TestAvenPathDirArgs){
                 .expected = ".",
@@ -352,7 +304,9 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_containing_dir 2 level dirname starting with \'.\'",
+            .desc = aven_str(
+                "aven_path_containing_dir 2 level dirname starting with \'.\'"
+            ),
             .fn = test_aven_path_containing_dir,
             .args = &(TestAvenPathDirArgs){
                 .expected = ".hidden",
@@ -361,7 +315,7 @@ int test_path(AvenArena arena) {
         },
 #endif
         {
-            .desc = "aven_path_rel_diff same dir relative path",
+            .desc = aven_str("aven_path_rel_diff same dir relative path"),
             .fn = test_aven_path_rel_diff,
             .args = &(TestAvenPathDiffArgs){
 #ifdef _WIN32
@@ -376,7 +330,9 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_rel_diff same dir relative path w/ '.' prefix",
+            .desc = aven_str(
+                "aven_path_rel_diff same dir relative path w/ '.' prefix"
+            ),
             .fn = test_aven_path_rel_diff,
             .args = &(TestAvenPathDiffArgs){
 #ifdef _WIN32
@@ -391,7 +347,7 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_rel_diff neighbor relative path",
+            .desc = aven_str("aven_path_rel_diff neighbor relative path"),
             .fn = test_aven_path_rel_diff,
             .args = &(TestAvenPathDiffArgs){
 #ifdef _WIN32
@@ -406,7 +362,9 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_rel_diff neighbor relative path w/ '.' prefix",
+            .desc = aven_str(
+                "aven_path_rel_diff neighbor relative path w/ '.' prefix"
+            ),
             .fn = test_aven_path_rel_diff,
             .args = &(TestAvenPathDiffArgs){
 #ifdef _WIN32
@@ -421,7 +379,7 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_rel_diff subdir relative path",
+            .desc = aven_str("aven_path_rel_diff subdir relative path"),
             .fn = test_aven_path_rel_diff,
             .args = &(TestAvenPathDiffArgs){
 #ifdef _WIN32
@@ -436,7 +394,7 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_rel_diff superdir relative path",
+            .desc = aven_str("aven_path_rel_diff superdir relative path"),
             .fn = test_aven_path_rel_diff,
             .args = &(TestAvenPathDiffArgs){
 #ifdef _WIN32
@@ -452,7 +410,7 @@ int test_path(AvenArena arena) {
         },
 #ifndef _WIN32
         {
-            .desc = "aven_path_rel_diff superdir w/\'.\' in name",
+            .desc = aven_str("aven_path_rel_diff superdir w/\'.\' in name"),
             .fn = test_aven_path_rel_diff,
             .args = &(TestAvenPathIntersectArgs){
                 .expected = "./.b",
@@ -462,7 +420,7 @@ int test_path(AvenArena arena) {
         },
 #endif
         {
-            .desc = "aven_path_rel_intersect same dir relative path",
+            .desc = aven_str("aven_path_rel_intersect same dir relative path"),
             .fn = test_aven_path_rel_intersect,
             .args = &(TestAvenPathIntersectArgs){
 #ifdef _WIN32
@@ -477,7 +435,9 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_rel_intersect same dir relative path w/ '.' prefix",
+            .desc = aven_str(
+                "aven_path_rel_intersect same dir relative path w/ '.' prefix"
+            ),
             .fn = test_aven_path_rel_intersect,
             .args = &(TestAvenPathIntersectArgs){
 #ifdef _WIN32
@@ -492,7 +452,9 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_rel_intersect same dir relative path w/ '.' prefix",
+            .desc = aven_str(
+                "aven_path_rel_intersect same dir relative path w/ '.' prefix"
+            ),
             .fn = test_aven_path_rel_intersect,
             .args = &(TestAvenPathIntersectArgs){
 #ifdef _WIN32
@@ -507,7 +469,7 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_rel_intersect neighbor relative path",
+            .desc = aven_str("aven_path_rel_intersect neighbor relative path"),
             .fn = test_aven_path_rel_intersect,
             .args = &(TestAvenPathIntersectArgs){
 #ifdef _WIN32
@@ -522,7 +484,9 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_rel_intersect neighbor relative path w/ '.' prefix",
+            .desc = aven_str(
+                "aven_path_rel_intersect neighbor relative path w/ '.' prefix"
+            ),
             .fn = test_aven_path_rel_intersect,
             .args = &(TestAvenPathIntersectArgs){
 #ifdef _WIN32
@@ -537,7 +501,7 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_rel_intersect subdir relative path",
+            .desc = aven_str("aven_path_rel_intersect subdir relative path"),
             .fn = test_aven_path_rel_intersect,
             .args = &(TestAvenPathIntersectArgs){
 #ifdef _WIN32
@@ -552,7 +516,7 @@ int test_path(AvenArena arena) {
             },
         },
         {
-            .desc = "aven_path_rel_intersect superdir relative path",
+            .desc = aven_str("aven_path_rel_intersect superdir relative path"),
             .fn = test_aven_path_rel_intersect,
             .args = &(TestAvenPathIntersectArgs){
 #ifdef _WIN32
@@ -568,7 +532,7 @@ int test_path(AvenArena arena) {
         },
 #ifndef _WIN32
         {
-            .desc = "aven_path_rel_intersect superdir w/\'.\' in name",
+            .desc = aven_str("aven_path_rel_intersect superdir w/\'.\' in name"),
             .fn = test_aven_path_rel_intersect,
             .args = &(TestAvenPathIntersectArgs){
                 .expected = "./.a",
@@ -578,12 +542,9 @@ int test_path(AvenArena arena) {
         },
 #endif
     };
-    AvenTestCaseSlice tcases = {
-        .ptr = tcase_data,
-        .len = countof(tcase_data),
-    };
+    AvenTestCaseSlice tcases = slice_array(tcase_data);
 
-    aven_test(tcases, __FILE__, arena);
+    aven_test(tcases, arena);
 
     return 0;
 }

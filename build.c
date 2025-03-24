@@ -11,11 +11,11 @@
 #include "include/aven/build.h"
 #include "include/aven/build/common.h"
 #include "include/aven/fs.h"
+#include "include/aven/io.h"
 #include "include/aven/str.h"
 
 #include "build.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 
 #define ARENA_SIZE (4096 * 2000)
@@ -23,7 +23,7 @@
 int main(int argc, char **argv) {
     void *mem = malloc(ARENA_SIZE);
     if (mem == NULL) {
-        fprintf(stderr, "malloc failure\n");
+        aven_panic("malloc failure\n");
     }
 
     AvenArena arena = aven_arena_init(mem, ARENA_SIZE);
@@ -48,12 +48,12 @@ int main(int argc, char **argv) {
         args,
         argv,
         argc,
-        aven_build_common_overview().ptr,
-        aven_build_common_usage().ptr
+        aven_str_to_cstr(aven_build_common_overview(), &arena),
+        aven_str_to_cstr(aven_build_common_usage(), &arena)
     );
     if (error != 0) {
         if (error != AVEN_ARG_ERROR_HELP) {
-            fprintf(stderr, "ARG PARSE ERROR: %d\n", error);
+            aven_io_perrf("ARG PARSE ERROR: {}\n", aven_fmt_int(error));
             return error;
         }
         return 0;
@@ -148,12 +148,12 @@ int main(int argc, char **argv) {
     } else if (opts.test) {
         error = aven_build_step_run(&test_root_step, arena);
         if (error != 0) {
-            fprintf(stderr, "TEST FAILED\n");
+            aven_io_perrf("TEST FAILED: {}\n", aven_fmt_int(error));
         }
     } else {
         error = aven_build_step_run(&root_step, arena);
         if (error != 0) {
-            fprintf(stderr, "BUILD FAILED\n");
+            aven_io_perrf("BUILD FAILED: {}\n", aven_fmt_int(error));
         }
     }
 

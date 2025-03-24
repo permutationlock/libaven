@@ -177,24 +177,4 @@ static inline AvenStr aven_str_escape(AvenStr str, AvenArena *arena) {
     return aven_arena_commit_list_to_slice(AvenStr, arena, esc_list);
 }
 
-static inline AvenStr aven_str_uint_decimal(uint64_t num, AvenArena *arena) {
-    uint64_t digits = 1;
-    uint64_t coeff = 10;
-    while (coeff <= num) {
-        coeff *= 10;
-        digits += 1;
-    }
-
-    AvenStr str = { .len = digits };
-    str.ptr = aven_arena_alloc(arena, str.len, 1, 1);
-
-    do {
-        digits -= 1;
-        get(str, digits) = '0' + (char)(num % 10);
-        num /= 10;
-    } while (digits > 0);
-
-    return str;
-}
-
 #endif // AVEN_STR_H

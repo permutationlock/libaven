@@ -153,7 +153,7 @@ AVEN_FN void aven_build_step_reset(AvenBuildStep *step, AvenArena arena);
 #include "fs.h"
 
 #ifndef AVEN_SUPPRESS_LOGS
-    #include <stdio.h>
+    #include "io.h"
 #endif
 
 static int aven_build_step_wait(AvenBuildStep *step) {
@@ -210,7 +210,7 @@ AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
             break;
         case AVEN_BUILD_STEP_TYPE_RM:
 #ifndef AVEN_SUPPRESS_LOGS
-            printf("rm %s\n", aven_str_to_cstr(step->data.rm, &arena));
+            aven_io_printf("rm {}\n", aven_fmt_str(step->data.rm));
 #endif
             error = aven_fs_rm(step->data.rm, arena);
             if (error != 0) {
@@ -220,7 +220,7 @@ AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
             break;
         case AVEN_BUILD_STEP_TYPE_RMDIR:
 #ifndef AVEN_SUPPRESS_LOGS
-            printf("rmdir %s\n", aven_str_to_cstr(step->data.rmdir, &arena));
+            aven_io_printf("rmdir {}\n", aven_fmt_str(step->data.rmdir));
 #endif
             error = aven_fs_rmdir(step->data.rmdir, arena);
             if (error != 0) {
@@ -233,9 +233,9 @@ AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
                 return AVEN_BUILD_STEP_RUN_ERROR_OUTPATH;
             }
 #ifndef AVEN_SUPPRESS_LOGS
-            printf(
-                "truncate -s 0 %s\n",
-                aven_str_to_cstr(step->out_path.value, &arena)
+            aven_io_printf(
+                "truncate -s 0 {}\n",
+                aven_fmt_str(step->out_path.value)
             );
 #endif
             error = aven_fs_trunc(step->out_path.value, arena);
@@ -255,9 +255,9 @@ AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
                 }
             } else {
 #ifndef AVEN_SUPPRESS_LOGS
-                printf(
-                    "mkdir %s\n",
-                    aven_str_to_cstr(step->out_path.value, &arena)
+                aven_io_printf(
+                    "mkdir {}\n",
+                    aven_fmt_str(step->out_path.value)
                 );
 #endif
             }
@@ -276,10 +276,10 @@ AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
                 return AVEN_BUILD_STEP_RUN_ERROR_COPY;
             }
 #ifndef AVEN_SUPPRESS_LOGS
-            printf(
-                "cp %s %s\n",
-                aven_str_to_cstr(step->data.copy, &arena),
-                aven_str_to_cstr(step->out_path.value, &arena)
+            aven_io_printf(
+                "cp {} {}\n",
+                aven_fmt_str(step->data.copy),
+                aven_fmt_str(step->out_path.value)
             );
 #endif
             step->state = AVEN_BUILD_STEP_STATE_DONE;

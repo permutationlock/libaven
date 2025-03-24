@@ -53,7 +53,8 @@ AVEN_FN char *aven_arg_get_str(AvenArgSlice arg_slice, char *argname);
 
 #ifdef AVEN_IMPLEMENTATION
 
-#include <stdio.h>
+#include "io.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -62,10 +63,10 @@ static void aven_arg_print_type(AvenArgType arg_type) {
         case AVEN_ARG_TYPE_BOOL:
             break;
         case AVEN_ARG_TYPE_INT:
-            printf(" n");
+            aven_io_print(" n");
             break;
         case AVEN_ARG_TYPE_STRING:
-            printf(" \"str\"");
+            aven_io_print(" \"str\"");
             break;
         default:
             break;
@@ -76,16 +77,19 @@ static void aven_arg_print_value(AvenArgValue value) {
     switch (value.type) {
         case AVEN_ARG_TYPE_BOOL:
             if (value.data.arg_bool) {
-                printf("true");
+                aven_io_print("true");
             } else {
-                printf("false");
+                aven_io_print("false");
             }
             break;
         case AVEN_ARG_TYPE_INT:
-            printf("%d", value.data.arg_int);
+            aven_io_printf("{}", aven_fmt_int(value.data.arg_int));
             break;
         case AVEN_ARG_TYPE_STRING:
-            printf("\"%s\"", value.data.arg_str);
+            aven_io_printf(
+                "\"{}\"",
+                aven_fmt_str(aven_str_cstr(value.data.arg_str))
+            );
             break;
         default:
             break;
@@ -94,36 +98,35 @@ static void aven_arg_print_value(AvenArgValue value) {
 
 static void aven_arg_print(AvenArg arg) {
     assert(arg.name != NULL);
-    printf("    %s", arg.name);
+    aven_io_printf("    {}", aven_fmt_str(aven_str_cstr(arg.name)));
 
     aven_arg_print_type(arg.type);
 
     if (arg.description != NULL) {
-        printf("  --  %s", arg.description);
+        aven_io_printf(
+            "  --  {}",
+            aven_fmt_str(aven_str_cstr(arg.description))
+        );
     }
 
     if (arg.type == arg.value.type) {
         if (arg.type != AVEN_ARG_TYPE_BOOL or arg.value.data.arg_bool) {
-            printf(" (default=");
+            aven_io_print(" (default=");
             aven_arg_print_value(arg.value);
-            printf(")");
+            aven_io_print(")");
         }
     } else if (arg.optional) {
-        printf(" (optional)");
+        aven_io_print(" (optional)");
     }
 
-    printf("\n");
+    aven_io_print("\n");
 }
 
 static void aven_arg_help(AvenArgSlice args, char *overview, char *usage) {
-    if (overview != NULL) {
-        printf("OVERVIEW: %s\n\n", overview);
-    }
-    if (usage != NULL) {
-        printf("USAGE: %s\n\n", usage);
-    }
-    printf("OPTIONS:\n");
-    printf("    help, -h, -help, --help -- Show this message\n");
+    aven_io_printf("OVERVIEW: {}\n\n", aven_fmt_str(aven_str_cstr(overview)));
+    aven_io_printf("USAGE: {}\n\n", aven_fmt_str(aven_str_cstr(usage)));
+    aven_io_print("OPTIONS:\n");
+    aven_io_print("    help, -h, -help, --help -- Show this message\n");
     for (size_t i = 0; i < args.len; i += 1) {
         aven_arg_print(get(args, i));
     }
@@ -169,7 +172,7 @@ AVEN_FN int aven_arg_parse(
                     break;
                 case AVEN_ARG_TYPE_INT:
                     if (i + 1 >= argc) {
-                        printf("missing expected argument value:\n");
+                        aven_io_print("missing expected argument value:\n");
                         aven_arg_print(*arg);
                         return AVEN_ARG_ERROR_VALUE;
                     }
@@ -179,7 +182,7 @@ AVEN_FN int aven_arg_parse(
                     break;
                 case AVEN_ARG_TYPE_STRING:
                     if (i + 1 >= argc) {
-                        printf("missing expected argument value:\n");
+                        aven_io_print("missing expected argument value:\n");
                         aven_arg_print(*arg);
                         return AVEN_ARG_ERROR_VALUE;
                     }
@@ -196,7 +199,10 @@ AVEN_FN int aven_arg_parse(
         }
 
         if (!found) {
-            printf("unknown option: %s\n", arg_str);
+            aven_io_printf(
+                "unknown option: {}\n",
+                aven_fmt_str(aven_str_cstr(arg_str))
+            );
             aven_arg_help(args, overview, usage);
             return AVEN_ARG_ERROR_UNKNOWN;
         }
@@ -206,7 +212,7 @@ AVEN_FN int aven_arg_parse(
     for (size_t j = 0; j < args.len; j += 1) {
         AvenArg arg = get(args, j);
         if (!arg.optional and arg.value.type != arg.type) {
-            printf("missing required argument:\n");
+            aven_io_print("missing required argument:\n");
             aven_arg_print(arg);
             error = AVEN_ARG_ERROR_MISSING;
         }

@@ -3,10 +3,11 @@
 
 #include "../aven.h"
 #include "arena.h"
+#include "io.h"
 
 typedef struct {
     int error;
-    const char *message;
+    AvenStr message;
 } AvenTestResult;
 
 typedef AvenTestResult (*AvenTestFn)(
@@ -16,30 +17,27 @@ typedef AvenTestResult (*AvenTestFn)(
 );
 
 typedef struct {
-    const char *desc;
+    AvenStr desc;
     void *args;
     AvenTestFn fn;
 } AvenTestCase;
 
 typedef Slice(AvenTestCase) AvenTestCaseSlice;
 
-AVEN_FN void aven_test(
+#define aven_test(cs, a) aven_test_internal(cs, aven_str(__FILE__), a)
+
+static inline void aven_test_internal(
     AvenTestCaseSlice tcases,
-    const char *fname,
-    AvenArena arena
-);
-
-#ifdef AVEN_IMPLEMENTATION
-
-#include <stdio.h>
-
-AVEN_FN void aven_test(
-    AvenTestCaseSlice tcases,
-    const char *fname,
+    AvenStr fname,
     AvenArena arena
 ) {
     char emessage_buffer[4096];
-    printf("running %lu test(s) for %s:", (unsigned long)tcases.len, fname);
+
+    aven_io_printf(
+        "running {} test(s) for {}:",
+        aven_fmt_uint(tcases.len),
+        aven_fmt_str(fname)
+    );
     size_t passed = 0;
     for (size_t i = 0; i < tcases.len; i += 1) {
         AvenArena emsg_arena = aven_arena_init(
@@ -49,11 +47,11 @@ AVEN_FN void aven_test(
         AvenTestCase *tcase = &get(tcases, i);
         AvenTestResult result = tcase->fn(&emsg_arena, arena, tcase->args);
         if (result.error != 0) {
-            printf(
-                "\n    test \"%s\" failed:\n        \"%s\"\n        code: %d",
-                tcase->desc,
-                result.message,
-                result.error
+            aven_io_printf(
+                "\n    test \"{}\" failed:\n        \"{}\"\n        code: {}",
+                aven_fmt_str(tcase->desc),
+                aven_fmt_str(result.message),
+                aven_fmt_int(result.error)
             );
         } else {
             passed += 1;
@@ -61,17 +59,15 @@ AVEN_FN void aven_test(
     }
 
     if (passed == tcases.len) {
-        printf(" all tests passed\n");
+        aven_io_print(" all tests passed\n");
     } else {
-        printf(
-            "\ncompleted tests for %s: %lu passed, %lu failed\n",
-            fname,
-            (unsigned long)passed,
-            (unsigned long)(tcases.len - passed)
+        aven_io_printf(
+            "\ncompleted tests for {}: {} passed, {} failed\n",
+            aven_fmt_str(fname),
+            aven_fmt_uint(passed),
+            aven_fmt_uint(tcases.len - passed)
         );
     }
 }
-
-#endif // AVEN_IMPLEMENTATION
 
 #endif // TEST_H

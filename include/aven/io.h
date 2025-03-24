@@ -3,6 +3,7 @@
 
 #include "../aven.h"
 #include "arena.h"
+#include "fmt.h"
 #include "str.h"
 
 typedef int AvenIoFd;
@@ -116,6 +117,18 @@ static inline AvenIoReader aven_io_reader_init_bytes(ByteSlice bytes) {
     };
 }
 
+static AvenIoReader aven_io_stdin = {
+    .read = aven_io_fd_read_stub,
+    .ctx = (void *)0,
+};
+
+static inline AvenIoReader aven_io_reader_init_stdin_buffered(
+    size_t size,
+    AvenArena *arena
+) {
+    return aven_io_reader_init_fd_buffered(0, size, arena);
+}
+
 static inline AvenIoResult aven_io_reader_pop(
     AvenIoReader *reader,
     ByteSlice dest
@@ -199,6 +212,29 @@ static inline AvenIoWriter aven_io_writer_init_bytes(ByteSlice bytes) {
     };
 }
 
+static AvenIoWriter aven_io_stdout = {
+    .write = aven_io_fd_write_stub,
+    .ctx = (void *)1,
+};
+static AvenIoWriter aven_io_stderr = {
+    .write = aven_io_fd_write_stub,
+    .ctx = (void *)2,
+};
+
+static inline AvenIoWriter aven_io_writer_init_stdout_buffered(
+    size_t size,
+    AvenArena *arena
+) {
+    return aven_io_writer_init_fd_buffered(1, size, arena);
+}
+
+static inline AvenIoWriter aven_io_writer_init_stderr_buffered(
+    size_t size,
+    AvenArena *arena
+) {
+    return aven_io_writer_init_fd_buffered(2, size, arena);
+}
+
 static int aven_io_writer_flush(AvenIoWriter *writer) {
     AvenIoResult res = writer->write(writer->ctx, writer->buffer);
     if (res.payload == writer->buffer.len) {
@@ -271,6 +307,77 @@ static inline AvenIoResult aven_io_writer_push(
     }
 
     return (AvenIoResult){ .payload = src.len - src_rem.len };
+}
+
+#define aven_io_writer_printf_ex(w, a, f, a1, ...) \
+    aven_io_writer_print_fmt_args_ex( \
+        w, \
+        aven_str(f), \
+        (AvenFmtArgSlice)slice_array((AvenFmtArg[]){ a1, __VA_ARGS__ }), \
+        a \
+    )
+#define aven_io_printf_ex(a, f, ...) aven_io_writer_printf_ex( \
+        &aven_io_stdout, \
+        a, \
+        f, \
+        __VA_ARGS__ \
+    )
+#define aven_io_perrf_ex(a, f, ...) \
+    aven_io_writer_printf_ex( \
+        &aven_io_stderr, \
+        a, \
+        f, \
+        __VA_ARGS__ \
+    )
+#define aven_io_writer_printf(w, f, a1, ...) \
+    aven_io_writer_print_fmt_args( \
+        w, \
+        aven_str(f), \
+        (AvenFmtArgSlice)slice_array((AvenFmtArg[]){ a1, __VA_ARGS__ }) \
+    )
+#define aven_io_printf(f, ...) aven_io_writer_printf( \
+        &aven_io_stdout, \
+        f, \
+        __VA_ARGS__ \
+    )
+#define aven_io_perrf(f, ...) aven_io_writer_printf( \
+        &aven_io_stderr, \
+        f, \
+        __VA_ARGS__ \
+    )
+#define aven_io_print(s) aven_io_writer_print(&aven_io_stdout, aven_str(s))
+#define aven_io_perr(s) aven_io_writer_print(&aven_io_stderr, aven_str(s))
+
+static inline AvenIoResult aven_io_writer_print(
+    AvenIoWriter *writer,
+    AvenStr str
+) {
+    ByteSlice str_bytes = slice_as_bytes(str);
+    return aven_io_writer_push(writer, str_bytes);
+}
+
+static inline AvenIoResult aven_io_writer_print_fmt_args_ex(
+    AvenIoWriter *writer,
+    AvenStr fmt,
+    AvenFmtArgSlice args,
+    AvenArena temp_arena
+) {
+    AvenStr str = aven_fmt_args(fmt, args, &temp_arena);
+    ByteSlice str_bytes = slice_as_bytes(str);
+    return aven_io_writer_push(writer, str_bytes);
+}
+
+#define AVEN_IO_PRINT_BUFFER_SIZE (8192)
+
+static inline AvenIoResult aven_io_writer_print_fmt_args(
+    AvenIoWriter *writer,
+    AvenStr fmt,
+    AvenFmtArgSlice args    
+) {
+    char buffer[AVEN_IO_PRINT_BUFFER_SIZE];
+    AvenArena arena = aven_arena_init(buffer, sizeof(buffer));
+
+    return aven_io_writer_print_fmt_args_ex(writer, fmt, args, arena);
 }
 
 #define aven_io_writer_push_struct(w, s) aven_io_writer_push_struct_internal( \
