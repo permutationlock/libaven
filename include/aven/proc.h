@@ -3,6 +3,7 @@
 
 #include "../aven.h"
 #include "arena.h"
+#include "path.h"
 #include "str.h"
 
 #ifdef _WIN32
@@ -54,7 +55,11 @@ AVEN_FN AvenProcKillError aven_proc_kill(AvenProcId pid);
     #include <signal.h>
     #include <stdlib.h>
 
-    #include <sys/wait.h>
+    #if defined(__linux__) and defined(NOLIBC)
+        #include <sys.h>
+    #else
+        #include <sys/wait.h>
+    #endif
     #include <unistd.h>
 #endif
 
@@ -69,7 +74,7 @@ AVEN_FN AvenProcCmdResult aven_proc_cmd(
     );
 #ifndef AVEN_SUPPRESS_LOGS
     aven_io_printf("{}\n", aven_fmt_str(cmd_str));
-#endif
+#endif // defined(AVEN_SUPPRESS_LOGS)
 #ifdef _WIN32
     typedef struct {
         uint32_t len;
@@ -148,7 +153,7 @@ AVEN_FN AvenProcCmdResult aven_proc_cmd(
     CloseHandle(process_info.thread);
 
     return (AvenProcCmdResult){ .payload = process_info.process };
-#else
+#else // !defined(_WIN32)
     AvenProcId cmd_pid = fork();
     if (cmd_pid < 0) {
         return (AvenProcCmdResult){ .error = AVEN_PROC_CMD_ERROR_FORK };
@@ -167,6 +172,62 @@ AVEN_FN AvenProcCmdResult aven_proc_cmd(
         }
         args[cmd.len] = NULL;
 
+#if defined(__linux__) and defined(NOLIBC)
+        char *path_cstr = getenv("PATH");
+        AvenStr path = (path_cstr == NULL) ?
+            aven_str("/usr/local/bin:/bin:/usr/bin") :
+            aven_str_cstr(path_cstr);
+        AvenStrSlice dirs = aven_str_split(path, ':', &arena);
+        int error = 0;
+        for (size_t i = 0; i < dirs.len; i +=1) {
+            AvenArena temp_arena = arena;
+            char *exe_path_cstr = aven_str_to_cstr(
+                aven_path(
+                    &temp_arena,
+                    get(dirs, i),
+                    get(cmd, 0)
+                ),
+                &temp_arena
+            );
+            error = execve(exe_path_cstr, args, NULL);
+            if (error != 0) {
+                switch (errno) {
+                    case EACCES:
+                    case ENOENT:
+                    case ENOTDIR:
+                        break;
+                    default:
+#ifndef AVEN_SUPPRESS_LOGS
+                        aven_io_perrf(
+                            "execve failed: {}\n",
+                            aven_fmt_str(cmd_str)
+                        );
+#endif // defined(AVEN_SUPPRESS_LOGS)
+                        exit(errno);
+                        break;
+                }
+            }
+        }
+        char *exe_path_cstr = aven_str_to_cstr(get(cmd, 0), &arena);
+        error = execve(exe_path_cstr, args, NULL);
+        if (error != 0) {
+            switch (errno) {
+                case EACCES:
+                case ENOENT:
+                case ENOTDIR:
+                    break;
+                default:
+#ifndef AVEN_SUPPRESS_LOGS
+                    aven_io_perrf(
+                        "execve failed: {}\n",
+                        aven_fmt_str(cmd_str)
+                    );
+#endif // defined(AVEN_SUPPRESS_LOGS)
+                    exit(errno);
+                    break;
+            }
+        }
+#else // !defined(__linux__) or !defined(NOLIBC)
         int error = execvp(args[0], args);
         if (error != 0) {
 #ifndef AVEN_SUPPRESS_LOGS
@@ -174,13 +235,14 @@ AVEN_FN AvenProcCmdResult aven_proc_cmd(
                 "execvp failed: {}\n",
                 aven_fmt_str(cmd_str)
             );
-#endif
+#endif // defined(AVEN_SUPPRESS_LOGS)
             exit(errno);
         }
+#endif // !defined(__linux__) or !defined(NOLIBC)
     }
 
     return (AvenProcCmdResult){ .payload = cmd_pid };
-#endif
+#endif // !defined(_WIN32)
 }
 
 static AvenProcWaitResult aven_proc_status(AvenProcId pid, bool wait) {

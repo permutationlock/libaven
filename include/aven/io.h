@@ -963,8 +963,12 @@ static inline int aven_io_writer_push_pool_internal(
     #include <io.h>
     #include <sys/stat.h>
 #else
-    #include <fcntl.h>
-    #include <sys/stat.h>
+    #if defined(__linux__) and defined(NOLIBC)
+        #include <sys.h>
+    #else
+        #include <fcntl.h>
+        #include <sys/stat.h>
+    #endif
     #include <unistd.h>
 #endif
 

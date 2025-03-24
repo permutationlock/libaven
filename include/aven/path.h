@@ -20,39 +20,7 @@
         a \
     )
 
-AVEN_FN AvenStr aven_path_containing_dir(AvenStr path);
-AVEN_FN AvenStr aven_path_fname(AvenStr path, AvenArena *arena);
-AVEN_FN bool aven_path_is_abs(AvenStr path);
-AVEN_FN AvenStr aven_path_rel_intersect(
-    AvenStr path1,
-    AvenStr path2,
-    AvenArena *arena
-);
-AVEN_FN AvenStr aven_path_rel_diff(
-    AvenStr path1,
-    AvenStr path2,
-    AvenArena *arena
-);
-
-typedef enum {
-    AVEN_PATH_EXE_ERROR_NONE = 0,
-    AVEN_PATH_EXE_ERROR_FAIL,
-    AVEN_PATH_EXE_ERROR_UNSUPPORTED,
-} AvenPathExeError;
-typedef Result(AvenStr, AvenPathExeError) AvenPathResult;
-
-AVEN_FN AvenPathResult aven_path_exe(AvenArena *arena);
-
-#ifdef AVEN_IMPLEMENTATION
-
-#ifdef __linux__
-    #if !defined(_POSIX_C_SOURCE) or _POSIX_C_SOURCE < 200112L
-        #error "readlink requires _POSIX_C_SOURCE >= 200112L"
-    #endif
-    #include <unistd.h>
-#endif
-
-AVEN_FN AvenStr aven_path_fname(AvenStr path, AvenArena *arena) {
+static inline AvenStr aven_path_fname(AvenStr path, AvenArena *arena) {
     size_t i;
     for (i = path.len; i > 0; i -= 1) {
         if (get(path, i - 1) == AVEN_PATH_SEP) {
@@ -75,7 +43,7 @@ AVEN_FN AvenStr aven_path_fname(AvenStr path, AvenArena *arena) {
     return fname;
 }
 
-AVEN_FN AvenStr aven_path_containing_dir(AvenStr path) {
+static inline AvenStr aven_path_containing_dir(AvenStr path) {
     if (path.len == 0) {
         return aven_str("..");
     } else if (path.len == 1) {
@@ -105,7 +73,7 @@ AVEN_FN AvenStr aven_path_containing_dir(AvenStr path) {
     return aven_str_head(path, i - 1);
 }
 
-AVEN_FN bool aven_path_is_abs(AvenStr path) {
+static inline bool aven_path_is_abs(AvenStr path) {
 #ifdef _WIN32
     if (path.len <= 1) {
         return false;
@@ -122,7 +90,7 @@ AVEN_FN bool aven_path_is_abs(AvenStr path) {
 #endif
 }
 
-AVEN_FN AvenStr aven_path_rel_intersect(
+static inline AvenStr aven_path_rel_intersect(
     AvenStr path1,
     AvenStr path2,
     AvenArena *arena
@@ -171,7 +139,7 @@ AVEN_FN AvenStr aven_path_rel_intersect(
     size_t len = min(path1_parts.len, path2_parts.len);
     size_t same_index = 0;
     for (; same_index < len; same_index += 1) {
-        bool match = aven_str_compare(
+        bool match = aven_str_equals(
             get(path1_parts, same_index),
             get(path2_parts, same_index)
         );
@@ -201,7 +169,7 @@ AVEN_FN AvenStr aven_path_rel_intersect(
     return intersect;
 }
 
-AVEN_FN AvenStr aven_path_rel_diff(
+static inline AvenStr aven_path_rel_diff(
     AvenStr path1,
     AvenStr path2,
     AvenArena *arena
@@ -220,7 +188,7 @@ AVEN_FN AvenStr aven_path_rel_diff(
         AVEN_PATH_SEP,
         &temp_arena
     );
-    if (aven_str_compare(get(path1_parts, 0), aven_str("."))) {
+    if (aven_str_equals(get(path1_parts, 0), aven_str("."))) {
         path1_parts.ptr += 1;
         path1_parts.len -= 1;
     }
@@ -232,7 +200,7 @@ AVEN_FN AvenStr aven_path_rel_diff(
     );
     if (
         path2_parts.len > 0 and
-        aven_str_compare(get(path2_parts, 0), aven_str("."))
+        aven_str_equals(get(path2_parts, 0), aven_str("."))
     ) {
         path2_parts.ptr += 1;
         path2_parts.len -= 1;
@@ -241,7 +209,7 @@ AVEN_FN AvenStr aven_path_rel_diff(
     size_t len = min(path1_parts.len, path2_parts.len);
     size_t same_index = 0;
     for (; same_index < len; same_index += 1) {
-        bool match = aven_str_compare(
+        bool match = aven_str_equals(
             get(path1_parts, same_index),
             get(path2_parts, same_index)
         );
@@ -270,6 +238,24 @@ AVEN_FN AvenStr aven_path_rel_diff(
     return diff;
 }
 
+typedef enum {
+    AVEN_PATH_EXE_ERROR_NONE = 0,
+    AVEN_PATH_EXE_ERROR_FAIL,
+    AVEN_PATH_EXE_ERROR_UNSUPPORTED,
+} AvenPathExeError;
+typedef Result(AvenStr, AvenPathExeError) AvenPathResult;
+
+AVEN_FN AvenPathResult aven_path_exe(AvenArena *arena);
+
+#ifdef AVEN_IMPLEMENTATION
+
+#if defined(__linux__) and !defined(NOLIBC)
+    #if !defined(_POSIX_C_SOURCE) or _POSIX_C_SOURCE < 200112L
+        #error "readlink requires _POSIX_C_SOURCE >= 200112L"
+    #endif
+    #include <unistd.h>
+#endif
+
 AVEN_FN AvenPathResult aven_path_exe(AvenArena *arena) {
 #ifdef _WIN32
     AVEN_WIN32_FN(uint32_t) GetModuleFileNameA(
@@ -289,7 +275,7 @@ AVEN_FN AvenPathResult aven_path_exe(AvenArena *arena) {
     memcpy(path.ptr, buffer, path.len);
 
     return (AvenPathResult){ .payload = path };
-#elif defined(__linux__)
+#elif defined(__linux__) and !defined(NOLIBC)
     char buffer[AVEN_PATH_MAX_LEN];
     ssize_t len = readlink("/proc/self/exe", buffer, countof(buffer));
     if (len <= 0 or len == countof(buffer)) {

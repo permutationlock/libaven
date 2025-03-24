@@ -70,8 +70,12 @@ AVEN_FN void aven_fs_utf8_mode(void);
     #include <io.h>
     #include <sys/stat.h>
 #else
-    #include <fcntl.h>
-    #include <sys/stat.h>
+    #if defined(__linux__) and defined(NOLIBC)
+        #include <sys.h>
+    #else
+        #include <fcntl.h>
+        #include <sys/stat.h>
+    #endif
     #include <unistd.h>
 #endif
 

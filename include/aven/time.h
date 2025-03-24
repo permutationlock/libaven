@@ -20,8 +20,14 @@
 #define AVEN_TIME_NSEC_PER_USEC (1000L)
 #define AVEN_TIME_USEC_PER_MSEC (1000L)
 
+static inline int64_t aven_time_since(AvenTimeInst end, AvenTimeInst start) {
+    int64_t seconds = (int64_t)end.tv_sec - (int64_t)start.tv_sec;
+    int64_t sec_diff = seconds * AVEN_TIME_NSEC_PER_SEC;
+    int64_t nsec_diff = (int64_t)end.tv_nsec - (int64_t)start.tv_nsec;
+    return sec_diff + nsec_diff;
+}
+
 AVEN_FN AvenTimeInst aven_time_now(void);
-AVEN_FN int64_t aven_time_since(AvenTimeInst end, AvenTimeInst start);
 AVEN_FN void aven_time_sleep_ms(uint32_t wait_ms);
 
 #ifdef AVEN_IMPLEMENTATION
@@ -99,13 +105,6 @@ AVEN_FN void aven_time_sleep_ms(uint32_t wait_ms);
     #endif // !defined(__EMSCRIPTEN__)
 
 #endif // !defined(_WIN32)
-
-AVEN_FN int64_t aven_time_since(AvenTimeInst end, AvenTimeInst start) {
-    int64_t seconds = (int64_t)end.tv_sec - (int64_t)start.tv_sec;
-    int64_t sec_diff = seconds * AVEN_TIME_NSEC_PER_SEC;
-    int64_t nsec_diff = (int64_t)end.tv_nsec - (int64_t)start.tv_nsec;
-    return sec_diff + nsec_diff;
-}
 
 #endif // AVEN_IMPLEMENTATION
 

@@ -7,10 +7,11 @@
 typedef Slice(char) AvenStr;
 typedef Slice(AvenStr) AvenStrSlice;
 
-#define aven_str(a) (AvenStr){ \
+#define aven_str_init(a) { \
         .ptr = a, \
         .len = countof(a) - 1 \
     }
+#define aven_str(a) (AvenStr)aven_str_init(a)
 
 #define aven_str_head(s, i) (AvenStr)slice_head(s, i)
 #define aven_str_tail(s, i) (AvenStr)slice_tail(s, i)
@@ -32,7 +33,7 @@ static inline char * aven_str_to_cstr(AvenStr str, AvenArena *arena) {
     return cpy.ptr;
 }
 
-static inline bool aven_str_compare(AvenStr s1, AvenStr s2) {
+static inline bool aven_str_equals(AvenStr s1, AvenStr s2) {
     if (s1.len != s2.len) {
         return false;
     }

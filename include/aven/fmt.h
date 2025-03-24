@@ -101,7 +101,37 @@ static inline size_t aven_fmt_int_decimal_buffer(AvenStr str, int64_t num) {
     }
 
     uint64_t abs_num = (uint64_t)((num < 0) ? -num : num);
-    return aven_fmt_uint_decimal_buffer(str, abs_num);
+    return 1 + aven_fmt_uint_decimal_buffer(str, abs_num);
+}
+
+typedef enum {
+    AVEN_FMT_PARSE_INT_ERROR_NONE = 0,
+    AVEN_FMT_PARSE_INT_ERROR_BADCHAR,
+} AvenFmtParseIntError;
+typedef Result(int64_t, AvenFmtParseIntError) AvenFmtParseIntResult;
+
+static inline AvenFmtParseIntResult aven_fmt_parse_int_decimal(AvenStr str) {
+    int64_t sign = 1;
+    if (get(str, 0) == '-') {
+        sign = -1;
+        str = aven_str_tail(str, 1);
+    } else if (get(str, 0) == '+') {
+        str = aven_str_tail(str, 1);
+    }
+
+    int64_t mag = 0;
+    for (size_t i = 0; i < str.len; i += 1) {
+        char c = get(str, i);
+        if (c < '0' or c > '9') {
+            return (AvenFmtParseIntResult){
+                .error = AVEN_FMT_PARSE_INT_ERROR_BADCHAR,
+            };
+        }
+        int64_t digit = c - '0';
+        mag = (10 * mag) + digit;
+    }
+
+    return (AvenFmtParseIntResult){ .payload = sign * mag };
 }
 
 static inline AvenStr aven_fmt_args(
@@ -174,6 +204,7 @@ static inline AvenStr aven_fmt_args(
             rem = aven_str_tail(rem, 1);
         }
     }
+    assert(arg_index == args.len);
 
     AvenStr written = aven_str_head(str, str.len - rem.len);
     aven_arena_resize(arena, str.ptr, str.len, written.len, 1);

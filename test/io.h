@@ -828,11 +828,11 @@ AvenTestResult test_aven_io_writer_pool(
     return (AvenTestResult){ 0 };
 }
 
-int test_io(AvenArena arena) {
+static int test_io(AvenArena arena) {
     AvenPathResult exe_res = aven_path_exe(&arena);
     if (exe_res.error != 0) {
         aven_io_printf(
-            "unable to run tests for %s: could not find path to test exe",
+            "unable to run tests for {}: could not find path to test exe\n",
             aven_fmt_str(aven_str(__FILE__))
         );
         return 1;
@@ -870,10 +870,7 @@ int test_io(AvenArena arena) {
                     aven_str("io"),
                     aven_str("hello.txt")
                 ),
-                .expected = {
-                    .ptr = (unsigned char *)"Hello, World!",
-                    .len = countof("Hello, World!") - 1,
-                },
+                .expected = slice_as_bytes(aven_str("Hello, World!")),
             },
         },
         {
@@ -889,10 +886,7 @@ int test_io(AvenArena arena) {
             .fn = test_aven_io_write_read,
             .args = &(TestAvenIoWriteArgs){
                 .exe_dir_path = exe_dir_path,
-                .contents = {
-                    .ptr = (unsigned char *)"Hello, World!",
-                    .len = countof("Hello, World!") - 1,
-                },
+                .contents = slice_as_bytes(aven_str("Hello, World!")),
             },
         },
         {
@@ -928,10 +922,7 @@ int test_io(AvenArena arena) {
                     aven_str("io"),
                     aven_str("hello.txt")
                 ),
-                .expected = {
-                    .ptr = (unsigned char *)"Hello, World!",
-                    .len = countof("Hello, World!") - 1,
-                },
+                .expected = slice_as_bytes(aven_str("Hello, World!")),
             },
         },
         {
@@ -947,10 +938,7 @@ int test_io(AvenArena arena) {
             .fn = test_aven_io_writer,
             .args = &(TestAvenIoWriteArgs){
                 .exe_dir_path = exe_dir_path,
-                .contents = {
-                    .ptr = (unsigned char *)"Hello, World!",
-                    .len = countof("Hello, World!") - 1,
-                },
+                .contents = slice_as_bytes(aven_str("Hello, World!")),
             },
         },
         {

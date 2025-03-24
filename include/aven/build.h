@@ -3,8 +3,13 @@
 
 #include "../aven.h"
 #include "arena.h"
+#include "fs.h"
 #include "proc.h"
 #include "str.h"
+
+#ifndef AVEN_SUPPRESS_LOGS
+    #include "io.h"
+#endif
 
 typedef enum {
     AVEN_BUILD_STEP_STATE_NONE = 0,
@@ -144,18 +149,6 @@ typedef enum {
     AVEN_BUILD_STEP_RUN_ERROR_BADTYPE,
 } AvenBuildStepRunError;
 
-AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena);
-AVEN_FN void aven_build_step_clean(AvenBuildStep *step, AvenArena arena);
-AVEN_FN void aven_build_step_reset(AvenBuildStep *step, AvenArena arena);
-
-#ifdef AVEN_IMPLEMENTATION
-
-#include "fs.h"
-
-#ifndef AVEN_SUPPRESS_LOGS
-    #include "io.h"
-#endif
-
 static int aven_build_step_wait(AvenBuildStep *step) {
     if (step->state != AVEN_BUILD_STEP_STATE_RUNNING) {
         return 0;
@@ -169,7 +162,7 @@ static int aven_build_step_wait(AvenBuildStep *step) {
     return result.payload;
 }
 
-AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
+static inline int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
     if (step->state != AVEN_BUILD_STEP_STATE_NONE) {
         return 0;
     }
@@ -291,7 +284,7 @@ AVEN_FN int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
     return 0;
 }
 
-AVEN_FN void aven_build_step_clean(AvenBuildStep *step, AvenArena arena) {
+static inline void aven_build_step_clean(AvenBuildStep *step, AvenArena arena) {
     if (step->out_path.valid) {
         aven_fs_rm(step->out_path.value, arena);
         aven_fs_rmdir(step->out_path.value, arena);
@@ -303,14 +296,12 @@ AVEN_FN void aven_build_step_clean(AvenBuildStep *step, AvenArena arena) {
     }
 }
 
-AVEN_FN void aven_build_step_reset(AvenBuildStep *step, AvenArena arena) {
+static inline void aven_build_step_reset(AvenBuildStep *step, AvenArena arena) {
     step->state = AVEN_BUILD_STEP_STATE_NONE;
 
     for (AvenBuildStepNode *dep = step->dep; dep != NULL; dep = dep->next) {
         aven_build_step_reset(dep->step, arena);
     }
 }
-
-#endif // AVEN_IMPLEMENTATOIN
 
 #endif // AVEN_BUILD_H

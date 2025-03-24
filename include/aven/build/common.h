@@ -63,130 +63,132 @@ static inline AvenStr aven_build_common_usage(void) {
     return aven_str("./build [options]");
 }
 
-AvenArg aven_build_common_args_data[] = {
+static AvenArg aven_build_common_args_data[] = {
     {
-        .name = "test",
-        .description = "Build and  run tests",
+        .name = aven_str_init("test"),
+        .description = aven_str_init("Build and  run tests"),
         .type = AVEN_ARG_TYPE_BOOL,
     },
     {
-        .name = "clean",
-        .description = "Remove all build artifacts",
+        .name = aven_str_init("clean"),
+        .description = aven_str_init("Remove all build artifacts"),
         .type = AVEN_ARG_TYPE_BOOL,
     },
     {
-        .name = "-cc",
-        .description = "C compiler exe",
+        .name = aven_str_init("-cc"),
+        .description = aven_str_init("C compiler exe"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_CC)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_CC },
+            .data = { .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_CC) },
 #elif defined(_WIN32)
     #if defined(__clang__)
-            .data = { .arg_str = "clang.exe" },
+            .data = { .arg_str = aven_str_init("clang.exe") },
     #elif defined(__GNUC__)
-            .data = { .arg_str = "gcc.exe" },
+            .data = { .arg_str = aven_str_init("gcc.exe") },
     #elif defined(_MSC_VER)
-            .data = { .arg_str = "cl.exe" },
+            .data = { .arg_str = aven_str_init("cl.exe") },
     #elif defined(__TINYC__)
-            .data = { .arg_str = "tcc.exe" },
+            .data = { .arg_str = aven_str_init("tcc.exe") },
     #else
-            .data = { .arg_str = "" },
+            .data = { .arg_str = aven_str_init("") },
     #endif
 #else
     #if defined(__clang__)
-            .data = { .arg_str = "clang" },
+            .data = { .arg_str = aven_str_init("clang") },
     #elif defined(__GNUC__)
-            .data = { .arg_str = "gcc" },
+            .data = { .arg_str = aven_str_init("gcc") },
     #elif defined(__TINYC__)
-            .data = { .arg_str = "tcc" },
+            .data = { .arg_str = aven_str_init("tcc") },
     #else
-            .data = { .arg_str = "" },
+            .data = { .arg_str = aven_str_init("") },
     #endif
 #endif
         },
     },
     {
-        .name = "-ld",
-        .description = "Linker exe to use instead of C compiler",
+        .name = aven_str_init("-ld"),
+        .description = aven_str_init("Linker exe to use instead of C compiler"),
         .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_LD)
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_LD },
+            .data = { .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_LD) },
         },
 #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
-            .data = { .arg_str = "link.exe" },
+            .data = { .arg_str = aven_str_init("link.exe") },
         },
 #else
         .optional = true,
 #endif
     },
     {
-        .name = "-ar",
-        .description = "Archiver exe to create static libraries",
+        .name = aven_str_init("-ar"),
+        .description = aven_str_init("Archiver exe to create static libraries"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_AR)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_AR },
+            .data = { .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_AR) },
 #elif defined(_WIN32)
     #if defined(__clang__)
-            .data = { .arg_str = "llvm-ar.exe" },
+            .data = { .arg_str = aven_str_init("llvm-ar.exe") },
     #elif defined(_MSC_VER)
-            .data = { .arg_str = "lib.exe" },
+            .data = { .arg_str = aven_str_init("lib.exe") },
     #elif defined(__GNUC__)
-            .data = { .arg_str = "ar.exe" },
+            .data = { .arg_str = aven_str_init("ar.exe") },
     #elif defined(__TINYC__)
-            .data = { .arg_str = "tcc.exe" },
+            .data = { .arg_str = aven_str_init("tcc.exe") },
     #else
-            .data = { .arg_str = "" },
+            .data = { .arg_str = aven_str_init("") },
     #endif
 #else
     #if defined(__clang__)
-            .data = { .arg_str = "llvm-ar" },
+            .data = { .arg_str = aven_str_init("llvm-ar") },
     #elif defined(__GNUC__)
-            .data = { .arg_str = "ar" },
+            .data = { .arg_str = aven_str_init("ar") },
     #elif defined(__TINYC__)
-            .data = { .arg_str = "tcc" },
+            .data = { .arg_str = aven_str_init("tcc") },
     #else
-            .data = { .arg_str = "" },
+            .data = { .arg_str = aven_str_init("") },
     #endif
 #endif
         },
     },
     {
-        .name = "-windres",
-        .description = "Windows resource compiler",
+        .name = aven_str_init("-windres"),
+        .description = aven_str_init("Windows resource compiler"),
         .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_WINDRES)
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_WINDRES },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_WINDRES),
+            },
         },
 #elif defined(_WIN32)
     #if defined(__clang__)
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
-            .data = { .arg_str = "llvm-windres.exe" },
+            .data = { .arg_str = aven_str_init("llvm-windres.exe") },
         },
     #elif defined(_MSC_VER)
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
-            .data = { .arg_str = "rc.exe" },
+            .data = { .arg_str = aven_str_init("rc.exe") },
         },
     #elif defined(__GNUC__)
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
-            .data = { .arg_str = "windres.exe" },
+            .data = { .arg_str = aven_str_init("windres.exe") },
         },
     #else
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
-            .data = { .arg_str = "" },
+            .data = { .arg_str = aven_str_init("") },
         },
     #endif
 #else
@@ -194,322 +196,384 @@ AvenArg aven_build_common_args_data[] = {
 #endif
     },
     {
-        .name = "-ccflags",
-        .description = "C compiler common flags",
+        .name = aven_str_init("-ccflags"),
+        .description = aven_str_init("C compiler common flags"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_CCFLAGS)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_CCFLAGS },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_CCFLAGS),
+            },
 #elif defined(_WIN32) and defined(_MSC_VER)
     #if defined(__clang__)
-            .data = { .arg_str = "-std=c11" },
+            .data = { .arg_str = aven_str_init("-std=c11") },
     #else
-            .data = { .arg_str = "/std:c11 /experimental:c11atomics" },
+            .data = {
+                .arg_str = aven_str_init("/std:c11 /experimental:c11atomics"),
+            },
     #endif
 #elif defined(__TINYC__)
-            .data = { .arg_str = "-std=c11" },
+            .data = { .arg_str = aven_str_init("-std=c11") },
 #else
-            .data = { .arg_str = "" },
+            .data = { .arg_str = aven_str_init("") },
 #endif
         },
     },
     {
-        .name = "-ldflags",
-        .description = "Linker common flags",
+        .name = aven_str_init("-ldflags"),
+        .description = aven_str_init("Linker common flags"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_LDFLAGS)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_LDFLAGS },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_LDFLAGS),
+            },
 #else
-            .data = { .arg_str = "" },
+            .data = { .arg_str = aven_str_init("") },
 #endif
         },
     },
     {
-        .name = "-arflags",
-        .description = "Archiver common flags",
+        .name = aven_str_init("-arflags"),
+        .description = aven_str_init("Archiver common flags"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_ARFLAGS)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_ARFLAGS },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_ARFLAGS),
+            },
 #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
-            .data = { .arg_str = "" },
+            .data = { .arg_str = aven_str_init("") },
 #elif defined(__TINYC__)
-            .data = { .arg_str = "-ar -rcs" },
+            .data = { .arg_str = aven_str_init("-ar -rcs") },
 #else
-            .data = { .arg_str = "-rcs" },
+            .data = { .arg_str = aven_str_init("-rcs") },
 #endif
         },
     },
     {
-        .name = "-windresflags",
-        .description = "Windows resource compiler common flags",
+        .name = aven_str_init("-windresflags"),
+        .description = aven_str_init("Windows resource compiler common flags"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_WINDRESFLAGS)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_WINDRESFLAGS },
+            .data = {
+                .arg_str = aven_str_init(
+                    AVEN_BUILD_COMMON_DEFAULT_WINDRESFLAGS
+                ),
+            },
 #else
-            .data = { .arg_str = "" },
+            .data = { .arg_str = aven_str_init("") },
 #endif
         },
     },
     {
-        .name = "-obext",
-        .description = "File extension(s) for object files",
+        .name = aven_str_init("-obext"),
+        .description = aven_str_init("File extension(s) for object files"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_OBEXT)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_OBEXT },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_OBEXT),
+            },
 #elif defined(_WIN32)
     #if defined(_MSC_VER)
-            .data = { .arg_str = ".obj .exp .pdb" },
+            .data = { .arg_str = aven_str_init(".obj .exp .pdb") },
     #else
-            .data = { .arg_str = ".o" },
+            .data = { .arg_str = aven_str_init(".o") },
     #endif
 #else
-            .data = { .arg_str = ".o" },
+            .data = { .arg_str = aven_str_init(".o") },
 #endif
         },
     },
     {
-        .name = "-exext",
-        .description = "File extension(s) for executables",
+        .name = aven_str_init("-exext"),
+        .description = aven_str_init("File extension(s) for executables"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_EXEXT)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_EXEXT },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_EXEXT),
+            },
 #elif defined(_WIN32)
-            .data = { .arg_str = ".exe .pdb .lib .exp" },
+            .data = { .arg_str = aven_str_init(".exe .pdb .lib .exp") },
 #else
-            .data = { .arg_str = "" },
+            .data = { .arg_str = aven_str_init("") },
 #endif
         },
     },
     {
-        .name = "-soext",
-        .description = "File extension(s) for shared library files",
+        .name = aven_str_init("-soext"),
+        .description = aven_str_init(
+            "File extension(s) for shared library files"
+        ),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_SOEXT)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_SOEXT },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_SOEXT),
+            },
 #elif defined(_WIN32)
-            .data = { .arg_str = ".dll .lib .pdb .exp _aven_dl_loaded.dll" },
+            .data = {
+                .arg_str = aven_str_init(
+                    ".dll .lib .pdb .exp _aven_dl_loaded.dll"
+                ),
+            },
 #else
-            .data = { .arg_str = ".so" },
+            .data = { .arg_str = aven_str_init(".so") },
 #endif
         },
     },
     {
-        .name = "-arext",
-        .description = "File extension(s) for static libraries",
+        .name = aven_str_init("-arext"),
+        .description = aven_str_init("File extension(s) for static libraries"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_AREXT)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_AREXT },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_AREXT),
+            },
 #elif defined(_WIN32)
     #if defined(_MSC_VER)
-            .data = { .arg_str = ".lib .exp .pdb" },
+            .data = { .arg_str = aven_str_init(".lib .exp .pdb") },
     #else
-            .data = { .arg_str = ".a" },
+            .data = { .arg_str = aven_str_init(".a") },
     #endif
 #else
-            .data = { .arg_str = ".a" },
+            .data = { .arg_str = aven_str_init(".a") },
 #endif
         },
     },
     {
-        .name = "-wrext",
-        .description = "File extension(s) for windows resource files",
+        .name = aven_str_init("-wrext"),
+        .description = aven_str_init(
+            "File extension(s) for windows resource files"
+        ),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_AREXT)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_AREXT },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_AREXT),
+            },
 #elif defined(_WIN32)
     #if defined(_MSC_VER)
-            .data = { .arg_str = ".res" },
+            .data = { .arg_str = aven_str_init(".res") },
     #else
-            .data = { .arg_str = ".o" },
+            .data = { .arg_str = aven_str_init(".o") },
     #endif
 #else
-            .data = { .arg_str = ".o" },
+            .data = { .arg_str = aven_str_init(".o") },
 #endif
         },
     },
     {
-        .name = "-ccincflag",
-        .description = "C compiler flag to add include path",
+        .name = aven_str_init("-ccincflag"),
+        .description = aven_str_init("C compiler flag to add include path"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_CCINCFLAG)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_CCINCFLAGEXT },
+            .data = {
+                .arg_str = aven_str_init(
+                    AVEN_BUILD_COMMON_DEFAULT_CCINCFLAGEXT
+                ),
+            },
 #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
-            .data = { .arg_str = "/I" },
+            .data = { .arg_str = aven_str_init("/I") },
 #else
-            .data = { .arg_str = "-I" },
+            .data = { .arg_str = aven_str_init("-I") },
 #endif
         },
     },
     {
-        .name = "-ccdefflag",
-        .description = "C compiler flag to define macro",
+        .name = aven_str_init("-ccdefflag"),
+        .description = aven_str_init("C compiler flag to define macro"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_CCDEFFLAG)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_CCDEFFLAGEXT },
+            .data = {
+                .arg_str = aven_str_init(
+                    AVEN_BUILD_COMMON_DEFAULT_CCDEFFLAGEXT
+                ),
+            },
 #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
-            .data = { .arg_str = "/D" },
+            .data = { .arg_str = aven_str_init("/D") },
 #else
-            .data = { .arg_str = "-D" },
+            .data = { .arg_str = aven_str_init("-D") },
 #endif
         },
     },
     {
-        .name = "-ccobjflag",
-        .description = "C compiler flag to compile object",
+        .name = aven_str_init("-ccobjflag"),
+        .description = aven_str_init("C compiler flag to compile object"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_CCOBJFLAG)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_COBJFLAGEXT },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_COBJFLAGEXT),
+            },
 #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
-            .data = { .arg_str = "/c" },
+            .data = { .arg_str = aven_str_init("/c") },
 #else
-            .data = { .arg_str = "-c" },
+            .data = { .arg_str = aven_str_init("-c") },
 #endif
         },
     },
     {
-        .name = "-ccoutflag",
-        .description = "C compiler flag to specify output file",
+        .name = aven_str_init("-ccoutflag"),
+        .description = aven_str_init("C compiler flag to specify output file"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_CCOUTFLAG)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_COUTFLAGEXT },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_COUTFLAGEXT),
+            },
 #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
-            .data = { .arg_str = "/Fo:" },
+            .data = { .arg_str = aven_str_init("/Fo:") },
 #else
-            .data = { .arg_str = "-o" },
+            .data = { .arg_str = aven_str_init("-o") },
 #endif
         },
     },
     {
-        .name = "-ldlibflag",
-        .description = "Linker flag to link library",
+        .name = aven_str_init("-ldlibflag"),
+        .description = aven_str_init("Linker flag to link library"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_LDLIBFLAG)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_LDLIBFLAG },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_LDLIBFLAG),
+            },
 #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
-            .data = { .arg_str = "" },
+            .data = { .arg_str = aven_str_init("") },
 #else
-            .data = { .arg_str = "-l" },
+            .data = { .arg_str = aven_str_init("-l") },
 #endif
         },
     },
     {
-        .name = "-ldshrflag",
-        .description = "Linker flag to emit shared library",
+        .name = aven_str_init("-ldshrflag"),
+        .description = aven_str_init("Linker flag to emit shared library"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_LDSHRFLAG)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_LDSHRFLAG },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_LDSHRFLAG),
+            },
 #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
-            .data = { .arg_str = "/DLL" },
+            .data = { .arg_str = aven_str_init("/DLL") },
 #else
-            .data = { .arg_str = "-shared" },
+            .data = { .arg_str = aven_str_init("-shared") },
 #endif
         },
     },
     {
-        .name = "-ldwinflag",
-        .description = "Linker flag to link a graphical window application",
+        .name = aven_str_init("-ldwinflag"),
+        .description = aven_str_init(
+            "Linker flag to link a graphical window application"
+        ),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_LDWINFLAG)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_LDWINFLAG },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_LDWINFLAG),
+            },
 #elif defined(_WIN32)
     #if defined(_MSC_VER) and !defined(__clang__)
-            .data = { .arg_str = "/SUBSYSTEM:WINDOWS" },
+            .data = { .arg_str = aven_str_init("/SUBSYSTEM:WINDOWS") },
     #elif defined(__GNUC__)
         #if defined(__clang__)
-            .data = { .arg_str = "-Wl,--subsystem,windows" },
+            .data = { .arg_str = aven_str_init("-Wl,--subsystem,windows") },
         #else
-            .data = { .arg_str = "-mwindows" },
+            .data = { .arg_str = aven_str_init("-mwindows") },
         #endif
     #else
-            .data = { .arg_str = "" },
+            .data = { .arg_str = aven_str_init("") },
     #endif
 #else
-            .data = { .arg_str = "" },
+            .data = { .arg_str = aven_str_init("") },
 #endif
         },
     },
     {
-        .name = "-ldoutflag",
-        .description = "Linker flag to specify output file",
+        .name = aven_str_init("-ldoutflag"),
+        .description = aven_str_init("Linker flag to specify output file"),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_LDOUTFLAG)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_LDOUTFLAG },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_LDOUTFLAG),
+            },
 #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
-            .data = { .arg_str = "/OUT:" },
+            .data = { .arg_str = aven_str_init("/OUT:") },
 #else
-            .data = { .arg_str = "-o" },
+            .data = { .arg_str = aven_str_init("-o") },
 #endif
         },
     },
     {
-        .name = "-aroutflag",
-        .description = "Archiver flag to specify output file",
+        .name = aven_str_init("-aroutflag"),
+        .description = aven_str_init("Archiver flag to specify output file"),
         .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_AROUTFLAG)
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_AROUTFLAG },
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_AROUTFLAG),
+            },
         },
 #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
-            .data = { .arg_str = "/OUT:" },
+            .data = { .arg_str = aven_str_init("/OUT:") },
         },
 #else
         .optional = true,
 #endif
     },
     {
-        .name = "-windresoutflag",
-        .description = "Windows res compiler flag to specify output file",
+        .name = aven_str_init("-windresoutflag"),
+        .description = aven_str_init(
+            "Windows res compiler flag to specify output file"
+        ),
         .type = AVEN_ARG_TYPE_STRING,
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
 #if defined(AVEN_BUILD_COMMON_DEFAULT_WINDRESOUTFLAG)
-            .data = { .arg_str = AVEN_BUILD_COMMON_DEFAULT_WINDRESOUTFLAG },
+            .data = {
+                .arg_str = aven_str_init(
+                    AVEN_BUILD_COMMON_DEFAULT_WINDRESOUTFLAG
+                ),
+            },
 #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
-            .data = { .arg_str = "/fo" },
+            .data = { .arg_str = aven_str_init("/fo") },
 #else
-            .data = { .arg_str = "-o" },
+            .data = { .arg_str = aven_str_init("-o") },
 #endif
         },
     },
     {
-        .name = "-ccflagsep",
-        .description = "C compiler add space between flag and argument",
+        .name = aven_str_init("-ccflagsep"),
+        .description = aven_str_init(
+            "C compiler add space between flag and argument"
+        ),
         .type = AVEN_ARG_TYPE_BOOL,
         .value = {
             .type = AVEN_ARG_TYPE_BOOL,
@@ -523,8 +587,10 @@ AvenArg aven_build_common_args_data[] = {
         },
     },
     {
-        .name = "-ldflagsep",
-        .description = "Linker add space between flag and argument",
+        .name = aven_str_init("-ldflagsep"),
+        .description = aven_str_init(
+            "Linker add space between flag and argument"
+        ),
         .type = AVEN_ARG_TYPE_BOOL,
         .value = {
             .type = AVEN_ARG_TYPE_BOOL,
@@ -538,8 +604,10 @@ AvenArg aven_build_common_args_data[] = {
         },
     },
     {
-        .name = "-arflagsep",
-        .description = "Archiver add space between flag and argument",
+        .name = aven_str_init("-arflagsep"),
+        .description = aven_str_init(
+            "Archiver add space between flag and argument"
+        ),
         .type = AVEN_ARG_TYPE_BOOL,
         .value = {
             .type = AVEN_ARG_TYPE_BOOL,
@@ -568,88 +636,80 @@ static inline AvenBuildCommonOpts aven_build_common_opts(
     opts.test = aven_arg_get_bool(arg_slice, "test");
     opts.clean = aven_arg_get_bool(arg_slice, "clean");
 
-    opts.cc.compiler = aven_str_cstr(aven_arg_get_str(arg_slice, "-cc"));
-    opts.cc.incflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ccincflag"));
-    opts.cc.defflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ccdefflag"));
-    opts.cc.objflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ccobjflag"));
-    opts.cc.outflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ccoutflag"));
+    opts.cc.compiler = aven_arg_get_str(arg_slice, "-cc");
+    opts.cc.incflag = aven_arg_get_str(arg_slice, "-ccincflag");
+    opts.cc.defflag = aven_arg_get_str(arg_slice, "-ccdefflag");
+    opts.cc.objflag = aven_arg_get_str(arg_slice, "-ccobjflag");
+    opts.cc.outflag = aven_arg_get_str(arg_slice, "-ccoutflag");
     opts.cc.flagsep = aven_arg_get_bool(arg_slice, "-ccflagsep");
     opts.cc.flags = aven_str_split(
-        aven_str_cstr(aven_arg_get_str(arg_slice, "-ccflags")),
+        aven_arg_get_str(arg_slice, "-ccflags"),
         ' ',
         arena
     );
 
     if (aven_arg_has_arg(arg_slice, "-ld")) {
-        opts.ld.linker = aven_str_cstr(aven_arg_get_str(arg_slice, "-ld"));
+        opts.ld.linker = aven_arg_get_str(arg_slice, "-ld");
     } else {
         opts.ld.linker = opts.cc.compiler;
     }
-    opts.ld.outflag = aven_str_cstr(
-        aven_arg_get_str(arg_slice, "-ldoutflag")
-    );
-    opts.ld.libflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ldlibflag"));
-    opts.ld.winflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ldwinflag"));
-    opts.ld.shrflag = aven_str_cstr(aven_arg_get_str(arg_slice, "-ldshrflag"));
+    opts.ld.outflag = aven_arg_get_str(arg_slice, "-ldoutflag");
+    opts.ld.libflag = aven_arg_get_str(arg_slice, "-ldlibflag");
+    opts.ld.winflag = aven_arg_get_str(arg_slice, "-ldwinflag");
+    opts.ld.shrflag = aven_arg_get_str(arg_slice, "-ldshrflag");
     opts.ld.flagsep = aven_arg_get_bool(arg_slice, "-ldflagsep");
     opts.ld.flags = aven_str_split(
-        aven_str_cstr(aven_arg_get_str(arg_slice, "-ldflags")),
+        aven_arg_get_str(arg_slice, "-ldflags"),
         ' ',
         arena
     );
 
-    opts.ar.archiver = aven_str_cstr(aven_arg_get_str(arg_slice, "-ar"));
+    opts.ar.archiver = aven_arg_get_str(arg_slice, "-ar");
     if (aven_arg_has_arg(arg_slice, "-aroutflag")) {
-        opts.ar.outflag = aven_str_cstr(
-            aven_arg_get_str(arg_slice, "-aroutflag")
-        );
+        opts.ar.outflag = aven_arg_get_str(arg_slice, "-aroutflag");
     } else {
         opts.ar.outflag = aven_str("");
     }
     opts.ar.flagsep = aven_arg_get_bool(arg_slice, "-arflagsep");
     opts.ar.flags = aven_str_split(
-        aven_str_cstr(aven_arg_get_str(arg_slice, "-arflags")),
+        aven_arg_get_str(arg_slice, "-arflags"),
         ' ',
         arena
     );
 
     if (aven_arg_has_arg(arg_slice, "-windres")) {
         opts.windres.compiler.valid = true;
-        opts.windres.compiler.value = aven_str_cstr(
-            aven_arg_get_str(arg_slice, "-windres")
-        );
+        opts.windres.compiler.value = aven_arg_get_str(arg_slice, "-windres");
         opts.windres.flags = aven_str_split(
-            aven_str_cstr(aven_arg_get_str(arg_slice, "-windresflags")),
+            aven_arg_get_str(arg_slice, "-windresflags"),
             ' ',
             arena
         );
-        opts.windres.outflag = aven_str_cstr(
-            aven_arg_get_str(arg_slice, "-windresoutflag")
-        );
+        opts.windres.outflag = aven_arg_get_str(arg_slice, "-windresoutflag");
     }
 
     opts.obexts = aven_str_split(
-        aven_str_cstr(aven_arg_get_str(arg_slice, "-obext")),
+        aven_arg_get_str(arg_slice, "-obext"),
         ' ',
         arena
     );
     opts.exexts = aven_str_split(
-        aven_str_cstr(aven_arg_get_str(arg_slice, "-exext")),
+        aven_arg_get_str(arg_slice, "-exext"),
         ' ',
         arena
     );
     opts.soexts = aven_str_split(
-        aven_str_cstr(aven_arg_get_str(arg_slice, "-soext")),
+        aven_arg_get_str(arg_slice, "-soext"),
         ' ',
         arena
     );
     opts.arexts = aven_str_split(
-        aven_str_cstr(aven_arg_get_str(arg_slice, "-arext")),
+        aven_arg_get_str(arg_slice, "-arext"),
         ' ',
         arena
     );
     opts.wrexts = aven_str_split(
-        aven_str_cstr(aven_arg_get_str(arg_slice, "-wrext")),
+        aven_arg_get_str(arg_slice, "-wrext"),
         ' ',
         arena
     );

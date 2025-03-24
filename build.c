@@ -20,7 +20,8 @@
 
 #define ARENA_SIZE (4096 * 2000)
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv, char **env) {
+    (void)env;
     void *mem = malloc(ARENA_SIZE);
     if (mem == NULL) {
         aven_panic("malloc failure\n");
@@ -48,8 +49,8 @@ int main(int argc, char **argv) {
         args,
         argv,
         argc,
-        aven_str_to_cstr(aven_build_common_overview(), &arena),
-        aven_str_to_cstr(aven_build_common_usage(), &arena)
+        aven_build_common_overview(),
+        aven_build_common_usage()
     );
     if (error != 0) {
         if (error != AVEN_ARG_ERROR_HELP) {

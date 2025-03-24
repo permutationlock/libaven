@@ -117,7 +117,7 @@ AVEN_FN void aven_watch_deinit(AvenWatchHandle handle);
 
         FindCloseChangeNotification(handle);
     }
-#elif defined(__linux__)
+#elif defined(__linux__) and !defined(NOLIBC)
     #include <errno.h>
 
     #include <poll.h>
@@ -205,8 +205,12 @@ AVEN_FN void aven_watch_deinit(AvenWatchHandle handle);
         close(handle);
     }
 #else
-    AVEN_FN AvenWatchHandle aven_watch_init(AvenStr dirname) {
+    AVEN_FN AvenWatchHandle aven_watch_init(
+        AvenStr dirname,
+        AvenArena temp_arena
+    ) {
         (void)dirname;
+        (void)temp_arena;
         return AVEN_WATCH_HANDLE_INVALID;
     }
 

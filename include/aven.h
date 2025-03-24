@@ -8,6 +8,21 @@
 #define or ||
 #define and &&
 
+#ifndef _WIN32
+    #ifdef AVEN_LINUX_NOLIBC
+        #include <nolibc.h>
+        #ifdef AVEN_IMPLEMENTATION
+            #include <stackprotector.h>
+            #include <crt.h>
+        #endif
+    #endif
+    #if defined(__linux__) and defined(NOLIBC)
+        #include <sys.h>
+    #else
+        #include <sys/types.h>
+    #endif
+#endif
+
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 
@@ -274,17 +289,19 @@ static inline AVEN_NORETURN void aven_panic_internal_fn(
     const char *msg,
     size_t len
 ) {
-    AVEN_NORETURN void _Exit(int status);
+    AVEN_NORETURN void exit(int status);
 
 #ifdef _WIN32
     int _write(int fd, const void *buffer, unsigned int count);
     _write(2, msg, (unsigned int)len);
+#elif defined(__linux__) and defined(NOLIBC)
+    write(2, msg, len);
 #else
-    long write(int fd, const void *buffer, size_t count);
+    ssize_t write(int fd, const void *buffer, size_t count);
     write(2, msg, len);
 #endif
 
-    _Exit(1);
+    exit(1);
 }
 
 #define aven_panic_internal_s(x) #x

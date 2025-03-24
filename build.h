@@ -3,8 +3,10 @@
 
 static AvenArg libaven_build_arg_data[] = {
     {
-        .name = "-winutf8",
-        .description = "Link a Windows resource to enable UTF8 mode",
+        .name = aven_str_init("-winutf8"),
+        .description = aven_str_init(
+            "Link a Windows resource to enable UTF8 mode"
+        ),
         .type = AVEN_ARG_TYPE_BOOL,
         .value = {
             .type = AVEN_ARG_TYPE_BOOL,
@@ -18,8 +20,10 @@ static AvenArg libaven_build_arg_data[] = {
         },
     },
     {
-        .name = "-winpthreads",
-        .description = "Build and link a local Mingw-w64 winpthreads",
+        .name = aven_str_init("-winpthreads"),
+        .description = aven_str_init(
+            "Build and link a local Mingw-w64 winpthreads"
+        ),
         .type = AVEN_ARG_TYPE_BOOL,
         .value = {
             .type = AVEN_ARG_TYPE_BOOL,
@@ -31,13 +35,13 @@ static AvenArg libaven_build_arg_data[] = {
         },
     },
     {
-        .name = "-winpthreads-ccflags",
-        .description = "C compiler flags for local winpthreads",
+        .name = aven_str_init("-winpthreads-ccflags"),
+        .description = aven_str_init("C compiler flags for local winpthreads"),
         .type = AVEN_ARG_TYPE_STRING,
 #if defined(LIBAVEN_BUILD_DEFUALT_WINPTHREADS_CCFLAGS)
         .value = {
             .type = AVEN_ARG_TYPE_STRING,
-            .data = LIBAVEN_BUILD_DEFUALT_WINPTHREADS_CCFLAGS,
+            .data = aven_str_init(LIBAVEN_BUILD_DEFUALT_WINPTHREADS_CCFLAGS),
         },
 #endif
         .optional = true,
@@ -71,7 +75,7 @@ static inline LibAvenBuildOpts libaven_build_opts(
     opts.winpthreads.local = aven_arg_get_bool(args, "-winpthreads");
     if (aven_arg_has_arg(args, "-winpthreads-ccflags")) {
         opts.winpthreads.ccflags.value = aven_str_split(
-            aven_str_cstr(aven_arg_get_str(args, "-winpthreads-ccflags")),
+            aven_arg_get_str(args, "-winpthreads-ccflags"),
             ' ',
             arena
         );
