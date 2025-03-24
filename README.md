@@ -8,18 +8,20 @@ access macros.
 
 The library has expanded to include:
 
- - optionals, results, slices, lists, queues, and pools, : `aven.h`
+ - optionals, results, slices, lists, queues, and pools: `aven.h`
  - arena allocation: `aven/arena.h` ([inspired by this post][2])
  - command line argument parsing: `aven/arg.h`
  - a C build system: `aven/build.h`, `aven/build/common.h`
+ - simple string formatting and parsing: `aven/fmt.h`
  - portable file system interaction: `aven/fs.h`
+ - portable I/O independent of libc: `aven/io.h`
  - a tiny SIMD linear algebra library: `aven/math.h`
  - portable file path string manipulation: `aven/path.h`
  - portable process execution and management: `aven/proc.h`
  - a random number generator interface: `aven/rng.h`
  - slice-based strings: `aven/str.h`
  - a bare-bones test framework: `aven/test.h`
- - portable thread pools: `aven/thread_pool.h`
+ - portable thread primitives: `aven/thread.h`, `aven/thread/pool.h`
  - portable high precision timing: `aven/time.h`
  - portable directory watching (Windows + Linux only): `aven/watch.h`
 
@@ -36,7 +38,7 @@ core defined in `aven.h`. E.g. the alloc function defined in `aven/arena.h` is
 When built as a separate translation unit using the build system (see below),
 the headers will only include the following C standard headers:
 `stddef.h`, `stdbool.h`, `stdint.h`, and `stdassert.h`.
-If compiling for C11 then `stdalign.h` and `stdnoreturn.h` are also included.
+If compiling for C11 then `stdalign.h` is also included.
 If using the standalone `aven/time.h` portable timing header, then the libc
 `time.h` is included for `timespec` support.
 
@@ -51,6 +53,11 @@ included. Linux
 specific features are used where necessary, e.g. `sys/inotify.h` for directory
 watching and `/proc/self/exe` for exe path discovery; such functions simply
 return errors on non-Linux POSIX targets.
+
+The dependency on libc is so minimal that the Linux header-only [`nolibc`][8]
+is supported. Disable the standard libc (e.g. `-nostdlib`), define
+the macro (e.g. `-D AVEN_LINUX_NOLIBC`), and include the `nolibc` headers
+(e.g. `-I /path/to/nolibc/include`).
 
 ## Aven C build system
 
@@ -190,3 +197,4 @@ in a project that produces a graphical application like [`libavengraph`][7].
 [5]: https://repo.or.cz/w/tinycc.git
 [6]: https://musl.libc.org/
 [7]: https://github.com/permutationlock/libavengraph
+[8]: https://github.com/torvalds/linux/tree/master/tools/include/nolibc

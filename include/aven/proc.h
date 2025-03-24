@@ -209,7 +209,7 @@ AVEN_FN AvenProcCmdResult aven_proc_cmd(
             }
         }
         char *exe_path_cstr = aven_str_to_cstr(get(cmd, 0), &arena);
-        error = execve(exe_path_cstr, args, NULL);
+        error = execve(exe_path_cstr, args, environ);
         if (error != 0) {
             switch (errno) {
                 case EACCES:
