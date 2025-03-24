@@ -309,11 +309,11 @@ static inline AvenIoResult aven_io_writer_push(
     return (AvenIoResult){ .payload = src.len - src_rem.len };
 }
 
-#define aven_io_writer_printf_ex(w, a, f, a1, ...) \
+#define aven_io_writer_printf_ex(w, a, f, ...) \
     aven_io_writer_print_fmt_args_ex( \
         w, \
         aven_str(f), \
-        (AvenFmtArgSlice)slice_array((AvenFmtArg[]){ a1, __VA_ARGS__ }), \
+        (AvenFmtArgSlice)slice_array((AvenFmtArg[]){ __VA_ARGS__ }), \
         a \
     )
 #define aven_io_printf_ex(a, f, ...) aven_io_writer_printf_ex( \
@@ -329,11 +329,11 @@ static inline AvenIoResult aven_io_writer_push(
         f, \
         __VA_ARGS__ \
     )
-#define aven_io_writer_printf(w, f, a1, ...) \
+#define aven_io_writer_printf(w, f, ...) \
     aven_io_writer_print_fmt_args( \
         w, \
         aven_str(f), \
-        (AvenFmtArgSlice)slice_array((AvenFmtArg[]){ a1, __VA_ARGS__ }) \
+        (AvenFmtArgSlice)slice_array((AvenFmtArg[]){ __VA_ARGS__ }) \
     )
 #define aven_io_printf(f, ...) aven_io_writer_printf( \
         &aven_io_stdout, \

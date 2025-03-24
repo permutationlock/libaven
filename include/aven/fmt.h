@@ -27,9 +27,9 @@
         .type = AVEN_FMT_ARG_TYPE_STR, \
         .data = { .arg_str = s }, \
     }
-#define aven_fmt(a, f, a1, ...) aven_fmt_args( \
+#define aven_fmt(a, f, ...) aven_fmt_args( \
         aven_str(f), \
-        (AvenFmtArgSlice)slice_array((AvenFmtArg[]){ a1, __VA_ARGS__ }), \
+        (AvenFmtArgSlice)slice_array((AvenFmtArg[]){ __VA_ARGS__ }), \
         a \
     )
 

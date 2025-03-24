@@ -263,7 +263,7 @@ static inline bool aven_arg_get_bool_internal(
     return arg.value.data.arg_bool;
 }
 
-static inline int aven_arg_get_int_internal(
+static inline int64_t aven_arg_get_int_internal(
     AvenArgSlice arg_slice,
     AvenStr argname
 ) {
