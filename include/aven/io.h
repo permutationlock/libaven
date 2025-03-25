@@ -92,8 +92,8 @@ static AvenIoResult aven_io_fd_write_stub(void *ctx, ByteSlice dest) {
 
 static inline AvenIoReader aven_io_reader_init_fd(AvenIoFd fd) {
     return (AvenIoReader){
-        .ctx = (void *)((uintptr_t)fd),
         .read = aven_io_fd_read_stub,
+        .ctx = (void *)((uintptr_t)fd),
     };
 }
 
@@ -112,8 +112,8 @@ static inline AvenIoReader aven_io_reader_init_fd_buffered(
 static inline AvenIoReader aven_io_reader_init_bytes(ByteSlice bytes) {
     return (AvenIoReader){
         .buffer = { .ptr = bytes.ptr, .len = bytes.len, .cap = bytes.len },
-        .ctx = NULL,
         .read = aven_io_null_stub,
+        .ctx = NULL,
     };
 }
 
@@ -156,8 +156,8 @@ static inline AvenIoResult aven_io_reader_pop(
             dest_rem = (ByteSlice)slice_tail(dest_rem, res.payload);
             if (res.error != 0) {
                 return (AvenIoResult){
-                    .error = res.error,
                     .payload = dest.len - dest_rem.len,
+                    .error = res.error,
                 };
             }
         } else {
@@ -177,8 +177,8 @@ static inline AvenIoResult aven_io_reader_pop(
 
             if (res.error != 0 or res.payload == 0) {
                 return (AvenIoResult){
-                    .error = res.error,
                     .payload = dest.len - dest_rem.len,
+                    .error = res.error,
                 };
             }
         }
@@ -189,8 +189,8 @@ static inline AvenIoResult aven_io_reader_pop(
 
 static inline AvenIoWriter aven_io_writer_init_fd(AvenIoFd fd) {
     return (AvenIoWriter){
-        .ctx = (void *)((uintptr_t)fd),
         .write = aven_io_fd_write_stub,
+        .ctx = (void *)((uintptr_t)fd),
     };
 }
 
@@ -210,8 +210,8 @@ static inline AvenIoWriter aven_io_writer_init_fd_buffered(
 static inline AvenIoWriter aven_io_writer_init_bytes(ByteSlice bytes) {
     return (AvenIoWriter){
         .buffer = { .ptr = bytes.ptr, .len = bytes.len },
-        .ctx = NULL,
         .write = aven_io_null_stub,
+        .ctx = NULL,
     };
 }
 
@@ -290,8 +290,8 @@ static inline AvenIoResult aven_io_writer_push(
         int error = aven_io_writer_flush(writer);
         if (error != 0) {
             return (AvenIoResult){
-                .error = error,
                 .payload = src.len - src_rem.len,
+                .error = error,
             };
         }
     }
@@ -301,8 +301,8 @@ static inline AvenIoResult aven_io_writer_push(
         src_rem = (ByteSlice)slice_tail(src_rem, res.payload);
         if (res.error != 0) {
             return (AvenIoResult){
-                .error = res.error,
                 .payload = src.len - src_rem.len,
+                .error = res.error,
             };
         }
     } else {
