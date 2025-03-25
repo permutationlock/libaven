@@ -25,7 +25,7 @@
     }
 #define aven_fmt_str(s) (AvenFmtArg){ \
         .type = AVEN_FMT_ARG_TYPE_STR, \
-        .data = { .arg_str = s }, \
+        .data = { .arg_str = (s) }, \
     }
 #define aven_fmt(a, f, ...) aven_fmt_args( \
         aven_str(f), \
