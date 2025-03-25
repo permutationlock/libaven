@@ -162,9 +162,12 @@ static int aven_build_step_wait(AvenBuildStep *step) {
     return result.payload;
 }
 
-static inline int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
+static inline AvenBuildStepRunError aven_build_step_run(
+    AvenBuildStep *step,
+    AvenArena arena
+) {
     if (step->state != AVEN_BUILD_STEP_STATE_NONE) {
-        return 0;
+        return AVEN_BUILD_STEP_RUN_ERROR_NONE;
     }
 
     for (AvenBuildStepNode *dep = step->dep; dep != NULL; dep = dep->next) {
@@ -281,7 +284,7 @@ static inline int aven_build_step_run(AvenBuildStep *step, AvenArena arena) {
             return AVEN_BUILD_STEP_RUN_ERROR_BADTYPE;
     }
 
-    return 0;
+    return AVEN_BUILD_STEP_RUN_ERROR_NONE;
 }
 
 static inline void aven_build_step_clean(AvenBuildStep *step, AvenArena arena) {

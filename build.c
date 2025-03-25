@@ -20,11 +20,12 @@
 
 #define ARENA_SIZE (4096 * 2000)
 
-int main(int argc, char **argv, char **env) {
-    (void)env;
+int main(int argc, char **argv) {
+    aven_fs_utf8_mode();
+
     void *mem = malloc(ARENA_SIZE);
     if (mem == NULL) {
-        aven_panic("malloc failure\n");
+        aven_panic("malloc failed\n");
     }
 
     AvenArena arena = aven_arena_init(mem, ARENA_SIZE);
@@ -45,17 +46,17 @@ int main(int argc, char **argv, char **env) {
     }
     AvenArgSlice args = slice_list(arg_list);
     
-    int error = aven_arg_parse(
+    AvenArgError arg_error = aven_arg_parse(
         args,
         argv,
         argc,
         aven_build_common_overview(),
         aven_build_common_usage()
     );
-    if (error != 0) {
-        if (error != AVEN_ARG_ERROR_HELP) {
-            aven_io_perrf("ARG PARSE ERROR: {}\n", aven_fmt_int(error));
-            return error;
+    if (arg_error != 0) {
+        if (arg_error != AVEN_ARG_ERROR_HELP) {
+            aven_io_perrf("ARG PARSE ERROR: {}\n", aven_fmt_int(arg_error));
+            return 1;
         }
         return 0;
     }
@@ -147,17 +148,25 @@ int main(int argc, char **argv, char **env) {
         aven_build_step_clean(&root_step, arena);
         aven_build_step_clean(&test_root_step, arena);
     } else if (opts.test) {
-        error = aven_build_step_run(&test_root_step, arena);
-        if (error != 0) {
-            aven_io_perrf("TEST FAILED: {}\n", aven_fmt_int(error));
+        AvenBuildStepRunError run_error = aven_build_step_run(
+            &test_root_step,
+            arena
+        );
+        if (run_error != 0) {
+            aven_io_perrf("TEST FAILED: {}\n", aven_fmt_int(run_error));
         }
+        return 1;
     } else {
-        error = aven_build_step_run(&root_step, arena);
-        if (error != 0) {
-            aven_io_perrf("BUILD FAILED: {}\n", aven_fmt_int(error));
+        AvenBuildStepRunError run_error = aven_build_step_run(
+            &root_step,
+            arena
+        );
+        if (run_error != 0) {
+            aven_io_perrf("BUILD FAILED: {}\n", aven_fmt_int(run_error));
         }
+        return 1;
     }
 
-    return error;
+    return 0;
 }
 
