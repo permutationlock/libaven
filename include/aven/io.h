@@ -319,7 +319,7 @@ static inline AvenIoResult aven_io_writer_push(
 }
 
 #define aven_io_writer_printf_ex(w, a, f, ...) \
-    aven_io_writer_print_fmt_args_ex( \
+    aven_io_writer_push_fmt_args_ex( \
         w, \
         aven_str(f), \
         (AvenFmtArgSlice)slice_array((AvenFmtArg[]){ __VA_ARGS__ }), \
@@ -339,7 +339,7 @@ static inline AvenIoResult aven_io_writer_push(
         __VA_ARGS__ \
     )
 #define aven_io_writer_printf(w, f, ...) \
-    aven_io_writer_print_fmt_args( \
+    aven_io_writer_push_fmt_args( \
         w, \
         aven_str(f), \
         (AvenFmtArgSlice)slice_array((AvenFmtArg[]){ __VA_ARGS__ }) \
@@ -354,10 +354,11 @@ static inline AvenIoResult aven_io_writer_push(
         f, \
         __VA_ARGS__ \
     )
-#define aven_io_print(s) aven_io_writer_print(&aven_io_stdout, aven_str(s))
-#define aven_io_perr(s) aven_io_writer_print(&aven_io_stderr, aven_str(s))
+#define aven_io_writer_print(w, s) aven_io_writer_push_str(w, aven_str(s))
+#define aven_io_print(s) aven_io_writer_print(&aven_io_stdout, s)
+#define aven_io_perr(s) aven_io_writer_print(&aven_io_stderr, s)
 
-static inline AvenIoResult aven_io_writer_print(
+static inline AvenIoResult aven_io_writer_push_str(
     AvenIoWriter *writer,
     AvenStr str
 ) {
@@ -365,7 +366,7 @@ static inline AvenIoResult aven_io_writer_print(
     return aven_io_writer_push(writer, str_bytes);
 }
 
-static inline AvenIoResult aven_io_writer_print_fmt_args_ex(
+static inline AvenIoResult aven_io_writer_push_fmt_args_ex(
     AvenIoWriter *writer,
     AvenStr fmt,
     AvenFmtArgSlice args,
@@ -378,7 +379,7 @@ static inline AvenIoResult aven_io_writer_print_fmt_args_ex(
 
 #define AVEN_IO_PRINT_BUFFER_SIZE (8192)
 
-static inline AvenIoResult aven_io_writer_print_fmt_args(
+static inline AvenIoResult aven_io_writer_push_fmt_args(
     AvenIoWriter *writer,
     AvenStr fmt,
     AvenFmtArgSlice args    
@@ -386,7 +387,7 @@ static inline AvenIoResult aven_io_writer_print_fmt_args(
     char buffer[AVEN_IO_PRINT_BUFFER_SIZE];
     AvenArena arena = aven_arena_init(buffer, sizeof(buffer));
 
-    return aven_io_writer_print_fmt_args_ex(writer, fmt, args, arena);
+    return aven_io_writer_push_fmt_args_ex(writer, fmt, args, arena);
 }
 
 #define aven_io_writer_push_struct(w, s) aven_io_writer_push_struct_internal( \
