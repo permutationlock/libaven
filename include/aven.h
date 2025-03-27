@@ -35,7 +35,7 @@
 #endif
 
 #if defined (AVEN_USE_PANIC_ASSERT)
-    #define assert(c) ((!(c)) ? aven_panic("assert(" #c ") failed" ) : (void)0)
+    #define assert(c) ((!(c)) ? aven_panic("assert(" #c ") failed") : (void)0)
 #elif !defined(AVEN_USE_STD_ASSERT) and __has_builtin(__builtin_unreachable)
     #define assert(c) ((!(c)) ? __builtin_unreachable() : (void)0)
 #else
@@ -301,7 +301,7 @@ static inline AVEN_NORETURN void aven_panic_internal_fn(
     write(2, msg, len);
 #endif
 
-#if __has_builtin(__builtin_trap)
+#if defined(__GNUC__) and __has_builtin(__builtin_trap)
     __builtin_trap();
 #endif
     exit(1);
