@@ -64,13 +64,18 @@
     typedef float Vec2SIMD __attribute__((vector_size(8)));
     typedef float Vec4SIMD __attribute__((vector_size(16)));
 
-    typedef int32_t Vec2SIMDMask __attribute__((vector_size(8)));
-    typedef int32_t Vec4SIMDMask __attribute__((vector_size(16)));
+    typedef int32_t IVec2SIMD __attribute__((vector_size(8)));
+    typedef int32_t IVec4SIMD __attribute__((vector_size(16)));
 
     typedef float Vec2[2] __attribute__((aligned(8)));
     typedef float Vec4[4] __attribute__((aligned(16)));
     typedef Vec2 Mat2[2] __attribute__((aligned(16)));
     typedef Vec2 Aff2[4] __attribute__((aligned(16)));
+
+    typedef int32_t IVec2[2] __attribute__((aligned(8)));
+    typedef int32_t IVec4[4] __attribute__((aligned(16)));
+    typedef IVec2 IMat2[2] __attribute__((aligned(16)));
+    typedef IVec2 IAff2[4] __attribute__((aligned(16)));
 #else
     #ifndef AVEN_MATH_NO_SIMD
         #define AVEN_MATH_NO_SIMD
@@ -80,11 +85,20 @@
     typedef float Vec4[4];
     typedef Vec2 Mat2[2];
     typedef Vec2 Aff2[3];
+
+    typedef int32_t IVec2[2];
+    typedef int32_t IVec4[4];
+    typedef IVec2 IMat2[2];
+    typedef IVec2 IAff2[3];
 #endif
 
 typedef float Vec3[3];
 typedef Vec3 Mat3[3];
 typedef Vec4 Mat4[4];
+
+typedef int32_t IVec3[3];
+typedef IVec3 IMat3[3];
+typedef IVec4 IMat4[4];
 
 static inline void vec2_copy(Vec2 dst, Vec2 a) {
 #ifdef AVEN_MATH_SIMD
@@ -288,10 +302,10 @@ static inline void mat2_mul_mat2(Mat2 dst, Mat2 m, Mat2 n) {
     Vec4SIMD vm = *(Vec4SIMD *)m;
     Vec4SIMD vn = *(Vec4SIMD *)n;
 
-    Vec4SIMD vm0_ = __builtin_shuffle(vm, (Vec4SIMDMask){ 0, 1, 0, 1 });
-    Vec4SIMD vm1_ = __builtin_shuffle(vm, (Vec4SIMDMask){ 2, 3, 2, 3 });
-    Vec4SIMD vn_0 = __builtin_shuffle(vn, (Vec4SIMDMask){ 0, 0, 2, 2 });
-    Vec4SIMD vn_1 = __builtin_shuffle(vn, (Vec4SIMDMask){ 1, 1, 3, 3 });
+    Vec4SIMD vm0_ = __builtin_shuffle(vm, (IVec4SIMD){ 0, 1, 0, 1 });
+    Vec4SIMD vm1_ = __builtin_shuffle(vm, (IVec4SIMD){ 2, 3, 2, 3 });
+    Vec4SIMD vn_0 = __builtin_shuffle(vn, (IVec4SIMD){ 0, 0, 2, 2 });
+    Vec4SIMD vn_1 = __builtin_shuffle(vn, (IVec4SIMD){ 1, 1, 3, 3 });
     *(Vec4SIMD *)dst = vm0_ * vn_0 + vm1_ * vn_1;
 #else
     Mat2 tn;
@@ -512,6 +526,15 @@ static inline void mat3_copy(Mat3 dst, Mat3 m) {
     dst[2][2] = m[2][2];
 }
 
+static inline void mat3_identity(Mat3 m) {
+    Mat3 ident = {
+        { 1.0f, 0.0f, 0.0f, },
+        { 0.0f, 1.0f, 0.0f, },
+        { 0.0f, 0.0f, 1.0f, },
+    };
+    mat3_copy(m, ident);
+}
+
 static inline void mat3_mul_vec3(Vec3 dst, Mat3 m, Vec3 a) {
     dst[0] = m[0][0] * a[0] + m[1][0] * a[1] + m[2][0] * a[2];
     dst[1] = m[0][1] * a[0] + m[1][1] * a[1] + m[2][1] * a[2];
@@ -644,10 +667,10 @@ static inline void mat4_mul_vec4(Vec4 dst, Mat4 m, Vec4 a) {
     Vec4SIMD vm3 = *(Vec4SIMD *)m[3];
     Vec4SIMD va = *(Vec4SIMD *)a;
 
-    Vec4SIMD va0 = __builtin_shuffle(va, (Vec4SIMDMask){ 0, 0, 0, 0 });
-    Vec4SIMD va1 = __builtin_shuffle(va, (Vec4SIMDMask){ 1, 1, 1, 1 });
-    Vec4SIMD va2 = __builtin_shuffle(va, (Vec4SIMDMask){ 2, 2, 2, 2 });
-    Vec4SIMD va3 = __builtin_shuffle(va, (Vec4SIMDMask){ 3, 3, 3, 3 });
+    Vec4SIMD va0 = __builtin_shuffle(va, (IVec4SIMD){ 0, 0, 0, 0 });
+    Vec4SIMD va1 = __builtin_shuffle(va, (IVec4SIMD){ 1, 1, 1, 1 });
+    Vec4SIMD va2 = __builtin_shuffle(va, (IVec4SIMD){ 2, 2, 2, 2 });
+    Vec4SIMD va3 = __builtin_shuffle(va, (IVec4SIMD){ 3, 3, 3, 3 });
     *(Vec4SIMD *)dst = vm0 * va0 + vm1 * va1 + vm2 * va2 + vm3 * va3;
 #else
     Vec4 ta;
@@ -675,25 +698,25 @@ static inline void mat4_mul_mat4(Mat4 dst, Mat4 m, Mat4 n) {
     Vec4SIMD vn2 = *(Vec4SIMD *)n[2];
     Vec4SIMD vn3 = *(Vec4SIMD *)n[3];
 
-    Vec4SIMD vn00 = __builtin_shuffle(vn0, (Vec4SIMDMask){ 0, 0, 0, 0 });
-    Vec4SIMD vn01 = __builtin_shuffle(vn0, (Vec4SIMDMask){ 1, 1, 1, 1 });
-    Vec4SIMD vn02 = __builtin_shuffle(vn0, (Vec4SIMDMask){ 2, 2, 2, 2 });
-    Vec4SIMD vn03 = __builtin_shuffle(vn0, (Vec4SIMDMask){ 3, 3, 3, 3 });
+    Vec4SIMD vn00 = __builtin_shuffle(vn0, (IVec4SIMD){ 0, 0, 0, 0 });
+    Vec4SIMD vn01 = __builtin_shuffle(vn0, (IVec4SIMD){ 1, 1, 1, 1 });
+    Vec4SIMD vn02 = __builtin_shuffle(vn0, (IVec4SIMD){ 2, 2, 2, 2 });
+    Vec4SIMD vn03 = __builtin_shuffle(vn0, (IVec4SIMD){ 3, 3, 3, 3 });
 
-    Vec4SIMD vn10 = __builtin_shuffle(vn1, (Vec4SIMDMask){ 0, 0, 0, 0 });
-    Vec4SIMD vn11 = __builtin_shuffle(vn1, (Vec4SIMDMask){ 1, 1, 1, 1 });
-    Vec4SIMD vn12 = __builtin_shuffle(vn1, (Vec4SIMDMask){ 2, 2, 2, 2 });
-    Vec4SIMD vn13 = __builtin_shuffle(vn1, (Vec4SIMDMask){ 3, 3, 3, 3 });
+    Vec4SIMD vn10 = __builtin_shuffle(vn1, (IVec4SIMD){ 0, 0, 0, 0 });
+    Vec4SIMD vn11 = __builtin_shuffle(vn1, (IVec4SIMD){ 1, 1, 1, 1 });
+    Vec4SIMD vn12 = __builtin_shuffle(vn1, (IVec4SIMD){ 2, 2, 2, 2 });
+    Vec4SIMD vn13 = __builtin_shuffle(vn1, (IVec4SIMD){ 3, 3, 3, 3 });
 
-    Vec4SIMD vn20 = __builtin_shuffle(vn2, (Vec4SIMDMask){ 0, 0, 0, 0 });
-    Vec4SIMD vn21 = __builtin_shuffle(vn2, (Vec4SIMDMask){ 1, 1, 1, 1 });
-    Vec4SIMD vn22 = __builtin_shuffle(vn2, (Vec4SIMDMask){ 2, 2, 2, 2 });
-    Vec4SIMD vn23 = __builtin_shuffle(vn2, (Vec4SIMDMask){ 3, 3, 3, 3 });
+    Vec4SIMD vn20 = __builtin_shuffle(vn2, (IVec4SIMD){ 0, 0, 0, 0 });
+    Vec4SIMD vn21 = __builtin_shuffle(vn2, (IVec4SIMD){ 1, 1, 1, 1 });
+    Vec4SIMD vn22 = __builtin_shuffle(vn2, (IVec4SIMD){ 2, 2, 2, 2 });
+    Vec4SIMD vn23 = __builtin_shuffle(vn2, (IVec4SIMD){ 3, 3, 3, 3 });
 
-    Vec4SIMD vn30 = __builtin_shuffle(vn3, (Vec4SIMDMask){ 0, 0, 0, 0 });
-    Vec4SIMD vn31 = __builtin_shuffle(vn3, (Vec4SIMDMask){ 1, 1, 1, 1 });
-    Vec4SIMD vn32 = __builtin_shuffle(vn3, (Vec4SIMDMask){ 2, 2, 2, 2 });
-    Vec4SIMD vn33 = __builtin_shuffle(vn3, (Vec4SIMDMask){ 3, 3, 3, 3 });
+    Vec4SIMD vn30 = __builtin_shuffle(vn3, (IVec4SIMD){ 0, 0, 0, 0 });
+    Vec4SIMD vn31 = __builtin_shuffle(vn3, (IVec4SIMD){ 1, 1, 1, 1 });
+    Vec4SIMD vn32 = __builtin_shuffle(vn3, (IVec4SIMD){ 2, 2, 2, 2 });
+    Vec4SIMD vn33 = __builtin_shuffle(vn3, (IVec4SIMD){ 3, 3, 3, 3 });
 
     *(Vec4SIMD *)dst[0] = vm0 * vn00 + vm1 * vn01 + vm2 * vn02 + vm3 * vn03;
     *(Vec4SIMD *)dst[1] = vm0 * vn10 + vm1 * vn11 + vm2 * vn12 + vm3 * vn13;
@@ -775,6 +798,490 @@ static inline void mat4_ortho(
         },
     };
     mat4_copy(dst, m);
+}
+
+static inline void ivec2_copy(IVec2 dst, IVec2 a) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec2SIMD *)dst = *(IVec2SIMD *)a;
+#else
+    dst[0] = a[0];
+    dst[1] = a[1];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void ivec2_scale(IVec2 dst, int32_t s, IVec2 a) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec2SIMD *)dst = *(IVec2SIMD *)a * s;
+#else
+    dst[0] = a[0] * s;
+    dst[1] = a[1] * s;
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void ivec2_add(IVec2 dst, IVec2 a, IVec2 b) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec2SIMD *)dst = *(IVec2SIMD *)a + *(IVec2SIMD *)b;
+#else
+    dst[0] = a[0] + b[0];
+    dst[1] = a[1] + b[1];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void ivec2_sub(IVec2 dst, IVec2 a, IVec2 b) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec2SIMD *)dst = *(IVec2SIMD *)a - *(IVec2SIMD *)b;
+#else
+    dst[0] = a[0] - b[0];
+    dst[1] = a[1] - b[1];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void ivec2_mul(IVec2 dst, IVec2 a, IVec2 b) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec2SIMD *)dst = (*(IVec2SIMD *)a) * (*(IVec2SIMD *)b);
+#else
+    dst[0] = a[0] * b[0];
+    dst[1] = a[1] * b[1];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline int32_t ivec2_dot(IVec2 a, IVec2 b) {
+    IVec2 ab;
+    ivec2_mul(ab, a, b);
+    return ab[0] + ab[1];
+}
+
+static inline void ivec2_mod(IVec2 dst, IVec2 a, IVec2 b) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec2SIMD *)dst = (*(IVec2SIMD *)a) % (*(IVec2SIMD *)b);
+#else
+    dst[0] = a[0] % b[0];
+    dst[1] = a[1] % b[1];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void ivec2_abs(IVec2 dst, IVec2 a) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec2SIMD *)dst = ((*(IVec2SIMD *)a) >= 0) ?
+        (*(IVec2SIMD *)a) :
+        -(*(IVec2SIMD *)a);
+#else
+    dst[0] = a[0] >= 0 ? a[0] : -a[0];
+    dst[1] = a[1] >= 0 ? a[1] : -a[1];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline bool ivec2_add_mod(IVec2 dst, IVec2 a, IVec2 b, IVec2 c) {
+    IVec2 tmp;
+    ivec2_add(tmp, a, b);
+    ivec2_mod(dst, tmp, c);
+    ivec2_abs(dst, dst);
+    return (tmp[0] == dst[0]) and (tmp[1] == dst[1]);
+}
+
+static inline void imat2_copy(IMat2 dst, IMat2 m) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec4SIMD *)dst = *(IVec4SIMD *)m;
+#else
+    dst[0][0] = m[0][0];
+    dst[0][1] = m[0][1];
+    dst[1][0] = m[1][0];
+    dst[1][1] = m[1][1];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void imat2_identity(IMat2 m) {
+    IMat2 ident = {
+        { 1, 0 },
+        { 0, 1 },
+    };
+    imat2_copy(m, ident);
+}
+
+static inline void imat2_scale(IMat2 dst, int32_t s, IMat2 m) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec4SIMD *)dst = *(IVec4SIMD *)m * s;
+#else
+    dst[0][0] = m[0][0] * s;
+    dst[0][1] = m[0][1] * s;
+    dst[1][0] = m[1][0] * s;
+    dst[1][1] = m[1][1] * s;
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void imat2_add(IMat2 dst, IMat2 m, IMat2 n) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec4SIMD *)dst = *(IVec4SIMD *)m + *(IVec4SIMD *)n;
+#else
+    dst[0][0] = m[0][0] + n[0][0];
+    dst[0][1] = m[0][1] + n[0][1];
+    dst[1][0] = m[1][0] + n[1][0];
+    dst[1][1] = m[1][1] + n[1][1];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void imat2_mul_ivec2(IVec2 dst, IMat2 m, IVec2 a) {
+#ifdef AVEN_MATH_SIMD
+    IVec4SIMD vm = *(IVec4SIMD *)m;
+    IVec4SIMD va = { a[0], a[0], a[1], a[1] };
+    IVec4SIMD vma = vm * va;
+    IVec2SIMD vma_low = { vma[0], vma[1] };
+    IVec2SIMD vma_high = { vma[2], vma[3] };
+    *(IVec2SIMD *)dst = vma_low + vma_high;
+#else
+    IVec2 ta;
+    ivec2_copy(ta, a);
+    dst[0] = m[0][0] * ta[0] + m[1][0] * ta[1];
+    dst[1] = m[0][1] * ta[0] + m[1][1] * ta[1];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void imat2_mul_imat2(IMat2 dst, IMat2 m, IMat2 n) {
+#ifdef AVEN_MATH_SIMD
+    IVec4SIMD vm = *(IVec4SIMD *)m;
+    IVec4SIMD vn = *(IVec4SIMD *)n;
+
+    IVec4SIMD vm0_ = __builtin_shuffle(vm, (IIVec4SIMD){ 0, 1, 0, 1 });
+    IVec4SIMD vm1_ = __builtin_shuffle(vm, (IIVec4SIMD){ 2, 3, 2, 3 });
+    IVec4SIMD vn_0 = __builtin_shuffle(vn, (IIVec4SIMD){ 0, 0, 2, 2 });
+    IVec4SIMD vn_1 = __builtin_shuffle(vn, (IIVec4SIMD){ 1, 1, 3, 3 });
+    *(IVec4SIMD *)dst = vm0_ * vn_0 + vm1_ * vn_1;
+#else
+    IMat2 tn;
+    imat2_copy(tn, n);
+    IMat2 tm;
+    imat2_copy(tm, m);
+    dst[0][0] = tm[0][0] * tn[0][0] + tm[1][0] * tn[0][1];
+    dst[0][1] = tm[0][1] * tn[0][0] + tm[1][1] * tn[0][1];
+    dst[1][0] = tm[0][0] * tn[1][0] + tm[1][0] * tn[1][1];
+    dst[1][1] = tm[0][1] * tn[1][0] + tm[1][1] * tn[1][1];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void iaff2_copy(IAff2 dst, IAff2 t) {
+    imat2_copy(dst, t);
+    ivec2_copy(dst[2], t[2]);
+}
+
+static inline void iaff2_identity(IAff2 t) {
+    imat2_identity(t);
+    IVec2 zero = { 0, 0 };
+    ivec2_copy(t[2], zero);
+}
+
+static inline void iaff2_scale(IAff2 dst, int32_t s, IAff2 t) {
+    imat2_scale(dst, s, t);
+    ivec2_scale(dst[2], s, t[2]);
+}
+
+static inline void iaff2_add_ivec2(IAff2 dst, IAff2 t, IVec2 v) {
+    imat2_copy(dst, t);
+    ivec2_add(dst[2], t[2], v);
+}
+
+static inline void iaff2_sub_ivec2(IAff2 dst, IAff2 t, IVec2 v) {
+    imat2_copy(dst, t);
+    ivec2_sub(dst[2], t[2], v);
+}
+
+static inline void imat2_mul_iaff2(IAff2 dst, IMat2 m, IAff2 t) {
+    imat2_mul_imat2(dst, m, t);
+    imat2_mul_ivec2(dst[2], m, t[2]);
+}
+
+static inline void iaff2_compose(IAff2 dst, IAff2 t, IAff2 w) {
+    imat2_mul_iaff2(dst, t, w);
+    iaff2_add_ivec2(dst, dst, t[2]);
+}
+
+static inline void iaff2_transform(IVec2 dst, IAff2 t, IVec2 v) {
+    imat2_mul_ivec2(dst, t, v);
+    ivec2_add(dst, t[2], dst);
+}
+
+static inline void ivec3_copy(IVec3 dst, IVec3 a) {
+    dst[0] = a[0];
+    dst[1] = a[1];
+    dst[2] = a[2];
+}
+
+static inline int32_t ivec3_dot(IVec3 a, IVec3 b) {
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+static inline void ivec3_scale(IVec3 dst, int32_t s, IVec3 a) {
+    dst[0] = a[0] * s;
+    dst[1] = a[1] * s;
+    dst[2] = a[2] * s;
+}
+
+static inline void ivec3_add(IVec3 dst, IVec3 a, IVec3 b) {
+    dst[0] = a[0] + b[0];
+    dst[1] = a[1] + b[1];
+    dst[2] = a[2] + b[2];
+}
+
+static inline void ivec3_sub(IVec3 dst, IVec3 a, IVec3 b) {
+    dst[0] = a[0] - b[0];
+    dst[1] = a[1] - b[1];
+    dst[2] = a[2] - b[2];
+}
+
+static inline void ivec3_mul(IVec3 dst, IVec3 a, IVec3 b) {
+    dst[0] = a[0] * b[0];
+    dst[1] = a[1] * b[1];
+    dst[2] = a[2] * b[2];
+}
+
+static inline void imat3_copy(IMat3 dst, IMat3 m) {
+    dst[0][0] = m[0][0];
+    dst[0][1] = m[0][1];
+    dst[0][2] = m[0][2];
+    dst[1][0] = m[1][0];
+    dst[1][1] = m[1][1];
+    dst[1][2] = m[1][2];
+    dst[2][0] = m[2][0];
+    dst[2][1] = m[2][1];
+    dst[2][2] = m[2][2];
+}
+
+static inline void imat3_identity(IMat3 m) {
+    IMat3 ident = {
+        { 1, 0, 0, },
+        { 0, 1, 0, },
+        { 0, 0, 1, },
+    };
+    imat3_copy(m, ident);
+}
+
+static inline void imat3_mul_ivec3(IVec3 dst, IMat3 m, IVec3 a) {
+    dst[0] = m[0][0] * a[0] + m[1][0] * a[1] + m[2][0] * a[2];
+    dst[1] = m[0][1] * a[0] + m[1][1] * a[1] + m[2][1] * a[2];
+    dst[2] = m[0][2] * a[0] + m[1][2] * a[1] + m[2][2] * a[2];
+}
+
+static inline void imat3_mul_mat3(IMat3 dst, IMat3 m, IMat3 n) {
+    IMat3 tn;
+    imat3_copy(tn, n);
+    IMat3 tm;
+    imat3_copy(tm, m);
+    dst[0][0] = tm[0][0] * tn[0][0] + tm[1][0] * tn[0][1] + tm[2][0] * tn[0][2];
+    dst[0][1] = tm[0][1] * tn[0][0] + tm[1][1] * tn[0][1] + tm[2][1] * tn[0][2];
+    dst[0][2] = tm[0][2] * tn[0][0] + tm[1][2] * tn[0][1] + tm[2][2] * tn[0][2];
+
+    dst[1][0] = tm[0][0] * tn[1][0] + tm[1][0] * tn[1][1] + tm[2][0] * tn[1][2];
+    dst[1][1] = tm[0][1] * tn[1][0] + tm[1][1] * tn[1][1] + tm[2][1] * tn[1][2];
+    dst[1][2] = tm[0][2] * tn[1][0] + tm[1][2] * tn[1][1] + tm[2][2] * tn[1][2];
+
+    dst[2][0] = tm[0][0] * tn[2][0] + tm[1][0] * tn[2][1] + tm[2][0] * tn[2][2];
+    dst[2][1] = tm[0][1] * tn[2][0] + tm[1][1] * tn[2][1] + tm[2][1] * tn[2][2];
+    dst[2][2] = tm[0][2] * tn[2][0] + tm[1][2] * tn[2][1] + tm[2][2] * tn[2][2];
+}
+
+static inline void ivec4_copy(IVec4 dst, IVec4 a) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec4SIMD *)dst = *(IVec4SIMD *)a;
+#else
+    dst[0] = a[0];
+    dst[1] = a[1];
+    dst[2] = a[2];
+    dst[3] = a[3];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline int32_t ivec4_dot(IVec4 a, IVec4 b) {
+#ifdef AVEN_MATH_SIMD
+    IVec4SIMD ab = *(IVec4SIMD *)a * *(IVec4SIMD *)b;
+    return ab[0] + ab[1] + ab[2] + ab[3];
+#else
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void ivec4_scale(IVec4 dst, int32_t s, IVec4 a) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec4SIMD *)dst = *(IVec4SIMD *)a * s;
+#else
+    dst[0] = a[0] * s;
+    dst[1] = a[1] * s;
+    dst[2] = a[2] * s;
+    dst[3] = a[3] * s;
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void ivec4_add(IVec4 dst, IVec4 a, IVec4 b) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec4SIMD *)dst = *(IVec4SIMD *)a + *(IVec4SIMD *)b;
+#else
+    dst[0] = a[0] + b[0];
+    dst[1] = a[1] + b[1];
+    dst[2] = a[2] + b[2];
+    dst[3] = a[3] + b[3];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void ivec4_sub(IVec4 dst, IVec4 a, IVec4 b) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec4SIMD *)dst = *(IVec4SIMD *)a - *(IVec4SIMD *)b;
+#else
+    dst[0] = a[0] - b[0];
+    dst[1] = a[1] - b[1];
+    dst[2] = a[2] - b[2];
+    dst[3] = a[3] - b[3];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void ivec4_mul(IVec4 dst, IVec4 a, IVec4 b) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec4SIMD *)dst = (*(IVec4SIMD *)a) * (*(IVec4SIMD *)b);
+#else
+    dst[0] = a[0] * b[0];
+    dst[1] = a[1] * b[1];
+    dst[2] = a[2] * b[2];
+    dst[3] = a[3] * b[3];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void imat4_copy(IMat4 dst, IMat4 m) {
+#ifdef AVEN_MATH_SIMD
+    *(IVec4SIMD *)dst[0] = *(IVec4SIMD *)m[0];
+    *(IVec4SIMD *)dst[1] = *(IVec4SIMD *)m[1];
+    *(IVec4SIMD *)dst[2] = *(IVec4SIMD *)m[2];
+    *(IVec4SIMD *)dst[3] = *(IVec4SIMD *)m[3];
+#else
+    dst[0][0] = m[0][0];
+    dst[0][1] = m[0][1];
+    dst[0][2] = m[0][2];
+    dst[0][3] = m[0][3];
+    dst[1][0] = m[1][0];
+    dst[1][1] = m[1][1];
+    dst[1][2] = m[1][2];
+    dst[1][3] = m[1][3];
+    dst[2][0] = m[2][0];
+    dst[2][1] = m[2][1];
+    dst[2][2] = m[2][2];
+    dst[2][3] = m[2][3];
+    dst[3][0] = m[3][0];
+    dst[3][1] = m[3][1];
+    dst[3][2] = m[3][2];
+    dst[3][3] = m[3][3];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void imat4_identity(IMat4 m) {
+    IMat4 ident = {
+        { 1, 0, 0, 0, },
+        { 0, 1, 0, 0, },
+        { 0, 0, 1, 0, },
+        { 0, 0, 0, 1, },
+    };
+    imat4_copy(m, ident);
+}
+
+static inline void imat4_mul_ivec4(IVec4 dst, IMat4 m, IVec4 a) {
+#ifdef AVEN_MATH_SIMD
+    IVec4SIMD vm0 = *(IVec4SIMD *)m[0];
+    IVec4SIMD vm1 = *(IVec4SIMD *)m[1];
+    IVec4SIMD vm2 = *(IVec4SIMD *)m[2];
+    IVec4SIMD vm3 = *(IVec4SIMD *)m[3];
+    IVec4SIMD va = *(IVec4SIMD *)a;
+
+    IVec4SIMD va0 = __builtin_shuffle(va, (IIVec4SIMD){ 0, 0, 0, 0 });
+    IVec4SIMD va1 = __builtin_shuffle(va, (IIVec4SIMD){ 1, 1, 1, 1 });
+    IVec4SIMD va2 = __builtin_shuffle(va, (IIVec4SIMD){ 2, 2, 2, 2 });
+    IVec4SIMD va3 = __builtin_shuffle(va, (IIVec4SIMD){ 3, 3, 3, 3 });
+    *(IVec4SIMD *)dst = vm0 * va0 + vm1 * va1 + vm2 * va2 + vm3 * va3;
+#else
+    IVec4 ta;
+    ivec4_copy(ta, a);
+    dst[0] = m[0][0] * ta[0] + m[1][0] * ta[1] + m[2][0] * ta[2] +
+        m[3][0] * ta[3];
+    dst[1] = m[0][1] * ta[0] + m[1][1] * ta[1] + m[2][1] * ta[2] +
+        m[3][1] * ta[3];
+    dst[2] = m[0][2] * ta[0] + m[1][2] * ta[1] + m[2][2] * ta[2] +
+        m[3][2] * ta[3];
+    dst[3] = m[0][3] * ta[0] + m[1][3] * ta[1] + m[2][3] * ta[2] +
+        m[3][3] * ta[3];
+#endif // AVEN_MATH_SIMD
+}
+
+static inline void imat4_mul_mat4(IMat4 dst, IMat4 m, IMat4 n) {
+#ifdef AVEN_MATH_SIMD
+    IVec4SIMD vm0 = *(IVec4SIMD *)m[0];
+    IVec4SIMD vm1 = *(IVec4SIMD *)m[1];
+    IVec4SIMD vm2 = *(IVec4SIMD *)m[2];
+    IVec4SIMD vm3 = *(IVec4SIMD *)m[3];
+
+    IVec4SIMD vn0 = *(IVec4SIMD *)n[0];
+    IVec4SIMD vn1 = *(IVec4SIMD *)n[1];
+    IVec4SIMD vn2 = *(IVec4SIMD *)n[2];
+    IVec4SIMD vn3 = *(IVec4SIMD *)n[3];
+
+    IVec4SIMD vn00 = __builtin_shuffle(vn0, (IIVec4SIMD){ 0, 0, 0, 0 });
+    IVec4SIMD vn01 = __builtin_shuffle(vn0, (IIVec4SIMD){ 1, 1, 1, 1 });
+    IVec4SIMD vn02 = __builtin_shuffle(vn0, (IIVec4SIMD){ 2, 2, 2, 2 });
+    IVec4SIMD vn03 = __builtin_shuffle(vn0, (IIVec4SIMD){ 3, 3, 3, 3 });
+
+    IVec4SIMD vn10 = __builtin_shuffle(vn1, (IIVec4SIMD){ 0, 0, 0, 0 });
+    IVec4SIMD vn11 = __builtin_shuffle(vn1, (IIVec4SIMD){ 1, 1, 1, 1 });
+    IVec4SIMD vn12 = __builtin_shuffle(vn1, (IIVec4SIMD){ 2, 2, 2, 2 });
+    IVec4SIMD vn13 = __builtin_shuffle(vn1, (IIVec4SIMD){ 3, 3, 3, 3 });
+
+    IVec4SIMD vn20 = __builtin_shuffle(vn2, (IIVec4SIMD){ 0, 0, 0, 0 });
+    IVec4SIMD vn21 = __builtin_shuffle(vn2, (IIVec4SIMD){ 1, 1, 1, 1 });
+    IVec4SIMD vn22 = __builtin_shuffle(vn2, (IIVec4SIMD){ 2, 2, 2, 2 });
+    IVec4SIMD vn23 = __builtin_shuffle(vn2, (IIVec4SIMD){ 3, 3, 3, 3 });
+
+    IVec4SIMD vn30 = __builtin_shuffle(vn3, (IIVec4SIMD){ 0, 0, 0, 0 });
+    IVec4SIMD vn31 = __builtin_shuffle(vn3, (IIVec4SIMD){ 1, 1, 1, 1 });
+    IVec4SIMD vn32 = __builtin_shuffle(vn3, (IIVec4SIMD){ 2, 2, 2, 2 });
+    IVec4SIMD vn33 = __builtin_shuffle(vn3, (IIVec4SIMD){ 3, 3, 3, 3 });
+
+    *(IVec4SIMD *)dst[0] = vm0 * vn00 + vm1 * vn01 + vm2 * vn02 + vm3 * vn03;
+    *(IVec4SIMD *)dst[1] = vm0 * vn10 + vm1 * vn11 + vm2 * vn12 + vm3 * vn13;
+    *(IVec4SIMD *)dst[2] = vm0 * vn20 + vm1 * vn21 + vm2 * vn22 + vm3 * vn23;
+    *(IVec4SIMD *)dst[3] = vm0 * vn30 + vm1 * vn31 + vm2 * vn32 + vm3 * vn33;
+#else
+    IMat4 tn;
+    imat4_copy(tn, n);
+    IMat4 tm;
+    imat4_copy(tm, m);
+    dst[0][0] = tm[0][0] * tn[0][0] + tm[1][0] * tn[0][1] + tm[2][0] * tn[0][2]
+        + tm[3][0] * tn[0][3];
+    dst[0][1] = tm[0][1] * tn[0][0] + tm[1][1] * tn[0][1] + tm[2][1] * tn[0][2]
+        + tm[3][1] * tn[0][3];
+    dst[0][2] = tm[0][2] * tn[0][0] + tm[1][2] * tn[0][1] + tm[2][2] * tn[0][2]
+        + tm[3][2] * tn[0][3];
+    dst[0][3] = tm[0][3] * tn[0][0] + tm[1][3] * tn[0][1] + tm[2][3] * tn[0][2]
+        + tm[3][3] * tn[0][3];
+
+    dst[1][0] = tm[0][0] * tn[1][0] + tm[1][0] * tn[1][1] + tm[2][0] * tn[1][2]
+        + tm[3][0] * tn[1][3];
+    dst[1][1] = tm[0][1] * tn[1][0] + tm[1][1] * tn[1][1] + tm[2][1] * tn[1][2]
+        + tm[3][1] * tn[1][3];
+    dst[1][2] = tm[0][2] * tn[1][0] + tm[1][2] * tn[1][1] + tm[2][2] * tn[1][2]
+        + tm[3][2] * tn[1][3];
+    dst[1][3] = tm[0][3] * tn[1][0] + tm[1][3] * tn[1][1] + tm[2][3] * tn[1][2]
+        + tm[3][3] * tn[1][3];
+
+    dst[2][0] = tm[0][0] * tn[2][0] + tm[1][0] * tn[2][1] + tm[2][0] * tn[2][2]
+        + tm[3][0] * tn[2][3];
+    dst[2][1] = tm[0][1] * tn[2][0] + tm[1][1] * tn[2][1] + tm[2][1] * tn[2][2]
+        + tm[3][1] * tn[2][3];
+    dst[2][2] = tm[0][2] * tn[2][0] + tm[1][2] * tn[2][1] + tm[2][2] * tn[2][2]
+        + tm[3][2] * tn[2][3];
+    dst[2][3] = tm[0][3] * tn[2][0] + tm[1][3] * tn[2][1] + tm[2][3] * tn[2][2]
+        + tm[3][3] * tn[2][3];
+
+    dst[3][0] = tm[0][0] * tn[3][0] + tm[1][0] * tn[3][1] + tm[2][0] * tn[3][2]
+        + tm[3][0] * tn[3][3];
+    dst[3][1] = tm[0][1] * tn[3][0] + tm[1][1] * tn[3][1] + tm[2][1] * tn[3][2]
+        + tm[3][1] * tn[3][3];
+    dst[3][2] = tm[0][2] * tn[3][0] + tm[1][2] * tn[3][1] + tm[2][2] * tn[3][2]
+        + tm[3][2] * tn[3][3];
+    dst[3][3] = tm[0][3] * tn[3][0] + tm[1][3] * tn[3][1] + tm[2][3] * tn[3][2]
+        + tm[3][3] * tn[3][3];
+#endif // AVEN_MATH_SIMD
 }
 
 #endif // AVEN_MATH_H
