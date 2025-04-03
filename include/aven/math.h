@@ -933,10 +933,10 @@ static inline void imat2_mul_imat2(IMat2 dst, IMat2 m, IMat2 n) {
     IVec4SIMD vm = *(IVec4SIMD *)m;
     IVec4SIMD vn = *(IVec4SIMD *)n;
 
-    IVec4SIMD vm0_ = __builtin_shuffle(vm, (IIVec4SIMD){ 0, 1, 0, 1 });
-    IVec4SIMD vm1_ = __builtin_shuffle(vm, (IIVec4SIMD){ 2, 3, 2, 3 });
-    IVec4SIMD vn_0 = __builtin_shuffle(vn, (IIVec4SIMD){ 0, 0, 2, 2 });
-    IVec4SIMD vn_1 = __builtin_shuffle(vn, (IIVec4SIMD){ 1, 1, 3, 3 });
+    IVec4SIMD vm0_ = __builtin_shuffle(vm, (IVec4SIMD){ 0, 1, 0, 1 });
+    IVec4SIMD vm1_ = __builtin_shuffle(vm, (IVec4SIMD){ 2, 3, 2, 3 });
+    IVec4SIMD vn_0 = __builtin_shuffle(vn, (IVec4SIMD){ 0, 0, 2, 2 });
+    IVec4SIMD vn_1 = __builtin_shuffle(vn, (IVec4SIMD){ 1, 1, 3, 3 });
     *(IVec4SIMD *)dst = vm0_ * vn_0 + vm1_ * vn_1;
 #else
     IMat2 tn;
@@ -1178,10 +1178,10 @@ static inline void imat4_mul_ivec4(IVec4 dst, IMat4 m, IVec4 a) {
     IVec4SIMD vm3 = *(IVec4SIMD *)m[3];
     IVec4SIMD va = *(IVec4SIMD *)a;
 
-    IVec4SIMD va0 = __builtin_shuffle(va, (IIVec4SIMD){ 0, 0, 0, 0 });
-    IVec4SIMD va1 = __builtin_shuffle(va, (IIVec4SIMD){ 1, 1, 1, 1 });
-    IVec4SIMD va2 = __builtin_shuffle(va, (IIVec4SIMD){ 2, 2, 2, 2 });
-    IVec4SIMD va3 = __builtin_shuffle(va, (IIVec4SIMD){ 3, 3, 3, 3 });
+    IVec4SIMD va0 = __builtin_shuffle(va, (IVec4SIMD){ 0, 0, 0, 0 });
+    IVec4SIMD va1 = __builtin_shuffle(va, (IVec4SIMD){ 1, 1, 1, 1 });
+    IVec4SIMD va2 = __builtin_shuffle(va, (IVec4SIMD){ 2, 2, 2, 2 });
+    IVec4SIMD va3 = __builtin_shuffle(va, (IVec4SIMD){ 3, 3, 3, 3 });
     *(IVec4SIMD *)dst = vm0 * va0 + vm1 * va1 + vm2 * va2 + vm3 * va3;
 #else
     IVec4 ta;
@@ -1209,25 +1209,25 @@ static inline void imat4_mul_mat4(IMat4 dst, IMat4 m, IMat4 n) {
     IVec4SIMD vn2 = *(IVec4SIMD *)n[2];
     IVec4SIMD vn3 = *(IVec4SIMD *)n[3];
 
-    IVec4SIMD vn00 = __builtin_shuffle(vn0, (IIVec4SIMD){ 0, 0, 0, 0 });
-    IVec4SIMD vn01 = __builtin_shuffle(vn0, (IIVec4SIMD){ 1, 1, 1, 1 });
-    IVec4SIMD vn02 = __builtin_shuffle(vn0, (IIVec4SIMD){ 2, 2, 2, 2 });
-    IVec4SIMD vn03 = __builtin_shuffle(vn0, (IIVec4SIMD){ 3, 3, 3, 3 });
+    IVec4SIMD vn00 = __builtin_shuffle(vn0, (IVec4SIMD){ 0, 0, 0, 0 });
+    IVec4SIMD vn01 = __builtin_shuffle(vn0, (IVec4SIMD){ 1, 1, 1, 1 });
+    IVec4SIMD vn02 = __builtin_shuffle(vn0, (IVec4SIMD){ 2, 2, 2, 2 });
+    IVec4SIMD vn03 = __builtin_shuffle(vn0, (IVec4SIMD){ 3, 3, 3, 3 });
 
-    IVec4SIMD vn10 = __builtin_shuffle(vn1, (IIVec4SIMD){ 0, 0, 0, 0 });
-    IVec4SIMD vn11 = __builtin_shuffle(vn1, (IIVec4SIMD){ 1, 1, 1, 1 });
-    IVec4SIMD vn12 = __builtin_shuffle(vn1, (IIVec4SIMD){ 2, 2, 2, 2 });
-    IVec4SIMD vn13 = __builtin_shuffle(vn1, (IIVec4SIMD){ 3, 3, 3, 3 });
+    IVec4SIMD vn10 = __builtin_shuffle(vn1, (IVec4SIMD){ 0, 0, 0, 0 });
+    IVec4SIMD vn11 = __builtin_shuffle(vn1, (IVec4SIMD){ 1, 1, 1, 1 });
+    IVec4SIMD vn12 = __builtin_shuffle(vn1, (IVec4SIMD){ 2, 2, 2, 2 });
+    IVec4SIMD vn13 = __builtin_shuffle(vn1, (IVec4SIMD){ 3, 3, 3, 3 });
 
-    IVec4SIMD vn20 = __builtin_shuffle(vn2, (IIVec4SIMD){ 0, 0, 0, 0 });
-    IVec4SIMD vn21 = __builtin_shuffle(vn2, (IIVec4SIMD){ 1, 1, 1, 1 });
-    IVec4SIMD vn22 = __builtin_shuffle(vn2, (IIVec4SIMD){ 2, 2, 2, 2 });
-    IVec4SIMD vn23 = __builtin_shuffle(vn2, (IIVec4SIMD){ 3, 3, 3, 3 });
+    IVec4SIMD vn20 = __builtin_shuffle(vn2, (IVec4SIMD){ 0, 0, 0, 0 });
+    IVec4SIMD vn21 = __builtin_shuffle(vn2, (IVec4SIMD){ 1, 1, 1, 1 });
+    IVec4SIMD vn22 = __builtin_shuffle(vn2, (IVec4SIMD){ 2, 2, 2, 2 });
+    IVec4SIMD vn23 = __builtin_shuffle(vn2, (IVec4SIMD){ 3, 3, 3, 3 });
 
-    IVec4SIMD vn30 = __builtin_shuffle(vn3, (IIVec4SIMD){ 0, 0, 0, 0 });
-    IVec4SIMD vn31 = __builtin_shuffle(vn3, (IIVec4SIMD){ 1, 1, 1, 1 });
-    IVec4SIMD vn32 = __builtin_shuffle(vn3, (IIVec4SIMD){ 2, 2, 2, 2 });
-    IVec4SIMD vn33 = __builtin_shuffle(vn3, (IIVec4SIMD){ 3, 3, 3, 3 });
+    IVec4SIMD vn30 = __builtin_shuffle(vn3, (IVec4SIMD){ 0, 0, 0, 0 });
+    IVec4SIMD vn31 = __builtin_shuffle(vn3, (IVec4SIMD){ 1, 1, 1, 1 });
+    IVec4SIMD vn32 = __builtin_shuffle(vn3, (IVec4SIMD){ 2, 2, 2, 2 });
+    IVec4SIMD vn33 = __builtin_shuffle(vn3, (IVec4SIMD){ 3, 3, 3, 3 });
 
     *(IVec4SIMD *)dst[0] = vm0 * vn00 + vm1 * vn01 + vm2 * vn02 + vm3 * vn03;
     *(IVec4SIMD *)dst[1] = vm0 * vn10 + vm1 * vn11 + vm2 * vn12 + vm3 * vn13;
