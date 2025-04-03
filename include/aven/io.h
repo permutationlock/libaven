@@ -58,42 +58,47 @@ AVEN_FN AvenIoWriteResult aven_io_write(AvenIoFd fd, ByteSlice src);
 
 AVEN_FN void aven_io_close(AvenIoFd fd);
 
-typedef AvenIoResult (AvenIoFn)(void *ctx, ByteSlice bytes);
+typedef union {
+    void *ptr;
+    AvenIoFd fd;
+} AvenIoCtx;
+
+typedef AvenIoResult (AvenIoFn)(AvenIoCtx ctx, ByteSlice bytes);
 
 typedef struct {
     List(uint8_t) buffer;
     size_t index;
     AvenIoFn *read;
-    void *ctx;
+    AvenIoCtx ctx;
 } AvenIoReader;
 
 typedef struct {
     ByteSlice buffer;
     size_t index;
     AvenIoFn *write;
-    void *ctx;
+    AvenIoCtx ctx;
 } AvenIoWriter;
 
-static AvenIoResult aven_io_null_stub(void *ctx, ByteSlice dest) {
+static AvenIoResult aven_io_null_stub(AvenIoCtx ctx, ByteSlice dest) {
     (void)ctx;
     (void)dest;
     return (AvenIoResult){ 0 };
 }
 
-static AvenIoResult aven_io_fd_read_stub(void *ctx, ByteSlice dest) {
-    AvenIoReadResult res = aven_io_read((AvenIoFd)((uintptr_t)ctx), dest);
+static AvenIoResult aven_io_fd_read_stub(AvenIoCtx ctx, ByteSlice dest) {
+    AvenIoReadResult res = aven_io_read(ctx.fd, dest);
     return (AvenIoResult){ .payload = res.payload, .error = (int)res.error };
 }
 
-static AvenIoResult aven_io_fd_write_stub(void *ctx, ByteSlice dest) {
-    AvenIoWriteResult res = aven_io_write((AvenIoFd)((uintptr_t)ctx), dest);
+static AvenIoResult aven_io_fd_write_stub(AvenIoCtx ctx, ByteSlice dest) {
+    AvenIoWriteResult res = aven_io_write(ctx.fd, dest);
     return (AvenIoResult){ .payload = res.payload, .error = (int)res.error };
 }
 
 static inline AvenIoReader aven_io_reader_init_fd(AvenIoFd fd) {
     return (AvenIoReader){
         .read = aven_io_fd_read_stub,
-        .ctx = (void *)((uintptr_t)fd),
+        .ctx = { .fd = fd },
     };
 }
 
@@ -104,7 +109,7 @@ static inline AvenIoReader aven_io_reader_init_fd_buffered(
 ) {
     return (AvenIoReader){
         .buffer = aven_arena_create_list(unsigned char, arena, size),
-        .ctx = (void *)((uintptr_t)fd),
+        .ctx = { .fd = fd },
         .read = aven_io_fd_read_stub,
     };
 }
@@ -113,7 +118,6 @@ static inline AvenIoReader aven_io_reader_init_bytes(ByteSlice bytes) {
     return (AvenIoReader){
         .buffer = { .ptr = bytes.ptr, .len = bytes.len, .cap = bytes.len },
         .read = aven_io_null_stub,
-        .ctx = NULL,
     };
 }
 
@@ -122,7 +126,7 @@ static inline AvenIoReader aven_io_reader_init_bytes(ByteSlice bytes) {
 #endif
 static AvenIoReader aven_io_stdin = {
     .read = aven_io_fd_read_stub,
-    .ctx = (void *)0,
+    .ctx = { .fd = 0 },
 };
 
 static inline AvenIoReader aven_io_reader_init_stdin_buffered(
@@ -190,7 +194,7 @@ static inline AvenIoResult aven_io_reader_pop(
 static inline AvenIoWriter aven_io_writer_init_fd(AvenIoFd fd) {
     return (AvenIoWriter){
         .write = aven_io_fd_write_stub,
-        .ctx = (void *)((uintptr_t)fd),
+        .ctx = { .fd = fd },
     };
 }
 
@@ -202,7 +206,7 @@ static inline AvenIoWriter aven_io_writer_init_fd_buffered(
     return (AvenIoWriter){
         .buffer = aven_arena_create_slice(unsigned char, arena, size),
         .index = 0,
-        .ctx = (void *)((uintptr_t)fd),
+        .ctx = { .fd = fd },
         .write = aven_io_fd_write_stub,
     };
 }
@@ -211,7 +215,6 @@ static inline AvenIoWriter aven_io_writer_init_bytes(ByteSlice bytes) {
     return (AvenIoWriter){
         .buffer = { .ptr = bytes.ptr, .len = bytes.len },
         .write = aven_io_null_stub,
-        .ctx = NULL,
     };
 }
 
@@ -220,14 +223,14 @@ static inline AvenIoWriter aven_io_writer_init_bytes(ByteSlice bytes) {
 #endif
 static AvenIoWriter aven_io_stdout = {
     .write = aven_io_fd_write_stub,
-    .ctx = (void *)1,
+    .ctx = { .fd = 1 },
 };
 #if __has_attribute(unused)
     __attribute__((unused))
 #endif
 static AvenIoWriter aven_io_stderr = {
     .write = aven_io_fd_write_stub,
-    .ctx = (void *)2,
+    .ctx = { .fd = 2 },
 };
 
 static inline AvenIoWriter aven_io_writer_init_stdout_buffered(
