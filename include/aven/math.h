@@ -862,9 +862,9 @@ static inline void ivec2_mod(IVec2 dst, IVec2 a, IVec2 b) {
 
 static inline void ivec2_abs(IVec2 dst, IVec2 a) {
 #ifdef AVEN_MATH_SIMD
-    *(IVec2SIMD *)dst = ((*(IVec2SIMD *)a) >= 0) ?
-        (*(IVec2SIMD *)a) :
-        -(*(IVec2SIMD *)a);
+    IVec2SIMD gez = ((*(IVec2SIMD *)a) >= 0);
+    *(IVec2SIMD *)dst = (gez & (*(IVec2SIMD *)a)) |
+        (~gez & (-(*(IVec2SIMD *)a)));
 #else
     dst[0] = a[0] >= 0 ? a[0] : -a[0];
     dst[1] = a[1] >= 0 ? a[1] : -a[1];
