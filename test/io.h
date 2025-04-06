@@ -27,7 +27,7 @@ AvenTestResult test_aven_io_read(
     );
     if (fd_res.error != 0) {
         return (AvenTestResult){
-            .error = fd_res.error,
+            .error = (int)fd_res.error,
             .message = aven_fmt(
                 emsg_arena,
                 "error opening file \"{}\"",
@@ -46,7 +46,7 @@ AvenTestResult test_aven_io_read(
 
     if (rd_res.error != 0) {
         return (AvenTestResult){
-            .error = rd_res.error,
+            .error = (int)rd_res.error,
             .message = aven_fmt(
                 emsg_arena,
                 "error reading file \"{}\"",
@@ -105,7 +105,7 @@ AvenTestResult test_aven_io_write_read(
         io_args->exe_dir_path,
         aven_str("test_aven_io_write_read")
     );
-    int error = aven_fs_mkdir(tmp_dir_path, arena);
+    int error = (int)aven_fs_mkdir(tmp_dir_path, arena);
     if (error != 0) {
         return (AvenTestResult){
             .error = error,
@@ -128,7 +128,7 @@ AvenTestResult test_aven_io_write_read(
         aven_fs_rm(tmp_path, arena);
         aven_fs_rmdir(tmp_dir_path, arena);
         return (AvenTestResult){
-            .error = fd_res.error,
+            .error = (int)fd_res.error,
             .message = aven_fmt(
                 emsg_arena,
                 "error opening file\"{}\"",
@@ -147,7 +147,7 @@ AvenTestResult test_aven_io_write_read(
         aven_fs_rm(tmp_path, arena);
         aven_fs_rmdir(tmp_dir_path, arena);
         return (AvenTestResult){
-            .error = wr_res.error,
+            .error = (int)wr_res.error,
             .message = aven_fmt(
                 emsg_arena,
                 "error writing to file\"{}\"",
@@ -182,7 +182,7 @@ AvenTestResult test_aven_io_reader(
     );
     if (fd_res.error != 0) {
         return (AvenTestResult){
-            .error = fd_res.error,
+            .error = (int)fd_res.error,
             .message = aven_fmt(
                 emsg_arena,
                 "error opening file\"{}\"",
@@ -260,7 +260,7 @@ AvenTestResult test_aven_io_writer(
         io_args->exe_dir_path,
         aven_str("test_aven_io_write_read")
     );
-    int error = aven_fs_mkdir(tmp_dir_path, arena);
+    int error = (int)aven_fs_mkdir(tmp_dir_path, arena);
     if (error != 0) {
         return (AvenTestResult){
             .error = error,
@@ -283,7 +283,7 @@ AvenTestResult test_aven_io_writer(
         aven_fs_rm(tmp_path, arena);
         aven_fs_rmdir(tmp_dir_path, arena);
         return (AvenTestResult){
-            .error = fd_res.error,
+            .error = (int)fd_res.error,
             .message = aven_fmt(
                 emsg_arena,
                 "error opening file \"{}\"",
@@ -301,14 +301,14 @@ AvenTestResult test_aven_io_writer(
          &writer,
          io_args->contents
     );
-    AvenIoWriteError fl_error = aven_io_writer_flush(&writer);
+    AvenIoWriteError fl_error = (AvenIoWriteError)aven_io_writer_flush(&writer);
     aven_io_close(fd_res.payload);
 
     if (wr_res.error != 0 or fl_error != 0) {
         aven_fs_rm(tmp_path, arena);
         aven_fs_rmdir(tmp_dir_path, arena);
         return (AvenTestResult){
-            .error = wr_res.error,
+            .error = (wr_res.error == 0 ? (int)wr_res.error : (int)fl_error),
             .message = aven_fmt(
                 emsg_arena,
                 "error writing to file\"{}\"",
