@@ -14,7 +14,6 @@ typedef enum {
     AVEN_C_PP_TOKEN_TYPE_STR,
     AVEN_C_PP_TOKEN_TYPE_PNC,
     AVEN_C_PP_TOKEN_TYPE_OTH,
-    AVEN_C_PP_TOKEN_TYPE_ENL,
 } AvenCPPTokenType;
 
 typedef struct {
@@ -35,7 +34,7 @@ typedef struct {
     AvenCPPToken cur;
 } AvenCPPTokenCtx;
 
-static inline AvenCPPTokenCtx aven_c_pp_lex_init(
+static inline AvenCPPTokenCtx aven_c_lex_pp_init(
     AvenStr bytes,
     AvenArena *arena
 ) {
@@ -67,7 +66,7 @@ static inline bool aven_c_is_letter(char c) {
     return (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z');
 }
 
-static inline bool aven_c_pp_lex_char(AvenCPPTokenCtx *ctx, char d) {
+static inline bool aven_c_lex_char(AvenCPPTokenCtx *ctx, char d) {
     uint32_t len = ctx->cur.len;
     if (ctx->cur.index + len >= ctx->bytes.len) {
         return false;
@@ -81,10 +80,10 @@ static inline bool aven_c_pp_lex_char(AvenCPPTokenCtx *ctx, char d) {
     return false;
 }
 
-static inline bool aven_c_pp_lex_str(AvenCPPTokenCtx *ctx, AvenStr str) {
+static inline bool aven_c_lex_str(AvenCPPTokenCtx *ctx, AvenStr str) {
     uint32_t len = ctx->cur.len;
     for (size_t i = 0; i < str.len; i += 1) {
-        if (!aven_c_pp_lex_char(ctx, get(str, i))) {
+        if (!aven_c_lex_char(ctx, get(str, i))) {
             ctx->cur.len = len;
             return false;
         }
@@ -93,7 +92,7 @@ static inline bool aven_c_pp_lex_str(AvenCPPTokenCtx *ctx, AvenStr str) {
     return true;
 }
 
-static inline bool aven_c_pp_lex_oct_digit(AvenCPPTokenCtx *ctx) {
+static inline bool aven_c_lex_oct_digit(AvenCPPTokenCtx *ctx) {
     uint32_t len = ctx->cur.len;
     if (ctx->cur.index + len >= ctx->bytes.len) {
         return false;
@@ -107,7 +106,7 @@ static inline bool aven_c_pp_lex_oct_digit(AvenCPPTokenCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_pp_lex_dec_digit(AvenCPPTokenCtx *ctx) {
+static inline bool aven_c_lex_dec_digit(AvenCPPTokenCtx *ctx) {
     uint32_t len = ctx->cur.len;
     if (ctx->cur.index + len >= ctx->bytes.len) {
         return false;
@@ -121,7 +120,7 @@ static inline bool aven_c_pp_lex_dec_digit(AvenCPPTokenCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_pp_lex_hex_digit(AvenCPPTokenCtx *ctx) {
+static inline bool aven_c_lex_hex_digit(AvenCPPTokenCtx *ctx) {
     uint32_t len = ctx->cur.len;
     if (ctx->cur.index + len >= ctx->bytes.len) {
         return false;
@@ -135,10 +134,10 @@ static inline bool aven_c_pp_lex_hex_digit(AvenCPPTokenCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_pp_lex_hex_str(AvenCPPTokenCtx *ctx, uint32_t digits) {
+static inline bool aven_c_lex_hex_str(AvenCPPTokenCtx *ctx, uint32_t digits) {
     uint32_t len = ctx->cur.len;
     for (uint32_t i = 0; i < digits; i += 1) {
-        if (!aven_c_pp_lex_hex_digit(ctx)) {
+        if (!aven_c_lex_hex_digit(ctx)) {
             ctx->cur.len = len;
             return false;
         }
@@ -147,7 +146,7 @@ static inline bool aven_c_pp_lex_hex_str(AvenCPPTokenCtx *ctx, uint32_t digits) 
     return true;
 }
 
-static inline bool aven_c_pp_lex_letter(AvenCPPTokenCtx *ctx) {
+static inline bool aven_c_lex_letter(AvenCPPTokenCtx *ctx) {
     uint32_t len = ctx->cur.len;
     if (ctx->cur.index + len >= ctx->bytes.len) {
         return false;
@@ -161,20 +160,20 @@ static inline bool aven_c_pp_lex_letter(AvenCPPTokenCtx *ctx) {
     return false;    
 }
 
-static inline bool aven_c_pp_lex_id_nondigit(AvenCPPTokenCtx *ctx) {
+static inline bool aven_c_lex_id_nondigit(AvenCPPTokenCtx *ctx) {
     uint32_t len = ctx->cur.len;
     if (ctx->cur.index + len >= ctx->bytes.len) {
         return false;
     }
-    if (aven_c_pp_lex_char(ctx, '\\') or aven_c_pp_lex_letter(ctx)) {
+    if (aven_c_lex_char(ctx, '_') or aven_c_lex_letter(ctx)) {
         return true;
     }
-    if (aven_c_pp_lex_char(ctx, '\\')) {
-        if (aven_c_pp_lex_char(ctx, 'u') and aven_c_pp_lex_hex_str(ctx, 4)) {
+    if (aven_c_lex_char(ctx, '\\')) {
+        if (aven_c_lex_char(ctx, 'u') and aven_c_lex_hex_str(ctx, 4)) {
             return true;
         } else if (
-            aven_c_pp_lex_char(ctx, 'U') and
-            aven_c_pp_lex_hex_str(ctx, 8)
+            aven_c_lex_char(ctx, 'U') and
+            aven_c_lex_hex_str(ctx, 8)
         ) {
             return true;
         }
@@ -184,12 +183,12 @@ static inline bool aven_c_pp_lex_id_nondigit(AvenCPPTokenCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_pp_lex_escape_seq(AvenCPPTokenCtx * ctx) {
+static inline bool aven_c_lex_escape_seq(AvenCPPTokenCtx * ctx) {
     uint32_t len = ctx->cur.len;
     if (ctx->cur.index + len >= ctx->bytes.len) {
         return false;
     }
-    if (!aven_c_pp_lex_char(ctx, '\\')) {
+    if (!aven_c_lex_char(ctx, '\\')) {
         return false;
     }
 
@@ -213,7 +212,7 @@ static inline bool aven_c_pp_lex_escape_seq(AvenCPPTokenCtx * ctx) {
     }
     uint32_t oct_digits;
     for (oct_digits = 0; oct_digits < 3; oct_digits += 1) {
-        if (!aven_c_pp_lex_oct_digit(ctx)) {
+        if (!aven_c_lex_oct_digit(ctx)) {
             break;
         }
     }
@@ -223,7 +222,7 @@ static inline bool aven_c_pp_lex_escape_seq(AvenCPPTokenCtx * ctx) {
 
     if (e == 'x') {
         uint32_t hex_digits = 0;
-        while (aven_c_pp_lex_hex_digit(ctx)) {
+        while (aven_c_lex_hex_digit(ctx)) {
             hex_digits += 1;
         }
         if (hex_digits > 0) {
@@ -235,7 +234,7 @@ static inline bool aven_c_pp_lex_escape_seq(AvenCPPTokenCtx * ctx) {
     return false;
 }
 
-static inline bool aven_c_pp_lex_header(AvenCPPTokenCtx *ctx) {
+static inline bool aven_c_lex_pp_header(AvenCPPTokenCtx *ctx) {
     uint32_t len = ctx->cur.len;
     if (ctx->cur.index + len >= ctx->bytes.len) {
         return false;
@@ -246,10 +245,10 @@ static inline bool aven_c_pp_lex_header(AvenCPPTokenCtx *ctx) {
     }
 
     bool quoted = false;
-    if (aven_c_pp_lex_char(ctx, '\"')) {
+    if (aven_c_lex_char(ctx, '\"')) {
         quoted = true;
     }
-    if (!quoted and !aven_c_pp_lex_char(ctx, '<')) {
+    if (!quoted and !aven_c_lex_char(ctx, '<')) {
         return false;
     }
 
@@ -300,40 +299,40 @@ static inline bool aven_c_pp_lex_header(AvenCPPTokenCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_pp_lex_identifier(AvenCPPTokenCtx *ctx) {
+static inline bool aven_c_lex_identifier(AvenCPPTokenCtx *ctx) {
     uint32_t len = ctx->cur.len;
     if (ctx->cur.index + len >= ctx->bytes.len) {
         return false;
     }
 
-    if (!aven_c_pp_lex_id_nondigit(ctx)) {
+    if (!aven_c_lex_id_nondigit(ctx)) {
         return false;
     }
 
     while (
-        aven_c_pp_lex_id_nondigit(ctx) or
-        aven_c_pp_lex_dec_digit(ctx)
+        aven_c_lex_id_nondigit(ctx) or
+        aven_c_lex_dec_digit(ctx)
     ) {}
 
     return true;
 }
 
-static inline bool aven_c_pp_lex_number_exp(AvenCPPTokenCtx *ctx) {
+static inline bool aven_c_lex_pp_number_exp(AvenCPPTokenCtx *ctx) {
     uint32_t len = ctx->cur.len;
     if (ctx->cur.index + len >= ctx->bytes.len) {
         return false;
     }
 
     if (
-        !aven_c_pp_lex_char(ctx, 'e') and
-        !aven_c_pp_lex_char(ctx, 'E') and
-        !aven_c_pp_lex_char(ctx, 'p') and
-        !aven_c_pp_lex_char(ctx, 'P')
+        !aven_c_lex_char(ctx, 'e') and
+        !aven_c_lex_char(ctx, 'E') and
+        !aven_c_lex_char(ctx, 'p') and
+        !aven_c_lex_char(ctx, 'P')
     ) {
         return false;
     }
 
-    if (aven_c_pp_lex_char(ctx, '+') or aven_c_pp_lex_char(ctx, '+')) {
+    if (aven_c_lex_char(ctx, '+') or aven_c_lex_char(ctx, '+')) {
         return true;
     }
 
@@ -341,36 +340,36 @@ static inline bool aven_c_pp_lex_number_exp(AvenCPPTokenCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_pp_lex_number(AvenCPPTokenCtx *ctx) {
+static inline bool aven_c_lex_pp_number(AvenCPPTokenCtx *ctx) {
     uint32_t len = ctx->cur.len;
     if (ctx->cur.index + len >= ctx->bytes.len) {
         return false;
     }
 
     if (
-        !aven_c_pp_lex_dec_digit(ctx) and
-        !aven_c_pp_lex_char(ctx, '.')
+        !aven_c_lex_dec_digit(ctx) and
+        !aven_c_lex_char(ctx, '.')
     ) {
         return false;
     }
 
     while (
-        aven_c_pp_lex_dec_digit(ctx) or
-        aven_c_pp_lex_number_exp(ctx) or
-        aven_c_pp_lex_id_nondigit(ctx) or
-        aven_c_pp_lex_char(ctx, '.')
+        aven_c_lex_dec_digit(ctx) or
+        aven_c_lex_pp_number_exp(ctx) or
+        aven_c_lex_id_nondigit(ctx) or
+        aven_c_lex_char(ctx, '.')
     ) {}
 
     return true;
 }
 
-static inline bool aven_c_pp_lex_character_const(AvenCPPTokenCtx *ctx) {
+static inline bool aven_c_lex_character_const(AvenCPPTokenCtx *ctx) {
     uint32_t len = ctx->cur.len;
     if (ctx->cur.index + len >= ctx->bytes.len) {
         return false;
     }
 
-    if (!aven_c_pp_lex_char(ctx, '\'')) {
+    if (!aven_c_lex_char(ctx, '\'')) {
         return false;
     }
 
@@ -396,13 +395,13 @@ static inline bool aven_c_pp_lex_character_const(AvenCPPTokenCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_pp_lex_string_lit(AvenCPPTokenCtx *ctx) {
+static inline bool aven_c_lex_string_lit(AvenCPPTokenCtx *ctx) {
     uint32_t len = ctx->cur.len;
     if (ctx->cur.index + len >= ctx->bytes.len) {
         return false;
     }
 
-    if (!aven_c_pp_lex_char(ctx, '\"')) {
+    if (!aven_c_lex_char(ctx, '\"')) {
         return false;
     }
 
@@ -426,7 +425,7 @@ static inline bool aven_c_pp_lex_string_lit(AvenCPPTokenCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_pp_lex_punctuator(AvenCPPTokenCtx *ctx) {
+static inline bool aven_c_lex_punctuator(AvenCPPTokenCtx *ctx) {
     uint32_t len = ctx->cur.len;
     if (ctx->cur.index + len >= ctx->bytes.len) {
         return false;
@@ -449,7 +448,7 @@ static inline bool aven_c_pp_lex_punctuator(AvenCPPTokenCtx *ctx) {
         }
         case '.': {
             ctx->cur.len += 1;
-            if (aven_c_pp_lex_str(ctx, aven_str(".."))) {
+            if (aven_c_lex_str(ctx, aven_str(".."))) {
                 return true;
             }
             return true;
@@ -457,9 +456,9 @@ static inline bool aven_c_pp_lex_punctuator(AvenCPPTokenCtx *ctx) {
         case '-': {
             ctx->cur.len += 1;
             if (
-                aven_c_pp_lex_char(ctx, '-') or
-                aven_c_pp_lex_char(ctx, '>') or
-                aven_c_pp_lex_char(ctx, '=')
+                aven_c_lex_char(ctx, '-') or
+                aven_c_lex_char(ctx, '>') or
+                aven_c_lex_char(ctx, '=')
             ) {
                 return true;
             }
@@ -468,8 +467,8 @@ static inline bool aven_c_pp_lex_punctuator(AvenCPPTokenCtx *ctx) {
         case '+': {
             ctx->cur.len += 1;
             if (
-                aven_c_pp_lex_char(ctx, '+') or
-                aven_c_pp_lex_char(ctx, '=')
+                aven_c_lex_char(ctx, '+') or
+                aven_c_lex_char(ctx, '=')
             ) {
                 return true;
             }
@@ -478,8 +477,8 @@ static inline bool aven_c_pp_lex_punctuator(AvenCPPTokenCtx *ctx) {
         case '&': {
             ctx->cur.len += 1;
             if (
-                aven_c_pp_lex_char(ctx, '&') or
-                aven_c_pp_lex_char(ctx, '=')
+                aven_c_lex_char(ctx, '&') or
+                aven_c_lex_char(ctx, '=')
             ) {
                 return true;
             }
@@ -487,36 +486,36 @@ static inline bool aven_c_pp_lex_punctuator(AvenCPPTokenCtx *ctx) {
         }
         case '*': {
             ctx->cur.len += 1;
-            if (aven_c_pp_lex_char(ctx, '=')) {
+            if (aven_c_lex_char(ctx, '=')) {
                 return true;
             }
             return true;
         }
         case '!': {
             ctx->cur.len += 1;
-            if (aven_c_pp_lex_char(ctx, '=')) {
+            if (aven_c_lex_char(ctx, '=')) {
                 return true;
             }
             return true;
         }
         case '/': {
             ctx->cur.len += 1;
-            if (aven_c_pp_lex_char(ctx, '=')) {
+            if (aven_c_lex_char(ctx, '=')) {
                 return true;
             }
             return true;
         }
         case '%': {
             ctx->cur.len += 1;
-            if (aven_c_pp_lex_char(ctx, ':')) {
-                if (aven_c_pp_lex_str(ctx, aven_str("%:"))) {
+            if (aven_c_lex_char(ctx, ':')) {
+                if (aven_c_lex_str(ctx, aven_str("%:"))) {
                     return true;
                 }
                 return true;
             }
             if (
-                aven_c_pp_lex_char(ctx, '>') or
-                aven_c_pp_lex_char(ctx, '=')
+                aven_c_lex_char(ctx, '>') or
+                aven_c_lex_char(ctx, '=')
             ) {
                 return true;
             }
@@ -524,16 +523,16 @@ static inline bool aven_c_pp_lex_punctuator(AvenCPPTokenCtx *ctx) {
         }
         case '<': {
             ctx->cur.len += 1;
-            if (aven_c_pp_lex_char(ctx, '<')) {
-                if (aven_c_pp_lex_char(ctx, '=')) {
+            if (aven_c_lex_char(ctx, '<')) {
+                if (aven_c_lex_char(ctx, '=')) {
                     return true;
                 }
                 return true;
             }
             if (
-                aven_c_pp_lex_char(ctx, '=') or
-                aven_c_pp_lex_char(ctx, ':') or
-                aven_c_pp_lex_char(ctx, '%')
+                aven_c_lex_char(ctx, '=') or
+                aven_c_lex_char(ctx, ':') or
+                aven_c_lex_char(ctx, '%')
             ) {
                 return true;
             }
@@ -541,51 +540,51 @@ static inline bool aven_c_pp_lex_punctuator(AvenCPPTokenCtx *ctx) {
         }
         case '>': {
             ctx->cur.len += 1;
-            if (aven_c_pp_lex_char(ctx, '>')) {
-                if (aven_c_pp_lex_char(ctx, '=')) {
+            if (aven_c_lex_char(ctx, '>')) {
+                if (aven_c_lex_char(ctx, '=')) {
                     return true;
                 }
                 return true;
             }
-            if (aven_c_pp_lex_char(ctx, '=')) {
+            if (aven_c_lex_char(ctx, '=')) {
                 return true;
             }
             return true;
         }
         case '=': {
             ctx->cur.len += 1;
-            if (aven_c_pp_lex_char(ctx, '=')) {
+            if (aven_c_lex_char(ctx, '=')) {
                 return true;
             }
             return true;
         }
         case '^': {
             ctx->cur.len += 1;
-            if (aven_c_pp_lex_char(ctx, '^')) {
+            if (aven_c_lex_char(ctx, '^')) {
                 return true;
             }
             return true;
         }
         case '|': {
             ctx->cur.len += 1;
-            if (aven_c_pp_lex_char(ctx, '|')) {
+            if (aven_c_lex_char(ctx, '|')) {
                 return true;
             }
-            if (aven_c_pp_lex_char(ctx, '=')) {
+            if (aven_c_lex_char(ctx, '=')) {
                 return true;
             }
             return true;
         }
         case ':': {
             ctx->cur.len += 1;
-            if (aven_c_pp_lex_char(ctx, '>')) {
+            if (aven_c_lex_char(ctx, '>')) {
                 return true;
             }
             return true;
         }
         case '#': {
             ctx->cur.len += 1;
-            if (aven_c_pp_lex_char(ctx, '#')) {
+            if (aven_c_lex_char(ctx, '#')) {
                 return true;
             }
             return true;
@@ -596,7 +595,7 @@ static inline bool aven_c_pp_lex_punctuator(AvenCPPTokenCtx *ctx) {
     return false;
 }
 
-static inline void aven_c_pp_lex_ignore(AvenCPPTokenCtx *ctx) {
+static inline void aven_c_lex_ignore(AvenCPPTokenCtx *ctx) {
     assert(ctx->cur.len == 0);
     bool done = false;
     while (!done and ctx->cur.index + ctx->cur.len < ctx->bytes.len) {
@@ -610,17 +609,17 @@ static inline void aven_c_pp_lex_ignore(AvenCPPTokenCtx *ctx) {
                 break;
             }
             case '/': {
-                if (aven_c_pp_lex_str(ctx, aven_str("//"))) {
+                if (aven_c_lex_str(ctx, aven_str("//"))) {
                     while (
                         ctx->cur.index + ctx->cur.len < ctx->bytes.len and
                         get(ctx->bytes, ctx->cur.index + ctx->cur.len) != '\n'
                     ) {
                         ctx->cur.len += 1;
                     }
-                } else if (aven_c_pp_lex_str(ctx, aven_str("/*"))) {
+                } else if (aven_c_lex_str(ctx, aven_str("/*"))) {
                     while (
                         ctx->cur.index + ctx->cur.len < ctx->bytes.len and
-                        !aven_c_pp_lex_str(ctx, aven_str("*/"))
+                        !aven_c_lex_str(ctx, aven_str("*/"))
                     ) {
                         ctx->cur.len += 1;
                     }
@@ -640,52 +639,43 @@ static inline void aven_c_pp_lex_ignore(AvenCPPTokenCtx *ctx) {
     ctx->cur.len = 0;
 }
 
-static inline bool aven_c_pp_lex_step(AvenCPPTokenCtx *ctx) {
+static inline bool aven_c_lex_pp_step(AvenCPPTokenCtx *ctx) {
     assert(ctx->cur.len == 0);
-    aven_c_pp_lex_ignore(ctx);
+    aven_c_lex_ignore(ctx);
     if (ctx->cur.index == ctx->bytes.len) {
         return true;
     }
-    if (aven_c_pp_lex_str(ctx, aven_str("\\n"))) {
-        // We treat escaped newlines as a token and don't allow them within
-        // other tokens. This is nonstandard, but I have no interest in
-        // code that uses escaped newlines that way
-        ctx->cur.type = AVEN_C_PP_TOKEN_TYPE_ENL;
-        list_push(ctx->tokens) = ctx->cur;
-        ctx->cur = (AvenCPPToken){ .index = ctx->cur.index + ctx->cur.len };
-        return false;
-    }
-    if (aven_c_pp_lex_header(ctx)) {
+    if (aven_c_lex_pp_header(ctx)) {
         ctx->cur.type = AVEN_C_PP_TOKEN_TYPE_HDR;
         list_push(ctx->tokens) = ctx->cur;
         ctx->cur = (AvenCPPToken){ .index = ctx->cur.index + ctx->cur.len };
         return false;
     }
-    if (aven_c_pp_lex_identifier(ctx)) {
+    if (aven_c_lex_identifier(ctx)) {
         ctx->cur.type = AVEN_C_PP_TOKEN_TYPE_ID;
         list_push(ctx->tokens) = ctx->cur;
         ctx->cur = (AvenCPPToken){ .index = ctx->cur.index + ctx->cur.len };
         return false;
     }
-    if (aven_c_pp_lex_number(ctx)) {
+    if (aven_c_lex_pp_number(ctx)) {
         ctx->cur.type = AVEN_C_PP_TOKEN_TYPE_NUM;
         list_push(ctx->tokens) = ctx->cur;
         ctx->cur = (AvenCPPToken){ .index = ctx->cur.index + ctx->cur.len };
         return false;
     }
-    if (aven_c_pp_lex_character_const(ctx)) {
+    if (aven_c_lex_character_const(ctx)) {
         ctx->cur.type = AVEN_C_PP_TOKEN_TYPE_CHR;
         list_push(ctx->tokens) = ctx->cur;
         ctx->cur = (AvenCPPToken){ .index = ctx->cur.index + ctx->cur.len };
         return false;
     }
-    if (aven_c_pp_lex_string_lit(ctx)) {
+    if (aven_c_lex_string_lit(ctx)) {
         ctx->cur.type = AVEN_C_PP_TOKEN_TYPE_STR;
         list_push(ctx->tokens) = ctx->cur;
         ctx->cur = (AvenCPPToken){ .index = ctx->cur.index + ctx->cur.len };
         return false;
     }
-    if (aven_c_pp_lex_punctuator(ctx)) {
+    if (aven_c_lex_punctuator(ctx)) {
         ctx->cur.type = AVEN_C_PP_TOKEN_TYPE_PNC;
         list_push(ctx->tokens) = ctx->cur;
         ctx->cur = (AvenCPPToken){ .index = ctx->cur.index + ctx->cur.len };
@@ -699,14 +689,14 @@ static inline bool aven_c_pp_lex_step(AvenCPPTokenCtx *ctx) {
     return false;
 }
 
-static inline AvenCPPTokenSet aven_c_pp_lex(AvenStr bytes, AvenArena *arena) {
+static inline AvenCPPTokenSet aven_c_lex_pp(AvenStr bytes, AvenArena *arena) {
     if (bytes.len == 0) {
         return (AvenCPPTokenSet){ 0 };
     }
 
-    AvenCPPTokenCtx ctx = aven_c_pp_lex_init(bytes, arena);
+    AvenCPPTokenCtx ctx = aven_c_lex_pp_init(bytes, arena);
 
-    while (!aven_c_pp_lex_step(&ctx)) {}
+    while (!aven_c_lex_pp_step(&ctx)) {}
 
     return (AvenCPPTokenSet){
         .bytes = bytes,
@@ -716,6 +706,19 @@ static inline AvenCPPTokenSet aven_c_pp_lex(AvenStr bytes, AvenArena *arena) {
             ctx.tokens
         ),
     };
+}
+
+static inline AvenStr aven_c_clean_enl(AvenStr bytes, AvenArena *arena) {
+    AvenStr byte_copy = aven_str_copy(bytes, arena);
+    AvenStr clean_bytes = aven_str_delete_in_place(byte_copy, aven_str("\\\n"));
+    clean_bytes = aven_str_delete_in_place(clean_bytes, aven_str("\\\r\n"));
+    aven_arena_resize_array(
+        arena,
+        byte_copy.ptr,
+        byte_copy.len,
+        clean_bytes.len
+    );
+    return clean_bytes;
 }
 
 #endif // AVEN_C_H

@@ -178,13 +178,13 @@ static inline AvenStr aven_str_escape(AvenStr str, AvenArena *arena) {
     return aven_arena_commit_list_to_slice(AvenStr, arena, esc_list);
 }
 
-// This is slow, but simple and I'm not using it for anything performant yet
+// This is slow, but it's simple and I'm not using it for anything critical
 static inline AvenStr aven_str_delete_in_place(AvenStr str, AvenStr substr) {
     size_t fin = 0;
     size_t start = 0;
     size_t end = 0;
     while (end < str.len) {
-        AvenStr head = aven_str_range(str, end, end + substr.len);
+        AvenStr head = aven_str_range(str, end, min(str.len, end + substr.len));
         if (aven_str_equals(head, substr)) {
             if (start != end) {
                 AvenStr src = aven_str_range(str, start, end);
