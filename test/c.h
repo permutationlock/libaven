@@ -42,14 +42,17 @@ static AvenTestResult test_aven_c_pp(
 
         AvenStr as = aven_str_range(actual.bytes, at.index, at.index + at.len);
 
-        if (at.type != et.type) {
+        if (
+            at.type != et.type or
+            !aven_str_equals(as, et.val)
+        ) {
             return (AvenTestResult){
                 .error = 1,
                 .message = aven_fmt(
                     emsg_arena,
                     "expected ({}, {}), found ({}, {})",
-                    aven_fmt_int(et.type),
                     aven_fmt_str(et.val),
+                    aven_fmt_int(et.type),
                     aven_fmt_str(as),
                     aven_fmt_int(at.type)
                 ),
@@ -132,7 +135,7 @@ static int test_c(AvenArena arena) {
                             .type = AVEN_C_PP_TOKEN_TYPE_ID,
                         },
                         {
-                            .val = aven_str("<stdio.h>"),
+                            .val = aven_str("\"helper.h\""),
                             .type = AVEN_C_PP_TOKEN_TYPE_HDR,
                         },
                     }
@@ -191,7 +194,7 @@ static int test_c(AvenArena arena) {
                             .type = AVEN_C_PP_TOKEN_TYPE_PNC,
                         },
                         {
-                            .val = aven_str("0"),
+                            .val = aven_str("2"),
                             .type = AVEN_C_PP_TOKEN_TYPE_NUM,
                         },
                         {
