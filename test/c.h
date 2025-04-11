@@ -9,39 +9,38 @@
 
 typedef struct {
     AvenStr val;
-    AvenCPPTokenType type;
-} TestAvenCPPToken;
+    AvenCPpTokenType type;
+} TestAvenCPpToken;
 
 typedef struct {
     AvenStr src;
-    Slice(TestAvenCPPToken) expected;
-} TestAvenCPPArgs;
+    Slice(TestAvenCPpToken) expected;
+} TestAvenCLexPpArgs;
 
 static AvenTestResult test_aven_c_lex_pp(
     AvenArena *emsg_arena,
     AvenArena arena,
     void *args
 ) {
-    TestAvenCPPArgs *pp_args = args;
+    TestAvenCLexPpArgs *pp_args = args;
 
-    AvenStr clean_src = aven_c_clean_enl(pp_args->src, &arena);
-    AvenCPPTokenSet actual = aven_c_lex_pp(clean_src, &arena);
-    if (actual.tokens.len != pp_args->expected.len) {
+    AvenCPpTokenSet actual = aven_c_lex_pp(pp_args->src, &arena);
+    if (actual.tokens.len != pp_args->expected.len + 1) {
         return (AvenTestResult){
             .error = 1,
             .message = aven_fmt(
                 emsg_arena,
                 "expected {} tokens, found {}",
-                aven_fmt_uint(pp_args->expected.len),
+                aven_fmt_uint(pp_args->expected.len + 1),
                 aven_fmt_uint(actual.tokens.len)
             ),
         };
     }
-    for (size_t i = 0; i < actual.tokens.len; i += 1) {
-        AvenCPPToken at = get(actual.tokens, i);
-        TestAvenCPPToken et = get(pp_args->expected, i);
+    for (uint32_t i = 0; i < pp_args->expected.len; i += 1) {
+        AvenCPpToken at = get(actual.tokens, i);
+        TestAvenCPpToken et = get(pp_args->expected, i);
 
-        AvenStr as = aven_str_range(actual.bytes, at.index, at.index + at.len);
+        AvenStr as = aven_c_pp_token_str(actual, i);
 
         if (
             at.type != et.type or
@@ -53,23 +52,113 @@ static AvenTestResult test_aven_c_lex_pp(
                     emsg_arena,
                     "expected ({}, {}), found ({}, {})",
                     aven_fmt_str(et.val),
-                    aven_fmt_int(et.type),
+                    aven_fmt_str(aven_c_pp_token_type_str(et.type)),
                     aven_fmt_str(as),
-                    aven_fmt_int(at.type)
+                    aven_fmt_str(aven_c_pp_token_type_str(at.type))
                 ),
             };
         }
+    }
+    if (
+        get(actual.tokens, actual.tokens.len - 1).type !=
+            AVEN_C_PP_TOKEN_TYPE_NONE
+    ) {
+        return (AvenTestResult){
+            .error = 1,
+            .message = aven_str("no terminating NONE token"),
+        };
     }
 
     return (AvenTestResult){ 0 };
 }
 
-static int test_c(AvenArena arena) {   
+typedef struct {
+    TestAvenCPpToken token;
+    AvenCPpTokenLoc loc;
+} TestAvenCPpTokenLoc;
+
+typedef struct {
+    AvenStr src;
+    Slice(TestAvenCPpTokenLoc) expected;
+} TestAvenCPpTokenLocArgs;
+
+static AvenTestResult test_aven_c_pp_token_loc(
+    AvenArena *emsg_arena,
+    AvenArena arena,
+    void *args
+) {
+    TestAvenCPpTokenLocArgs *pp_args = args;
+
+    AvenCPpTokenSet actual = aven_c_lex_pp(pp_args->src, &arena);
+    if (actual.tokens.len != pp_args->expected.len + 1) {
+        return (AvenTestResult){
+            .error = 1,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected {} tokens, found {}",
+                aven_fmt_uint(pp_args->expected.len),
+                aven_fmt_uint(actual.tokens.len)
+            ),
+        };
+    }
+    for (uint32_t i = 0; i < pp_args->expected.len; i += 1) {
+        AvenCPpToken at = get(actual.tokens, i);
+        AvenCPpTokenLoc al = aven_c_pp_token_loc(actual, i);
+        TestAvenCPpTokenLoc et = get(pp_args->expected, i);
+
+        AvenStr as = aven_c_pp_token_str(actual, i);
+
+        if (
+            at.type != et.token.type or
+            !aven_str_equals(as, et.token.val)
+        ) {
+            return (AvenTestResult){
+                .error = 1,
+                .message = aven_fmt(
+                    emsg_arena,
+                    "expected ({}, {}), found ({}, {})",
+                    aven_fmt_str(et.token.val),
+                    aven_fmt_str(aven_c_pp_token_type_str(et.token.type)),
+                    aven_fmt_str(as),
+                    aven_fmt_str(aven_c_pp_token_type_str(at.type))
+                ),
+            };
+        }
+        if (al.line != et.loc.line or al.col != et.loc.col) {
+            return (AvenTestResult){
+                .error = 1,
+                .message = aven_fmt(
+                    emsg_arena,
+                    "expected ({}, {}) at {}:{}, found at {}:{}",
+                    aven_fmt_str(et.token.val),
+                    aven_fmt_str(aven_c_pp_token_type_str(et.token.type)),
+                    aven_fmt_uint(et.loc.line),
+                    aven_fmt_uint(et.loc.col),
+                    aven_fmt_uint(al.line),
+                    aven_fmt_uint(al.col)
+                ),
+            };
+        }
+    }
+    if (
+        get(actual.tokens, actual.tokens.len - 1).type !=
+            AVEN_C_PP_TOKEN_TYPE_NONE
+    ) {
+        return (AvenTestResult){
+            .error = 1,
+            .message = aven_str("no terminating NONE token"),
+        };
+    }
+
+    return (AvenTestResult){ 0 };
+}
+
+static int test_c(AvenArena arena) {
     AvenTestCase tcase_data[] = {
         {
             .desc = aven_str("aven_c_lex_pp empty file"),
             .fn = test_aven_c_lex_pp,
-            .args = &(TestAvenCPPArgs){
+            .args = &(TestAvenCLexPpArgs){
                 .src = aven_str(""),
                 .expected = { 0 },
             },
@@ -77,13 +166,13 @@ static int test_c(AvenArena arena) {
         {
             .desc = aven_str("aven_c_lex_pp single declaration"),
             .fn = test_aven_c_lex_pp,
-            .args = &(TestAvenCPPArgs){
+            .args = &(TestAvenCLexPpArgs){
                 .src = aven_str("int x;"),
                 .expected = slice_array(
-                    (TestAvenCPPToken[]){
+                    (TestAvenCPpToken[]){
                         {
                             .val = aven_str("int"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_ID,
+                            .type = AVEN_C_PP_TOKEN_TYPE_KEY,
                         },
                         {
                             .val = aven_str("x"),
@@ -100,10 +189,10 @@ static int test_c(AvenArena arena) {
         {
             .desc = aven_str("aven_c_lex_pp header name with <>"),
             .fn = test_aven_c_lex_pp,
-            .args = &(TestAvenCPPArgs){
+            .args = &(TestAvenCLexPpArgs){
                 .src = aven_str("#include <stdio.h>"),
                 .expected = slice_array(
-                    (TestAvenCPPToken[]){
+                    (TestAvenCPpToken[]){
                         {
                             .val = aven_str("#"),
                             .type = AVEN_C_PP_TOKEN_TYPE_PNC,
@@ -123,10 +212,10 @@ static int test_c(AvenArena arena) {
         {
             .desc = aven_str("aven_c_lex_pp header name with <>"),
             .fn = test_aven_c_lex_pp,
-            .args = &(TestAvenCPPArgs){
+            .args = &(TestAvenCLexPpArgs){
                 .src = aven_str("#include \"helper.h\""),
                 .expected = slice_array(
-                    (TestAvenCPPToken[]){
+                    (TestAvenCPpToken[]){
                         {
                             .val = aven_str("#"),
                             .type = AVEN_C_PP_TOKEN_TYPE_PNC,
@@ -146,13 +235,13 @@ static int test_c(AvenArena arena) {
         {
             .desc = aven_str("aven_c_lex_pp weird pp-number"),
             .fn = test_aven_c_lex_pp,
-            .args = &(TestAvenCPPArgs){
+            .args = &(TestAvenCLexPpArgs){
                 .src = aven_str("int x = 0xE+12;\n"),
                 .expected = slice_array(
-                    (TestAvenCPPToken[]){
+                    (TestAvenCPpToken[]){
                         {
                             .val = aven_str("int"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_ID,
+                            .type = AVEN_C_PP_TOKEN_TYPE_KEY,
                         },
                         {
                             .val = aven_str("x"),
@@ -177,13 +266,13 @@ static int test_c(AvenArena arena) {
         {
             .desc = aven_str("aven_c_lex_pp whitespace breaks pp-number"),
             .fn = test_aven_c_lex_pp,
-            .args = &(TestAvenCPPArgs){
+            .args = &(TestAvenCLexPpArgs){
                 .src = aven_str("int x = 0xE +12;\n"),
                 .expected = slice_array(
-                    (TestAvenCPPToken[]){
+                    (TestAvenCPpToken[]){
                         {
                             .val = aven_str("int"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_ID,
+                            .type = AVEN_C_PP_TOKEN_TYPE_KEY,
                         },
                         {
                             .val = aven_str("x"),
@@ -214,103 +303,95 @@ static int test_c(AvenArena arena) {
             },
         },
         {
-            .desc = aven_str("aven_c_lex_pp ignore escaped newlines"),
+            .desc = aven_str("aven_c_lex_pp simple escape sequence"),
             .fn = test_aven_c_lex_pp,
-            .args = &(TestAvenCPPArgs){
-                .src = aven_str(
-                    "#define Slice(T) struct {\\\n"
-                    "        size_t len;\\\n"
-                    "        T *ptr;\\\n"
-                    "    }\n"
-                ),
+            .args = &(TestAvenCLexPpArgs){
+                .src = aven_str("\"Hello, World!\\n\""),
                 .expected = slice_array(
-                    (TestAvenCPPToken[]){
+                    (TestAvenCPpToken[]){
                         {
-                            .val = aven_str("#"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_PNC,
-                        },
-                        {
-                            .val = aven_str("define"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_ID,
-                        },
-                        {
-                            .val = aven_str("Slice"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_ID,
-                        },
-                        {
-                            .val = aven_str("("),
-                            .type = AVEN_C_PP_TOKEN_TYPE_PNC,
-                        },
-                        {
-                            .val = aven_str("T"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_ID,
-                        },
-                        {
-                            .val = aven_str(")"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_PNC,
-                        },
-                        {
-                            .val = aven_str("struct"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_ID,
-                        },
-                        {
-                            .val = aven_str("{"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_PNC,
-                        },
-                        {
-                            .val = aven_str("size_t"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_ID,
-                        },
-                        {
-                            .val = aven_str("len"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_ID,
-                        },
-                        {
-                            .val = aven_str(";"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_PNC,
-                        },
-                        {
-                            .val = aven_str("T"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_ID,
-                        },
-                        {
-                            .val = aven_str("*"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_PNC,
-                        },
-                        {
-                            .val = aven_str("ptr"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_ID,
-                        },
-                        {
-                            .val = aven_str(";"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_PNC,
-                        },
-                        {
-                            .val = aven_str("}"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_PNC,
+                            .val = aven_str("\"Hello, World!\\n\""),
+                            .type = AVEN_C_PP_TOKEN_TYPE_STR,
                         },
                     }
                 ),
             },
         },
         {
-            .desc = aven_str("aven_c_lex_pp small block"),
+            .desc = aven_str("aven_c_lex_pp octal escape sequence"),
             .fn = test_aven_c_lex_pp,
-            .args = &(TestAvenCPPArgs){
+            .args = &(TestAvenCLexPpArgs){
+                .src = aven_str("\"\\17\""),
+                .expected = slice_array(
+                    (TestAvenCPpToken[]){
+                        {
+                            .val = aven_str("\"\\17\""),
+                            .type = AVEN_C_PP_TOKEN_TYPE_STR,
+                        },
+                    }
+                ),
+            },
+        },
+        {
+            .desc = aven_str("aven_c_lex_pp hex escape sequence"),
+            .fn = test_aven_c_lex_pp,
+            .args = &(TestAvenCLexPpArgs){
+                .src = aven_str("\"color code: \\xFFAA22\""),
+                .expected = slice_array(
+                    (TestAvenCPpToken[]){
+                        {
+                            .val = aven_str("\"color code: \\xFFAA22\""),
+                            .type = AVEN_C_PP_TOKEN_TYPE_STR,
+                        },
+                    }
+                ),
+            },
+        },
+        {
+            .desc = aven_str("aven_c_lex_pp invalid escape sequence"),
+            .fn = test_aven_c_lex_pp,
+            .args = &(TestAvenCLexPpArgs){
+                .src = aven_str("\"\\9\""),
+                .expected = slice_array(
+                    (TestAvenCPpToken[]){
+                        {
+                            .val = aven_str("\""),
+                            .type = AVEN_C_PP_TOKEN_TYPE_OTH,
+                        },
+                        {
+                            .val = aven_str("\\"),
+                            .type = AVEN_C_PP_TOKEN_TYPE_OTH,
+                        },
+                        {
+                            .val = aven_str("9"),
+                            .type = AVEN_C_PP_TOKEN_TYPE_NUM,
+                        },
+                        {
+                            .val = aven_str("\""),
+                            .type = AVEN_C_PP_TOKEN_TYPE_OTH,
+                        },
+                    }
+                ),
+            },
+        },
+        {
+            .desc = aven_str("aven_c_lex_pp small block with comments"),
+            .fn = test_aven_c_lex_pp,
+            .args = &(TestAvenCLexPpArgs){
                 .src = aven_str(
                     "int x = 0; // a comment with #\n"
                     "while (x < 2) {\n"
                     "    /*\n"
                     "     * here we are computing x + 1\n"
                     "     */\n"
-                    "    x += 1;\n"    
+                    "    x += 1;\n"
                     "}\n"
                 ),
                 .expected = slice_array(
-                    (TestAvenCPPToken[]){
+                    (TestAvenCPpToken[]){
                         {
                             .val = aven_str("int"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_ID,
+                            .type = AVEN_C_PP_TOKEN_TYPE_KEY,
                         },
                         {
                             .val = aven_str("x"),
@@ -330,7 +411,7 @@ static int test_c(AvenArena arena) {
                         },
                         {
                             .val = aven_str("while"),
-                            .type = AVEN_C_PP_TOKEN_TYPE_ID,
+                            .type = AVEN_C_PP_TOKEN_TYPE_KEY,
                         },
                         {
                             .val = aven_str("("),
@@ -375,6 +456,345 @@ static int test_c(AvenArena arena) {
                         {
                             .val = aven_str("}"),
                             .type = AVEN_C_PP_TOKEN_TYPE_PNC,
+                        },
+                    }
+                ),
+            },
+        },
+        {
+            .desc = aven_str("aven_c_pp_token_loc single declaration"),
+            .fn = test_aven_c_pp_token_loc,
+            .args = &(TestAvenCPpTokenLocArgs){
+                .src = aven_str("int x;"),
+                .expected = slice_array(
+                    (TestAvenCPpTokenLoc[]){
+                        {
+                            .token = {
+                                .val = aven_str("int"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_KEY,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 1,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("x"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_ID,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 5,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str(";"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_PNC,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 6,
+                            },
+                        },
+                    }
+                ),
+            },
+        },
+        {
+            .desc = aven_str("aven_c_lex_pp invalid escape sequence"),
+            .fn = test_aven_c_pp_token_loc,
+            .args = &(TestAvenCPpTokenLocArgs){
+                .src = aven_str("\"\\9\""),
+                .expected = slice_array(
+                    (TestAvenCPpTokenLoc[]){
+                        {
+                            .token = {
+                                .val = aven_str("\""),
+                                .type = AVEN_C_PP_TOKEN_TYPE_OTH,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 1,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("\\"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_OTH,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 2,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("9"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_NUM,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 3,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("\""),
+                                .type = AVEN_C_PP_TOKEN_TYPE_OTH,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 4,
+                            },
+                        },
+                    }
+                ),
+            },
+        },
+        {
+            .desc = aven_str("aven_c_lex_pp invalid newline in string literal"),
+            .fn = test_aven_c_pp_token_loc,
+            .args = &(TestAvenCPpTokenLocArgs){
+                .src = aven_str("\"Hello,\nWorld!\""),
+                .expected = slice_array(
+                    (TestAvenCPpTokenLoc[]){
+                        {
+                            .token = {
+                                .val = aven_str("\""),
+                                .type = AVEN_C_PP_TOKEN_TYPE_OTH,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 1,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("Hello"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_ID,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 2,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str(","),
+                                .type = AVEN_C_PP_TOKEN_TYPE_PNC,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 7,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("World"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_ID,
+                            },
+                            .loc = {
+                                .line = 2,
+                                .col = 1,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("!"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_PNC,
+                            },
+                            .loc = {
+                                .line = 2,
+                                .col = 6,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("\""),
+                                .type = AVEN_C_PP_TOKEN_TYPE_OTH,
+                            },
+                            .loc = {
+                                .line = 2,
+                                .col = 7,
+                            },
+                        },
+                    }
+                ),
+            },
+        },
+        {
+            .desc = aven_str("aven_c_pp_token_loc escaped newlines"),
+            .fn = test_aven_c_pp_token_loc,
+            .args = &(TestAvenCPpTokenLocArgs){
+                .src = aven_str(
+                    "#define Slice(T) struct {\\\n"
+                    "        size_t len;\\\n"
+                    "        T *ptr;\\\n"
+                    "    }\n"
+                ),
+                .expected = slice_array(
+                    (TestAvenCPpTokenLoc[]){
+                        {
+                            .token = {
+                                .val = aven_str("#"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_PNC,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 1,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("define"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_ID,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 2,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("Slice"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_ID,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 9,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("("),
+                                .type = AVEN_C_PP_TOKEN_TYPE_PNC,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 14,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("T"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_ID,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 15,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str(")"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_PNC,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 16,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("struct"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_KEY,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 18,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("{"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_PNC,
+                            },
+                            .loc = {
+                                .line = 1,
+                                .col = 25,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("size_t"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_ID,
+                            },
+                            .loc = {
+                                .line = 2,
+                                .col = 9,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("len"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_ID,
+                            },
+                            .loc = {
+                                .line = 2,
+                                .col = 16,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str(";"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_PNC,
+                            },
+                            .loc = {
+                                .line = 2,
+                                .col = 19,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("T"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_ID,
+                            },
+                            .loc = {
+                                .line = 3,
+                                .col = 9,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("*"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_PNC,
+                            },
+                            .loc = {
+                                .line = 3,
+                                .col = 11,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("ptr"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_ID,
+                            },
+                            .loc = {
+                                .line = 3,
+                                .col = 12,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str(";"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_PNC,
+                            },
+                            .loc = {
+                                .line = 3,
+                                .col = 15,
+                            },
+                        },
+                        {
+                            .token = {
+                                .val = aven_str("}"),
+                                .type = AVEN_C_PP_TOKEN_TYPE_PNC,
+                            },
+                            .loc = {
+                                .line = 4,
+                                .col = 5,
+                            },
                         },
                     }
                 ),
