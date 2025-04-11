@@ -272,6 +272,7 @@ static inline void aven_pool_push_free_internal(
 #endif
 
 void *memset(void *ptr, int value, size_t num);
+int memcmp(const void *buffer1, const void *buffer2, size_t count);
 
 #define slice_copy(d, s) memcpy( \
         (d).ptr, \
@@ -284,6 +285,10 @@ void *memset(void *ptr, int value, size_t num);
             (s).len * sizeof(*(s).ptr) \
         ) \
     )
+
+static inline bool bytes_equal(ByteSlice b1, ByteSlice b2) {
+    return (b1.len == b2.len) and (memcmp(b1.ptr, b2.ptr, b1.len) == 0);
+}
 
 static inline AVEN_NORETURN void aven_panic_internal_fn(
     const char *msg,
