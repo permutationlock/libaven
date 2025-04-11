@@ -179,24 +179,34 @@ static inline AvenStr aven_str_escape(AvenStr str, AvenArena *arena) {
 }
 
 // This is slow, but it's simple and I'm not using it for anything critical
-static inline AvenStr aven_str_delete_in_place(AvenStr str, AvenStr substr) {
+static inline AvenStr aven_str_delete_in_place(
+    AvenStr str,
+    AvenStrSlice substrs
+) {
     size_t fin = 0;
     size_t start = 0;
     size_t end = 0;
     while (end < str.len) {
-        AvenStr head = aven_str_range(str, end, min(str.len, end + substr.len));
-        if (aven_str_equals(head, substr)) {
-            if (start != end) {
-                AvenStr src = aven_str_range(str, start, end);
-                if (fin != start) {
-                    AvenStr dest = aven_str_range(str, fin, fin + src.len);
-                    slice_copy(dest, src);
+        bool replaced = false;
+        for (size_t i = 0; i < substrs.len; i += 1) {
+            AvenStr substr = get(substrs, i);
+            AvenStr head = aven_str_range(str, end, min(str.len, end + substr.len));
+            if (aven_str_equals(head, substr)) {
+                if (start != end) {
+                    AvenStr src = aven_str_range(str, start, end);
+                    if (fin != start) {
+                        AvenStr dest = aven_str_range(str, fin, fin + src.len);
+                        slice_copy(dest, src);
+                    }
+                    fin += src.len;
                 }
-                fin += src.len;
+                end += substr.len;
+                start = end;
+                replaced = true;
+                break;
             }
-            end += substr.len;
-            start = end;
-        } else {
+        }
+        if (!replaced) {
             end += 1;
         }
     }
