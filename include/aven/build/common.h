@@ -22,6 +22,7 @@ typedef struct {
     AvenStr linker;
     AvenStr outflag;
     AvenStr libflag;
+    AvenStr conflag;
     AvenStr winflag;
     AvenStr shrflag;
     AvenStrSlice flags;
@@ -483,6 +484,37 @@ static AvenArg aven_build_common_args_data[] = {
         },
     },
     {
+        .name = aven_str_init("-ldconflag"),
+        .description = aven_str_init(
+            "Linker flag to link a console application"
+        ),
+        .type = AVEN_ARG_TYPE_STRING,
+        .value = {
+            .type = AVEN_ARG_TYPE_STRING,
+#if defined(AVEN_BUILD_COMMON_DEFAULT_LDCONFLAG)
+            .data = {
+                .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_LDCONFLAG),
+            },
+#elif defined(_WIN32)
+    #if defined(__clang__)
+        #if defined (_MSC_VER)
+            .data = { .arg_str = aven_str_init("-Wl,/SUBSYSTEM:CONSOLE") },
+        #else
+            .data = { .arg_str = aven_str_init("-Wl,--subsystem,console") },
+        #endif
+    #elif defined(_MSC_VER)
+            .data = { .arg_str = aven_str_init("/SUBSYSTEM:CONSOLE") },
+    #elif defined(__GNUC__)
+            .data = { .arg_str = aven_str_init("-mconsole") },
+    #else
+            .data = { .arg_str = aven_str_init("") },
+    #endif
+#else
+            .data = { .arg_str = aven_str_init("") },
+#endif
+        },
+    },
+    {
         .name = aven_str_init("-ldwinflag"),
         .description = aven_str_init(
             "Linker flag to link a graphical window application"
@@ -495,14 +527,16 @@ static AvenArg aven_build_common_args_data[] = {
                 .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_LDWINFLAG),
             },
 #elif defined(_WIN32)
-    #if defined(_MSC_VER) and !defined(__clang__)
+    #if defined(__clang__)
+        #if defined (_MSC_VER)
+            .data = { .arg_str = aven_str_init("-Wl,/SUBSYSTEM:WINDOWS") },
+        #else
+            .data = { .arg_str = aven_str_init("-Wl,--subsystem,windows") },
+        #endif
+    #elif defined(_MSC_VER)
             .data = { .arg_str = aven_str_init("/SUBSYSTEM:WINDOWS") },
     #elif defined(__GNUC__)
-        #if defined(__clang__)
-            .data = { .arg_str = aven_str_init("-Wl,--subsystem,windows") },
-        #else
-            .data = { .arg_str = aven_str_init("-mwindows") },
-        #endif
+        .data = { .arg_str = aven_str_init("-mwindows") },
     #else
             .data = { .arg_str = aven_str_init("") },
     #endif
@@ -655,6 +689,7 @@ static inline AvenBuildCommonOpts aven_build_common_opts(
     }
     opts.ld.outflag = aven_arg_get_str(arg_slice, "-ldoutflag");
     opts.ld.libflag = aven_arg_get_str(arg_slice, "-ldlibflag");
+    opts.ld.conflag = aven_arg_get_str(arg_slice, "-ldconflag");
     opts.ld.winflag = aven_arg_get_str(arg_slice, "-ldwinflag");
     opts.ld.shrflag = aven_arg_get_str(arg_slice, "-ldshrflag");
     opts.ld.flagsep = aven_arg_get_bool(arg_slice, "-ldflagsep");
@@ -925,9 +960,14 @@ static AvenBuildStep aven_build_common_step_ld(
             }
             break;
         case AVEN_BUILD_COMMON_BIN_TYPE_DLL:
-            list_push(cmd_list) = opts->ld.shrflag;
+            if (opts->ld.shrflag.len > 0) {
+                list_push(cmd_list) = opts->ld.shrflag;
+            }
             break;
         case AVEN_BUILD_COMMON_BIN_TYPE_CONSOLE:
+            if (opts->ld.conflag.len > 0) {
+                list_push(cmd_list) = opts->ld.conflag;
+            }
             break;
     }
 
