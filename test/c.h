@@ -24,23 +24,23 @@ static AvenTestResult test_aven_c_lex_pp(
 ) {
     TestAvenCLexPpArgs *pp_args = args;
 
-    AvenCPpTokenSet actual = aven_c_lex_pp(pp_args->src, &arena);
-    if (actual.tokens.len != pp_args->expected.len + 1) {
+    AvenCPpTokenSlice actual = aven_c_lex_pp(pp_args->src, &arena);
+    if (actual.len != pp_args->expected.len + 1) {
         return (AvenTestResult){
             .error = 1,
             .message = aven_fmt(
                 emsg_arena,
                 "expected {} tokens, found {}",
                 aven_fmt_uint(pp_args->expected.len + 1),
-                aven_fmt_uint(actual.tokens.len)
+                aven_fmt_uint(actual.len)
             ),
         };
     }
     for (uint32_t i = 0; i < pp_args->expected.len; i += 1) {
-        AvenCPpToken at = get(actual.tokens, i);
+        AvenCPpToken at = get(actual, i);
         TestAvenCPpToken et = get(pp_args->expected, i);
 
-        AvenStr as = aven_c_pp_token_str(actual, i);
+        AvenStr as = aven_c_pp_token_str(at, pp_args->src);
 
         if (
             at.type != et.type or
@@ -59,10 +59,7 @@ static AvenTestResult test_aven_c_lex_pp(
             };
         }
     }
-    if (
-        get(actual.tokens, actual.tokens.len - 1).type !=
-            AVEN_C_PP_TOKEN_TYPE_NONE
-    ) {
+    if (get(actual, actual.len - 1).type != AVEN_C_PP_TOKEN_TYPE_NONE) {
         return (AvenTestResult){
             .error = 1,
             .message = aven_str("no terminating NONE token"),
@@ -74,7 +71,7 @@ static AvenTestResult test_aven_c_lex_pp(
 
 typedef struct {
     TestAvenCPpToken token;
-    AvenCPpTokenLoc loc;
+    AvenCTokenLoc loc;
 } TestAvenCPpTokenLoc;
 
 typedef struct {
@@ -89,24 +86,24 @@ static AvenTestResult test_aven_c_pp_token_loc(
 ) {
     TestAvenCPpTokenLocArgs *pp_args = args;
 
-    AvenCPpTokenSet actual = aven_c_lex_pp(pp_args->src, &arena);
-    if (actual.tokens.len != pp_args->expected.len + 1) {
+    AvenCPpTokenSlice actual = aven_c_lex_pp(pp_args->src, &arena);
+    if (actual.len != pp_args->expected.len + 1) {
         return (AvenTestResult){
             .error = 1,
             .message = aven_fmt(
                 emsg_arena,
                 "expected {} tokens, found {}",
                 aven_fmt_uint(pp_args->expected.len),
-                aven_fmt_uint(actual.tokens.len)
+                aven_fmt_uint(actual.len)
             ),
         };
     }
     for (uint32_t i = 0; i < pp_args->expected.len; i += 1) {
-        AvenCPpToken at = get(actual.tokens, i);
-        AvenCPpTokenLoc al = aven_c_pp_token_loc(actual, i);
+        AvenCPpToken at = get(actual, i);
+        AvenCTokenLoc al = aven_c_pp_token_loc(at, pp_args->src);
         TestAvenCPpTokenLoc et = get(pp_args->expected, i);
 
-        AvenStr as = aven_c_pp_token_str(actual, i);
+        AvenStr as = aven_c_pp_token_str(at, pp_args->src);
 
         if (
             at.type != et.token.type or
@@ -140,10 +137,7 @@ static AvenTestResult test_aven_c_pp_token_loc(
             };
         }
     }
-    if (
-        get(actual.tokens, actual.tokens.len - 1).type !=
-            AVEN_C_PP_TOKEN_TYPE_NONE
-    ) {
+    if (get(actual, actual.len - 1).type != AVEN_C_PP_TOKEN_TYPE_NONE) {
         return (AvenTestResult){
             .error = 1,
             .message = aven_str("no terminating NONE token"),
@@ -310,7 +304,7 @@ static int test_c(AvenArena arena) {
                 .expected = slice_array(
                     (TestAvenCPpToken[]){
                         {
-                            .val = aven_str("\"Hello, World!\\n\""),
+                            .val = aven_str("Hello, World!\\n"),
                             .type = AVEN_C_PP_TOKEN_TYPE_STR,
                         },
                     }
@@ -325,7 +319,7 @@ static int test_c(AvenArena arena) {
                 .expected = slice_array(
                     (TestAvenCPpToken[]){
                         {
-                            .val = aven_str("\"\\17\""),
+                            .val = aven_str("\\17"),
                             .type = AVEN_C_PP_TOKEN_TYPE_STR,
                         },
                     }
@@ -340,7 +334,7 @@ static int test_c(AvenArena arena) {
                 .expected = slice_array(
                     (TestAvenCPpToken[]){
                         {
-                            .val = aven_str("\"color code: \\xFFAA22\""),
+                            .val = aven_str("color code: \\xFFAA22"),
                             .type = AVEN_C_PP_TOKEN_TYPE_STR,
                         },
                     }

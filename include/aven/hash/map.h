@@ -14,10 +14,13 @@
         .set = aven_hash_set_init(s, e, a), \
         .values = aven_arena_create_slice(t, a, ((size_t)1) << e), \
     }
-
+#define aven_hash_map_set(m, k) get( \
+        (m).values, \
+        aven_hash_set_insert(&(m).set, k) - 1 \
+    )
 #define aven_hash_map_get(m, k) get( \
         (m).values, \
-        aven_hash_set_lookup(&(m).set, k) \
+        aven_hash_set_contains(&(m).set, k) - 1 \
     )
 
 typedef struct {
@@ -27,11 +30,16 @@ typedef struct {
     AvenHashCtx hash_ctx;
 } AvenHashSet;
 
+static unsigned char aven_hash_set_tombstone[] = {
+    0xa7, 0xe2, 0x4a, 0x54, 0x5e, 0x77, 0x08, 0x85, 0x70, 0x4e
+};
+
 static inline AvenHashSet aven_hash_set_init(
     uint64_t seed,
     uint32_t exp,
     AvenArena *arena
 ) {
+    assert(exp < 32);
     AvenHashSet set = {
         .keys = aven_arena_create_slice(ByteSlice, arena, ((size_t)1) << exp),
         .exp = exp,
@@ -44,21 +52,35 @@ static inline AvenHashSet aven_hash_set_init(
     return set;
 }
 
-static inline uint32_t aven_hash_set_lookup(AvenHashSet *set, ByteSlice key) {
+static inline uint32_t aven_hash_set_insert(AvenHashSet *set, ByteSlice key) {
     uint64_t hash = aven_hash(&set->hash_ctx, key);
-    uint32_t step = (uint32_t)(hash >> (((uint32_t)64) - set->exp)) | 1;
+    uint32_t step = (uint32_t)(hash >> (64 - set->exp)) | 1;
     uint32_t i = (uint32_t)hash;
-    for (uint32_t count = 0; count < set->keys.len; count += 1) {
+    for (size_t count = 0; count < set->keys.len; count += 1) {
         i = (i + step) & set->mask;
         if (get(set->keys, i).len == 0) {
             get(set->keys, i) = key;
-            return i;
+            return i + 1;
         } else if (bytes_equal(key, get(set->keys, i))) {
-            return i;
+            return i + 1;
         }
     }
-    aven_panic("hash map full");
-    return 0xffffffff;
+    return 0;
+}
+
+static inline uint32_t aven_hash_set_contains(AvenHashSet *set, ByteSlice key) {
+    uint64_t hash = aven_hash(&set->hash_ctx, key);
+    uint32_t step = (uint32_t)(hash >> (64 - set->exp)) | 1;
+    uint32_t i = (uint32_t)hash;
+    for (size_t count = 0; count < set->keys.len; count += 1) {
+        i = (i + step) & set->mask;
+        if (get(set->keys, i).len == 0) {
+            return 0;
+        } else if (bytes_equal(key, get(set->keys, i))) {
+            return i + 1;
+        }
+    }
+    return 0;
 }
 
 #endif // AVEN_HASH_SET_H

@@ -3,6 +3,8 @@
 
 #include "../aven.h"
 #include "arena.h"
+#include "hash.h"
+#include "io.h"
 #include "str.h"
 
 typedef enum {
@@ -119,6 +121,7 @@ typedef enum {
     AVEN_C_PP_TOKEN_TYPE_STR,
     AVEN_C_PP_TOKEN_TYPE_PNC,
     AVEN_C_PP_TOKEN_TYPE_OTH,
+    AVEN_C_PP_TOKEN_TYPE_MAC,
 } AvenCPpTokenType;
 
 static const AvenStr aven_c_pp_token_type_str_data[] = {
@@ -149,44 +152,95 @@ typedef struct {
 } AvenCPpToken;
 typedef Slice(AvenCPpToken) AvenCPpTokenSlice;
 
-typedef struct {
-    AvenStr bytes;
-    AvenCPpTokenSlice tokens;
-} AvenCPpTokenSet;
-
-static inline AvenStr aven_c_pp_token_str(
-    AvenCPpTokenSet tset,
-    uint32_t index
-) {
-    AvenCPpToken token = get(tset.tokens, index);
+static inline AvenStr aven_c_pp_token_str(AvenCPpToken token, AvenStr src) {
     if (token.type == AVEN_C_PP_TOKEN_TYPE_KEY) {
         return aven_c_keyword_str((AvenCKeyword)token.len);
     }
+    return aven_str_range(
+        src,
+        token.index,
+        token.index + token.len
+    );
+}
 
-    return aven_str_range(tset.bytes, token.index, token.index + token.len);
+typedef struct {
+    uint32_t src;
+    uint32_t pp;
+} AvenCToken;
+typedef Slice(AvenCToken) AvenCTokenSlice;
+typedef List(AvenCToken) AvenCTokenList;
+
+typedef struct {
+    AvenStr bytes;
+    AvenCPpTokenSlice src_tokens;
+    AvenCTokenSlice tokens;
+} AvenCTokenSet; 
+
+static inline AvenCPpToken aven_c_token_get_pp(
+    AvenCTokenSet tset,
+    uint32_t index
+) {
+    return get(tset.src_tokens, get(tset.tokens, index).pp - 1);
+}
+
+static inline AvenStr aven_c_token_str(
+    AvenCTokenSet tset,
+    uint32_t index
+) {
+    AvenCToken token = get(tset.tokens, index);
+    AvenCPpToken src_token = get(tset.src_tokens, token.pp - 1);
+    return aven_c_pp_token_str(src_token, tset.bytes);
+}
+
+typedef enum {
+    AVEN_C_TOKEN_ORIGIN_SRC = 0,
+    AVEN_C_TOKEN_ORIGIN_REP,
+    AVEN_C_TOKEN_ORIGIN_GEN,
+} AvenCTokenOrigin;
+
+static inline AvenCTokenOrigin aven_c_token_origin(
+    AvenCTokenSet tset,
+    uint32_t index
+) {
+    AvenCToken token = get(tset.tokens, index);
+    if (token.src == 0) {
+        return AVEN_C_TOKEN_ORIGIN_GEN;
+    }
+    if (token.src != token.pp) {
+        return AVEN_C_TOKEN_ORIGIN_REP;
+    }
+    return AVEN_C_TOKEN_ORIGIN_SRC;
 }
 
 typedef struct {
     uint32_t line;
     uint32_t col;
-} AvenCPpTokenLoc;
+} AvenCTokenLoc;
 
-static inline AvenCPpTokenLoc aven_c_pp_token_loc(
-    AvenCPpTokenSet tset,
-    uint32_t tindex
+static inline AvenCTokenLoc aven_c_pp_token_loc(
+    AvenCPpToken token,
+    AvenStr src
 ) {
-    AvenCPpToken token = get(tset.tokens, tindex);
     uint32_t line = 1;
     uint32_t col = 1;
     for (uint32_t i = 0; i < token.index; i += 1) {
-        if (get(tset.bytes, i) == '\n') {
+        if (get(src, i) == '\n') {
             line += 1;
             col = 1;
         } else {
             col += 1;
         }
     }
-    return (AvenCPpTokenLoc){ .line = line, .col = col };
+    return (AvenCTokenLoc){ .line = line, .col = col };
+}
+
+static inline AvenCTokenLoc aven_c_token_loc(
+    AvenCTokenSet tset,
+    uint32_t tindex
+) {
+    AvenCToken token = get(tset.tokens, tindex);
+    AvenCPpToken src_token = get(tset.src_tokens, token.src);
+    return aven_c_pp_token_loc(src_token, tset.bytes);
 }
 
 typedef struct {
@@ -524,15 +578,8 @@ static inline bool aven_c_lex_character_const(AvenCLexPpCtx *ctx) {
 
 static inline bool aven_c_lex_string_lit(AvenCLexPpCtx *ctx) {
     uint32_t init_index = ctx->index;
-    if (
-        !(
-            aven_c_lex_char(ctx, '\"') or
-            aven_c_lex_str(ctx, aven_str("u8\"")) or
-            aven_c_lex_str(ctx, aven_str("u\"")) or
-            aven_c_lex_str(ctx, aven_str("U\"")) or
-            aven_c_lex_str(ctx, aven_str("L\""))
-        )
-    ) {
+    // not doing C11 UTF8 encoding prefixes
+    if (!aven_c_lex_char(ctx, '\"')) {
         return false;
     }
 
@@ -807,19 +854,25 @@ static inline bool aven_c_lex_pp_step(AvenCLexPpCtx *ctx) {
         return false;
     }
     if (aven_c_lex_character_const(ctx)) {
+        assert(get(ctx->bytes, ctx->token_start) == '\'');
+        ctx->token_start += 1;
         list_push(ctx->tokens) = (AvenCPpToken){
             .type = AVEN_C_PP_TOKEN_TYPE_CHR,
             .index = ctx->token_start,
-            .len = ctx->index - ctx->token_start,
+            .len = (ctx->index - ctx->token_start) - 1,
         };
         ctx->token_start = ctx->index;
         return false;
     }
     if (aven_c_lex_string_lit(ctx)) {
+        while (get(ctx->bytes, ctx->token_start) != '\"') {
+            ctx->token_start += 1;
+        }
+        ctx->token_start += 1;
         list_push(ctx->tokens) = (AvenCPpToken){
             .type = AVEN_C_PP_TOKEN_TYPE_STR,
             .index = ctx->token_start,
-            .len = ctx->index - ctx->token_start,
+            .len = (ctx->index - ctx->token_start) - 1,
         };
         ctx->token_start = ctx->index;
         return false;
@@ -854,36 +907,84 @@ static inline bool aven_c_lex_pp_step(AvenCLexPpCtx *ctx) {
     return true;
 }
 
-static const AvenCPpToken aven_c_token_empty = { 0 };
-static const AvenCPpTokenSet aven_c_token_set_empty = {
-    .tokens = {
-        .ptr = (AvenCPpToken *)&aven_c_token_empty,
-        .len = 1,
-    },
-    .bytes = { 0 },
-};
-
-static inline AvenCPpTokenSet aven_c_lex_pp(AvenStr bytes, AvenArena *arena) {
-    if (bytes.len == 0) {
-        return aven_c_token_set_empty;
-    }
-
+static inline AvenCPpTokenSlice aven_c_lex_pp(AvenStr bytes, AvenArena *arena) {
     AvenCLexPpCtx ctx = aven_c_lex_pp_init(bytes, arena);
 
     while (!aven_c_lex_pp_step(&ctx)) {}
 
-    return (AvenCPpTokenSet){
-        .bytes = bytes,
-        .tokens = aven_arena_commit_list_to_slice(
-            AvenCPpTokenSlice,
-            arena,
-            ctx.tokens
-        ),
-    };
+    return aven_arena_commit_list_to_slice(
+        AvenCPpTokenSlice,
+        arena,
+        ctx.tokens
+    );
 }
 
 typedef enum {
+    AVEN_C_MACRO_TYPE_REP,
+    AVEN_C_MACRO_TYPE_FN,
+} AvenCMacroType;
+
+typedef struct {
+    uint32_t token;
+} AvenCMacroRep;
+
+typedef struct {
+    uint32_t token;
+    uint32_t arity;
+} AvenCMacroFn;
+
+typedef struct {
+    AvenCMacroType type;
+    union {
+        AvenCMacroRep rep;
+        AvenCMacroFn fn;
+    } data;
+} AvenCMacro;
+typedef AvenHashMapFlat(AvenCMacro) AvenCMacroMap;
+typedef List(uint32_t) AvenCMacroHideList;
+
+typedef struct {
+    AvenStr bytes;
+    AvenCPpTokenSlice src_tokens;
+    AvenCMacroMap macros;
+    AvenCTokenList tokens;
+    AvenCTokenList scratch;
+    AvenCMacroHideList hide_list;
+    uint32_t token_index;
+} AvenCPpCtx;
+
+static inline AvenCPpCtx aven_c_pp_init(
+    AvenStr src,
+    AvenCPpTokenSlice tokens,
+    AvenArena *arena
+) {
+    AvenCPpCtx ctx = {
+        .bytes = src,
+        .src_tokens = tokens,
+    };
+
+    ctx.tokens = (AvenCTokenList)aven_arena_create_list(
+        AvenCToken,
+        arena,
+        tokens.len * 8
+    );
+
+    uint32_t map_len = (uint32_t)(tokens.len / 2);
+    uint32_t hash_exp = 1;
+    for (; hash_exp - 1 > map_len; hash_exp <<= 1) {}
+    ctx.macros = (AvenCMacroMap)aven_hash_map_flat_init(
+        AvenCMacro,
+        0xdead,
+        hash_exp,
+        arena
+    );
+}
+
+/*
+
+typedef enum {
     AVEN_C_AST_NODE_TYPE_NONE = 0,
+    AVEN_C_AST_NODE_TYPE_PREPROCESSOR_COND,
     AVEN_C_AST_NODE_TYPE_PUNCTUATOR,
     AVEN_C_AST_NODE_TYPE_STRING_LITERAL,
     AVEN_C_AST_NODE_TYPE_CONSTANT,
@@ -919,6 +1020,24 @@ typedef struct {
     uint32_t rhs;
 } AvenCAstNode;
 typedef Optional(AvenCAstNode) AvenCAstNodeOpt;
+typedef Slice(AvenCAstNode) AvenCAstNodeSlice;
+
+typedef Slice(uint32_t) AvenCAstDataSlice;
+
+typedef struct {
+    AvenCPpTokenSet tset;
+    AvenCAstNodeSlice nodes;
+    AvenCAstDataSlice data;
+    uint32_t root;
+} AvenCAst;
+
+static inline AvenCAstNode aven_c_ast_node(AvenCAst *ast, uint32_t index) {
+    return get(ast->nodes, index - 1);
+}
+
+static inline uint32_t aven_c_ast_data(AvenCAst *ast, uint32_t index) {
+    return get(ast->data, index - 1);
+}
 
 typedef struct {
     AvenCPpTokenSet tset;
@@ -992,16 +1111,6 @@ static inline uint32_t aven_c_ast_push(
         .rhs = rhs,
     };
     return (uint32_t)(ctx->nodes.len);
-}
-
-static inline AvenCAstNodeOpt aven_c_ast_get(AvenCAstCtx *ctx, uint32_t index) {
-    if (index == 0) {
-        return (AvenCAstNodeOpt){ 0 };
-    }
-    return (AvenCAstNodeOpt){
-        .valid = true,
-        .value = get(ctx->nodes, index - 1),
-    };
 }
 
 static inline uint32_t aven_c_ast_push_leaf(
@@ -2351,9 +2460,79 @@ static inline uint32_t aven_c_ast_parse_const_expr(AvenCAstCtx *ctx) {
     return aven_c_ast_parse_conditional_expr(ctx);
 }
 
-static inline bool aven_c_ast_step(AvenCAstCtx *ctx) {
+static inline bool aven_c_ast_parse_step(AvenCAstCtx *ctx) {
     ctx->root = aven_c_ast_parse_expr(ctx);
     return true;
 }
+
+static inline AvenCAst aven_c_ast_parse(AvenCPpTokenSet tset, AvenArena *arena) {
+    AvenArena temp_arena = *arena;
+    AvenCAstCtx ctx = aven_c_ast_init(tset, &temp_arena);
+    while (aven_c_ast_parse_step(&ctx)) {}
+    if (ctx.root == 0) {
+        return (AvenCAst){ 0 };
+    }
+    *arena = temp_arena;
+    return (AvenCAst){
+        .tset = tset,
+        .nodes = slice_list(ctx.nodes),
+        .data = slice_list(ctx.data),
+        .root = ctx.root,
+    };
+}
+
+typedef struct {
+    AvenCAst *ast;
+    AvenIoWriter *out_writer;
+    AvenStr line;
+    uint32_t cursor;
+} AvenCAstRenderCtx;
+
+static inline bool aven_c_ast_render_write(AvenCAstRenderCtx* ast, AvenStr str) {
+    return aven_io_writer_push(
+        &ast->line_writer,
+        (ByteSlice){ .ptr = (unsigned char *)str.ptr, .len = str.len }
+    ).payload == str.len;
+}
+
+static inline bool aven_c_ast_render_expr(
+    AvenCAstRenderCtx *ctx,
+    uint32_t index,
+    bool split
+) {
+    uint32_t last_cursor = ctx->cursor;
+    if (index == 0) {
+        return false;
+    }
+    AvenCAstNode node = aven_c_ast_node(ctx->ast, index);
+    if (node.type == AVEN_C_AST_NODE_TYPE_EXPR) {
+       if (aven_c_ast_render_expr(ctx, node.lhs, false)) {
+           return true;
+       }
+       if (aven_c_ast_render_write_str(ctx, aven_str(", "))) {
+           ctx->cursor = last_cursor;
+           return true;
+       }
+       if (aven_c_ast_render_assign_expr(ctx, node.rhs, writer)) {
+           if (!split) {
+               return true;
+           }
+           aven_c_ast_render_write_newline(ctx);
+           if (aven_c_ast_render_assign_expr(ast, node.rhs, writer)) {
+               return true;
+           }
+       }
+    } else if (node.type == AVEN_C_AST_NODE_TYPE_ASSIGN_EXPR) {
+        if (!aven_c_ast_render_assign_expr(ctx, index, writer)) {
+            
+        }
+    }
+}
+
+static inline void aven_c_ast_render(AvenCAstRenderCtx *ctx) {
+    aven_c_ast_render_expr(ctx, ctx->ast->root);
+}
+
+*/
 
 #endif // AVEN_C_H

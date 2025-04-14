@@ -273,6 +273,10 @@ static int aven_io_writer_flush(AvenIoWriter *writer) {
     return AVEN_IO_ERROR_NONE;
 }
 
+static inline void aven_io_writer_clear_buffer(AvenIoWriter *writer) {
+    writer->index = 0;
+}
+
 static inline AvenIoResult aven_io_writer_push(
     AvenIoWriter *writer,
     ByteSlice src

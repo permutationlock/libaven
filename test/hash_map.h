@@ -4,29 +4,29 @@
 #include <aven.h>
 #include <aven/arena.h>
 #include <aven/fmt.h>
-#include <aven/hash/map.h>
+#include <aven/hash.h>
 #include <aven/str.h>
 #include <aven/test.h>
 
 typedef struct {
     ByteSlice key;
     ByteSlice value;
-} TestHashMapKVPair;
+} TestHashMapFlatKVPair;
 
 typedef struct {
-    Slice(TestHashMapKVPair) kv_pairs;
+    Slice(TestHashMapFlatKVPair) kv_pairs;
     uint64_t seed;
     uint32_t exp;
-} TestAvenHashMapArgs;
+} TestAvenHashMapFlatArgs;
 
-AvenTestResult test_aven_hash_map(
+AvenTestResult test_aven_hash_map_flat(
     AvenArena *emsg_arena,
     AvenArena arena,
     void *opaque_args
 ) {
-    TestAvenHashMapArgs *args = opaque_args;
+    TestAvenHashMapFlatArgs *args = opaque_args;
 
-    AvenHashMap(ByteSlice) map = aven_hash_map_init(
+    AvenHashMapFlat(ByteSlice) map = aven_hash_map_flat_init(
         ByteSlice,
         args->seed,
         args->exp,
@@ -34,14 +34,14 @@ AvenTestResult test_aven_hash_map(
     );
 
     for (size_t i = 0; i < args->kv_pairs.len; i += 1) {
-        TestHashMapKVPair kv_pair = get(args->kv_pairs, i);
-        aven_hash_map_get(map, kv_pair.key) = kv_pair.value;
+        TestHashMapFlatKVPair kv_pair = get(args->kv_pairs, i);
+        aven_hash_map_flat_get_or_put(map, kv_pair.key) = kv_pair.value;
     }
 
     size_t valid_entries = 0;
     for (size_t i = 0; i < args->kv_pairs.len; i += 1) {
-        TestHashMapKVPair kv_pair = get(args->kv_pairs, i);
-        ByteSlice actual = aven_hash_map_get(map, kv_pair.key);
+        TestHashMapFlatKVPair kv_pair = get(args->kv_pairs, i);
+        ByteSlice actual = aven_hash_map_flat_get(map, kv_pair.key);
         if (bytes_equal(actual, kv_pair.value)) {
             valid_entries += 1;
         }
@@ -65,22 +65,22 @@ AvenTestResult test_aven_hash_map(
 static int test_hash_map(AvenArena arena) {
     AvenTestCase tcase_data[] = {
         {
-            .desc = aven_str("aven_hash_map_init"),
-            .fn = test_aven_hash_map,
-            .args = &(TestAvenHashMapArgs){
+            .desc = aven_str("aven_hash_map_flat_init"),
+            .fn = test_aven_hash_map_flat,
+            .args = &(TestAvenHashMapFlatArgs){
                 .exp = 2,
                 .seed = 0xdead,
                 .kv_pairs = { 0 },
             },
         },
         {
-            .desc = aven_str("aven_hash_map_get insert and retrieve 1 item"),
-            .fn = test_aven_hash_map,
-            .args = &(TestAvenHashMapArgs){
+            .desc = aven_str("aven_hash_map_flat_get insert and retrieve 1 item"),
+            .fn = test_aven_hash_map_flat,
+            .args = &(TestAvenHashMapFlatArgs){
                 .exp = 2,
                 .seed = 0xdead,
                 .kv_pairs = slice_array(
-                    (TestHashMapKVPair[]){
+                    (TestHashMapFlatKVPair[]){
                         {
                             .key = slice_as_bytes(aven_str("hello")),
                             .value = slice_as_bytes(aven_str("world")),
@@ -90,13 +90,13 @@ static int test_hash_map(AvenArena arena) {
             },
         },
         {
-            .desc = aven_str("aven_hash_map_get insert and retrieve 3 items"),
-            .fn = test_aven_hash_map,
-            .args = &(TestAvenHashMapArgs){
+            .desc = aven_str("aven_hash_map_flat_get insert and retrieve 3 items"),
+            .fn = test_aven_hash_map_flat,
+            .args = &(TestAvenHashMapFlatArgs){
                 .exp = 4,
                 .seed = 0xbeef,
                 .kv_pairs = slice_array(
-                    (TestHashMapKVPair[]){
+                    (TestHashMapFlatKVPair[]){
                         {
                             .key = slice_as_bytes(aven_str("a")),
                             .value = slice_as_bytes(aven_str("1")),
