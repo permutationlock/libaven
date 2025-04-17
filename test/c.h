@@ -24,7 +24,8 @@ static AvenTestResult test_aven_c_lex_pp(
 ) {
     TestAvenCLexPpArgs *pp_args = args;
 
-    AvenCPpTokenSlice actual = aven_c_lex_pp(pp_args->src, &arena).tokens;
+    AvenCPpTokenSet tset = aven_c_lex_pp(pp_args->src, &arena);
+    AvenCPpTokenSlice actual = tset.tokens;
     if (actual.len != pp_args->expected.len + 1) {
         return (AvenTestResult){
             .error = 1,
@@ -40,7 +41,7 @@ static AvenTestResult test_aven_c_lex_pp(
         AvenCPpToken at = get(actual, i);
         TestAvenCPpToken et = get(pp_args->expected, i);
 
-        AvenStr as = aven_c_pp_token_str(at, pp_args->src);
+        AvenStr as = aven_c_pp_token_str(tset, i);
 
         if (
             at.type != et.type or
@@ -86,7 +87,8 @@ static AvenTestResult test_aven_c_pp_token_loc(
 ) {
     TestAvenCPpTokenLocArgs *pp_args = args;
 
-    AvenCPpTokenSlice actual = aven_c_lex_pp(pp_args->src, &arena).tokens;
+    AvenCPpTokenSet tset = aven_c_lex_pp(pp_args->src, &arena);
+    AvenCPpTokenSlice actual = tset.tokens;
     if (actual.len != pp_args->expected.len + 1) {
         return (AvenTestResult){
             .error = 1,
@@ -103,8 +105,7 @@ static AvenTestResult test_aven_c_pp_token_loc(
         AvenCTokenLoc al = aven_c_pp_token_loc(at, pp_args->src);
         TestAvenCPpTokenLoc et = get(pp_args->expected, i);
 
-        AvenStr as = aven_c_pp_token_str(at, pp_args->src);
-
+        AvenStr as = aven_c_pp_token_str(tset, i);
         if (
             at.type != et.token.type or
             !aven_str_equals(as, et.token.val)
@@ -144,6 +145,54 @@ static AvenTestResult test_aven_c_pp_token_loc(
         };
     }
 
+    return (AvenTestResult){ 0 };
+}
+
+typedef struct {
+    AvenStr src;
+    AvenStr expected;
+    size_t line_len;
+} TestAvenCAstRenderArgs;
+
+static AvenTestResult test_aven_c_ast_render(
+    AvenArena *emsg_arena,
+    AvenArena arena,
+    void *args
+) {
+    TestAvenCAstRenderArgs *fmt_args = args;
+
+    AvenCPpTokenSet tset = aven_c_lex_pp(fmt_args->src, &arena);
+    AvenCAst ast = aven_c_ast_parse(tset, &arena);
+    ByteSlice out_buffer = aven_arena_create_slice(
+        unsigned char,
+        &arena,
+        8 * fmt_args->expected.len
+    );
+    AvenIoWriter writer = aven_io_writer_init_bytes(out_buffer);
+    int error =  aven_c_ast_render(&ast, &writer, fmt_args->line_len, arena);
+    if (error != 0) {
+        return (AvenTestResult){
+            .error = 1,
+            .message = aven_fmt(
+                emsg_arena,
+                "encountered io error: {}",
+                aven_fmt_int(error)
+            ),
+        };
+    }
+    ByteSlice written = slice_head(writer.buffer, writer.index);
+    AvenStr actual = { .ptr = (char *)written.ptr, .len = written.len };
+    if (!aven_str_equals(actual, fmt_args->expected)) {
+        return (AvenTestResult){
+            .error = 1,
+            .message = aven_fmt(
+                emsg_arena,
+                "expected \"{}\", found \"{}\"",
+                aven_fmt_str(fmt_args->expected),
+                aven_fmt_str(actual)
+            ),
+        };
+    }
     return (AvenTestResult){ 0 };
 }
 
@@ -591,6 +640,114 @@ static int test_c(AvenArena arena) {
                     "    }\n"
                 ),
                 .expected = { 0 },
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render expression"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("x = 2 + 2\n"),
+                .expected = aven_str("x = 2 + 2\n"),
+                .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render expression split same op add"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("x = 2 + 2 * 4 - 7\n"),
+                .expected = aven_str(
+                    "x = 2 +\n"
+                    "    2 * 4 -\n"
+                    "    7\n"
+                ),
+                .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render expression split same op mul"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("x = 10 - 2 * 2 * 4 - 7\n"),
+                .expected = aven_str(
+                    "x = 10 -\n"
+                    "    2 * 2 * 4 -\n"
+                    "    7\n"
+                ),
+                .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render expression split op same indent"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("10 - 2 * 2 * 4 - 7\n"),
+                .expected = aven_str(
+                    "10 -\n"
+                    "2 * 2 * 4 -\n"
+                    "7\n"
+                ),
+                .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render expression split same op mul"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("x = 10 - 2 * 2 * 4 - 7 = 32 + 7 + 14\n"),
+                .expected = aven_str(
+                    "x = 10 -\n"
+                    "    2 * 2 * 4 -\n"
+                    "    7\n"
+                    " = 32 + 7 + 14\n"
+                ),
+                .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render comment"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("x = 2 + 2 // Hello World!\n"),
+                .expected = aven_str(
+                    "x = 2 + 2\n"
+                    "// Hello World!\n"
+                ),
+                .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render internal block comment"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("x = 2 + /* add */ 2\n"),
+                .expected = aven_str(
+                    "x = 2 +\n"
+                    "    /*\n"
+                    "     * add \n"
+                    "     */\n"
+                    "    2\n"
+                ),
+                .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render multi-line pp directive"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "#define Slice(T) struct {\\\n"
+                    "        size_t len;\\\n"
+                    "        T *ptr;\\\n"
+                    "    }\n"
+                ),
+                .expected = aven_str(
+                    "#define Slice(T) struct {\\\n"
+                    "        size_t len;\\\n"
+                    "        T *ptr;\\\n"
+                    "    }\n"
+                ),
+                .line_len = 16,
             },
         },
     };
