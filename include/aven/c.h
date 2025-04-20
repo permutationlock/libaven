@@ -119,55 +119,84 @@ static inline AvenStr aven_c_keyword_str(AvenCKeyword kwd) {
 }
 
 typedef enum {
-    AVEN_C_PP_TOKEN_TYPE_NONE = 0,
-    AVEN_C_PP_TOKEN_TYPE_ID,
-    AVEN_C_PP_TOKEN_TYPE_KEY,
-    AVEN_C_PP_TOKEN_TYPE_NUM,
-    AVEN_C_PP_TOKEN_TYPE_CHR,
-    AVEN_C_PP_TOKEN_TYPE_STR,
-    AVEN_C_PP_TOKEN_TYPE_PNC,
-    AVEN_C_PP_TOKEN_TYPE_OTH,
-} AvenCPpTokenType;
+    AVEN_C_TOKEN_TYPE_NONE = 0,
+    AVEN_C_TOKEN_TYPE_ID,
+    AVEN_C_TOKEN_TYPE_KEY,
+    AVEN_C_TOKEN_TYPE_NUM,
+    AVEN_C_TOKEN_TYPE_CHR,
+    AVEN_C_TOKEN_TYPE_STR,
+    AVEN_C_TOKEN_TYPE_PNC,
+    AVEN_C_TOKEN_TYPE_PPD,
+    AVEN_C_TOKEN_TYPE_CMT,
+    AVEN_C_TOKEN_TYPE_OTH,
+} AvenCTokenType;
 
-static const AvenStr aven_c_pp_token_type_str_data[] = {
-    [AVEN_C_PP_TOKEN_TYPE_NONE] = aven_str_init("none"),
-    [AVEN_C_PP_TOKEN_TYPE_ID] = aven_str_init("identifier"),
-    [AVEN_C_PP_TOKEN_TYPE_KEY] = aven_str_init("keyword"),
-    [AVEN_C_PP_TOKEN_TYPE_NUM] = aven_str_init("pp-number"),
-    [AVEN_C_PP_TOKEN_TYPE_CHR] = aven_str_init("character-constant"),
-    [AVEN_C_PP_TOKEN_TYPE_STR] = aven_str_init("string-literal"),
-    [AVEN_C_PP_TOKEN_TYPE_PNC] = aven_str_init("punctuator"),
-    [AVEN_C_PP_TOKEN_TYPE_OTH] = aven_str_init("other"),
+static const AvenStr aven_c_token_type_str_data[] = {
+    [AVEN_C_TOKEN_TYPE_NONE] = aven_str_init("none"),
+    [AVEN_C_TOKEN_TYPE_ID] = aven_str_init("identifier"),
+    [AVEN_C_TOKEN_TYPE_KEY] = aven_str_init("keyword"),
+    [AVEN_C_TOKEN_TYPE_NUM] = aven_str_init("pp-number"),
+    [AVEN_C_TOKEN_TYPE_CHR] = aven_str_init("character-constant"),
+    [AVEN_C_TOKEN_TYPE_STR] = aven_str_init("string-literal"),
+    [AVEN_C_TOKEN_TYPE_PNC] = aven_str_init("punctuator"),
+    [AVEN_C_TOKEN_TYPE_PPD] = aven_str_init("comment"),
+    [AVEN_C_TOKEN_TYPE_PPD] = aven_str_init("preprocessor-directive"),
+    [AVEN_C_TOKEN_TYPE_OTH] = aven_str_init("other"),
 };
 
-static const AvenStrSlice aven_c_pp_token_type_strs = {
-    .ptr = (AvenStr *)aven_c_pp_token_type_str_data,
-    .len = countof(aven_c_pp_token_type_str_data),
+static const AvenStrSlice aven_c_token_type_strs = {
+    .ptr = (AvenStr *)aven_c_token_type_str_data,
+    .len = countof(aven_c_token_type_str_data),
 };
 
-static inline AvenStr aven_c_pp_token_type_str(AvenCPpTokenType token_type) {
-    return get(aven_c_pp_token_type_strs, (size_t)token_type);
+static inline AvenStr aven_c_token_type_str(AvenCTokenType token_type) {
+    return get(aven_c_token_type_strs, (size_t)token_type);
 }
 
 typedef struct {
-    AvenCPpTokenType type;
+    AvenCTokenType type;
     uint32_t index;
     uint32_t len;
-} AvenCPpToken;
-typedef Slice(AvenCPpToken) AvenCPpTokenSlice;
-typedef List(AvenCPpToken) AvenCPpTokenList;
+} AvenCToken;
+typedef Slice(AvenCToken) AvenCTokenSlice;
+typedef List(AvenCToken) AvenCTokenList;
 
 typedef struct {
     AvenStr bytes;
-    AvenCPpTokenSlice tokens;
-} AvenCPpTokenSet;
+    AvenCTokenSlice tokens;
+    AvenCTokenSlice ppd_tokens;
+} AvenCTokenSet;
 
-static inline AvenStr aven_c_pp_token_str(
-    AvenCPpTokenSet tset,
+static inline AvenStr aven_c_token_str(
+    AvenCTokenSet tset,
     uint32_t index
 ) {
-    AvenCPpToken token = get(tset.tokens, index);
-    if (token.type == AVEN_C_PP_TOKEN_TYPE_KEY) {
+    AvenCToken token = get(tset.tokens, index);
+    if (token.type == AVEN_C_TOKEN_TYPE_KEY) {
+        return aven_c_keyword_str((AvenCKeyword)token.len);
+    } else if (token.type == AVEN_C_TOKEN_TYPE_PPD) {
+        // Grab entire text chunk for all tokens within directive
+        AvenCToken t1 = get(tset.ppd_tokens, token.index);
+        AvenCToken tn = get(tset.ppd_tokens, token.index + (token.len - 1));
+        return aven_str_range(
+            tset.bytes,
+            t1.index,
+            tn.index + tn.len
+        );
+    }
+    return aven_str_range(
+        tset.bytes,
+        token.index,
+        token.index + token.len
+    );
+}
+
+static inline AvenStr aven_c_ppd_token_str(
+    AvenCTokenSet tset,
+    uint32_t index
+) {
+    AvenCToken token = get(tset.ppd_tokens, index);
+    if (token.type == AVEN_C_TOKEN_TYPE_KEY) {
         return aven_c_keyword_str((AvenCKeyword)token.len);
     }
     return aven_str_range(
@@ -182,8 +211,8 @@ typedef struct {
     uint32_t col;
 } AvenCTokenLoc;
 
-static inline AvenCTokenLoc aven_c_pp_token_loc(
-    AvenCPpToken token,
+static inline AvenCTokenLoc aven_c_token_loc(
+    AvenCToken token,
     AvenStr src
 ) {
     uint32_t line = 1;
@@ -201,19 +230,40 @@ static inline AvenCTokenLoc aven_c_pp_token_loc(
 
 typedef struct {
     AvenStr bytes;
-    AvenCPpTokenList tokens;
+    AvenCTokenList tokens;
+    AvenCTokenList child_tokens;
     uint32_t token_start;
     uint32_t index;
+    bool child;
     char next;
-} AvenCLexPpCtx;
+} AvenCLexCtx;
 
-static inline AvenCLexPpCtx aven_c_lex_pp_init(
+static inline AvenCLexCtx aven_c_lex_init(
     AvenStr bytes,
     AvenArena *arena
 ) {
-    return (AvenCLexPpCtx){
+    return (AvenCLexCtx){
         .bytes = bytes,
-        .tokens = aven_arena_create_list(AvenCPpToken, arena, bytes.len + 1),
+        .tokens = aven_arena_create_list(AvenCToken, arena, bytes.len + 1),
+        .child_tokens = aven_arena_create_list(
+            AvenCToken,
+            arena,
+            bytes.len + 1
+        ),
+    };
+}
+
+static inline AvenCLexCtx aven_c_lex_init_child(
+    AvenStr bytes,
+    uint32_t index,
+    AvenCTokenList tokens
+) {
+    return (AvenCLexCtx){
+        .bytes = bytes,
+        .index = index,
+        .token_start = index,
+        .tokens = tokens,
+        .child = true,
     };
 }
 
@@ -244,7 +294,7 @@ static inline bool aven_c_is_letter(char c) {
         return false; \
     }
 
-static inline bool aven_c_lex_next_internal(AvenCLexPpCtx *ctx) {
+static inline bool aven_c_lex_next_internal(AvenCLexCtx *ctx) {
     if (ctx->index >= ctx->bytes.len) {
         return false;
     }
@@ -253,7 +303,7 @@ static inline bool aven_c_lex_next_internal(AvenCLexPpCtx *ctx) {
     return true;
 }
 
-static inline bool aven_c_lex_char(AvenCLexPpCtx *ctx, char d) {
+static inline bool aven_c_lex_char(AvenCLexCtx *ctx, char d) {
     uint32_t init_index = ctx->index;
     aven_c_lex_next(ctx, init_index);
     if (ctx->next == d) {
@@ -263,7 +313,7 @@ static inline bool aven_c_lex_char(AvenCLexPpCtx *ctx, char d) {
     return false;
 }
 
-static inline bool aven_c_lex_str(AvenCLexPpCtx *ctx, AvenStr str) {
+static inline bool aven_c_lex_str(AvenCLexCtx *ctx, AvenStr str) {
     uint32_t init_index = ctx->index;
     for (size_t i = 0; i < str.len; i += 1) {
         if (!aven_c_lex_char(ctx, get(str, i))) {
@@ -274,7 +324,7 @@ static inline bool aven_c_lex_str(AvenCLexPpCtx *ctx, AvenStr str) {
     return true;
 }
 
-static inline bool aven_c_lex_oct_digit(AvenCLexPpCtx *ctx) {
+static inline bool aven_c_lex_oct_digit(AvenCLexCtx *ctx) {
     uint32_t init_index = ctx->index;
     aven_c_lex_next(ctx, init_index);
     if (aven_c_is_oct_digit(ctx->next)) {
@@ -284,7 +334,7 @@ static inline bool aven_c_lex_oct_digit(AvenCLexPpCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_lex_dec_digit(AvenCLexPpCtx *ctx) {
+static inline bool aven_c_lex_dec_digit(AvenCLexCtx *ctx) {
     uint32_t init_index = ctx->index;
     aven_c_lex_next(ctx, ctx->index);
     if (aven_c_is_dec_digit(ctx->next)) {
@@ -294,7 +344,7 @@ static inline bool aven_c_lex_dec_digit(AvenCLexPpCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_lex_hex_digit(AvenCLexPpCtx *ctx) {
+static inline bool aven_c_lex_hex_digit(AvenCLexCtx *ctx) {
     uint32_t init_index = ctx->index;
     aven_c_lex_next(ctx, ctx->index);
     if (aven_c_is_hex_digit(ctx->next)) {
@@ -304,7 +354,7 @@ static inline bool aven_c_lex_hex_digit(AvenCLexPpCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_lex_hex_str(AvenCLexPpCtx *ctx, uint32_t digits) {
+static inline bool aven_c_lex_hex_str(AvenCLexCtx *ctx, uint32_t digits) {
     uint32_t init_index = ctx->index;
     for (uint32_t i = 0; i < digits; i += 1) {
         if (!aven_c_lex_hex_digit(ctx)) {
@@ -315,7 +365,7 @@ static inline bool aven_c_lex_hex_str(AvenCLexPpCtx *ctx, uint32_t digits) {
     return true;
 }
 
-static inline bool aven_c_lex_letter(AvenCLexPpCtx *ctx) {
+static inline bool aven_c_lex_letter(AvenCLexCtx *ctx) {
     uint32_t init_index = ctx->index;
     aven_c_lex_next(ctx, ctx->index);
     if (aven_c_is_letter(ctx->next)) {
@@ -325,7 +375,7 @@ static inline bool aven_c_lex_letter(AvenCLexPpCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_lex_id_nondigit(AvenCLexPpCtx *ctx) {
+static inline bool aven_c_lex_id_nondigit(AvenCLexCtx *ctx) {
     uint32_t init_index = ctx->index;
     if (aven_c_lex_char(ctx, '_') or aven_c_lex_letter(ctx)) {
         return true;
@@ -344,7 +394,7 @@ static inline bool aven_c_lex_id_nondigit(AvenCLexPpCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_lex_escape_seq(AvenCLexPpCtx * ctx) {
+static inline bool aven_c_lex_escape_seq(AvenCLexCtx * ctx) {
     uint32_t init_index = ctx->index;
     if (!aven_c_lex_char(ctx, '\\')) {
         return false;
@@ -394,7 +444,7 @@ static inline bool aven_c_lex_escape_seq(AvenCLexPpCtx * ctx) {
     return false;
 }
 
-// static inline bool aven_c_lex_pp_header(AvenCLexPpCtx *ctx) {
+// static inline bool aven_c_lex_header(AvenCLexCtx *ctx) {
 //     uint32_t init_index = ctx->index;
 
 //     if (ctx->tokens.len < 2) {
@@ -409,12 +459,12 @@ static inline bool aven_c_lex_escape_seq(AvenCLexPpCtx * ctx) {
 //         return false;
 //     }
 
-//     AvenCPpToken t1 = get(ctx->tokens, ctx->tokens.len - 2);
-//     AvenCPpToken t2 = get(ctx->tokens, ctx->tokens.len - 1);
+//     AvenCToken t1 = get(ctx->tokens, ctx->tokens.len - 2);
+//     AvenCToken t2 = get(ctx->tokens, ctx->tokens.len - 1);
 //     if (
-//         t1.type != AVEN_C_PP_TOKEN_TYPE_PNC or
+//         t1.type != AVEN_C_TOKEN_TYPE_PNC or
 //         t1.len != 1 or
-//         t2.type != AVEN_C_PP_TOKEN_TYPE_ID or
+//         t2.type != AVEN_C_TOKEN_TYPE_ID or
 //         t2.len != aven_str("include").len or
 //         get(ctx->bytes, t1.index) != '#' or
 //         !aven_str_equals(
@@ -455,7 +505,7 @@ static inline bool aven_c_lex_escape_seq(AvenCLexPpCtx * ctx) {
 //     return false;
 // }
 
-static inline bool aven_c_lex_identifier(AvenCLexPpCtx *ctx) {
+static inline bool aven_c_lex_identifier(AvenCLexCtx *ctx) {
     if (!aven_c_lex_id_nondigit(ctx)) {
         return false;
     }
@@ -468,7 +518,7 @@ static inline bool aven_c_lex_identifier(AvenCLexPpCtx *ctx) {
     return true;
 }
 
-static inline bool aven_c_lex_pp_number_exp(AvenCLexPpCtx *ctx) {
+static inline bool aven_c_lex_number_exp(AvenCLexCtx *ctx) {
     uint32_t init_index = ctx->index;
     if (
         !aven_c_lex_char(ctx, 'e') and
@@ -487,7 +537,7 @@ static inline bool aven_c_lex_pp_number_exp(AvenCLexPpCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_lex_pp_number(AvenCLexPpCtx *ctx) {
+static inline bool aven_c_lex_number(AvenCLexCtx *ctx) {
     if (
         !aven_c_lex_dec_digit(ctx) and
         !aven_c_lex_char(ctx, '.')
@@ -497,7 +547,7 @@ static inline bool aven_c_lex_pp_number(AvenCLexPpCtx *ctx) {
 
     while (
         aven_c_lex_dec_digit(ctx) or
-        aven_c_lex_pp_number_exp(ctx) or
+        aven_c_lex_number_exp(ctx) or
         aven_c_lex_id_nondigit(ctx) or
         aven_c_lex_char(ctx, '.')
     ) {}
@@ -505,7 +555,7 @@ static inline bool aven_c_lex_pp_number(AvenCLexPpCtx *ctx) {
     return true;
 }
 
-static inline bool aven_c_lex_character_const(AvenCLexPpCtx *ctx) {
+static inline bool aven_c_lex_character_const(AvenCLexCtx *ctx) {
     uint32_t init_index = ctx->index;
     if (!aven_c_lex_char(ctx, '\'')) {
         return false;
@@ -514,8 +564,9 @@ static inline bool aven_c_lex_character_const(AvenCLexPpCtx *ctx) {
     bool finished = false;
     uint32_t interior = 0;
     while (!finished) {
+        while (aven_c_lex_escape_seq(ctx)) {}
         aven_c_lex_next(ctx, init_index);
-        if (ctx->next == '\n') {
+        if (ctx->next == '\n' or ctx->next == '\\') {
             break;
         }
         if (ctx->next == '\'') {
@@ -532,7 +583,7 @@ static inline bool aven_c_lex_character_const(AvenCLexPpCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_lex_string_lit(AvenCLexPpCtx *ctx) {
+static inline bool aven_c_lex_string_lit(AvenCLexCtx *ctx) {
     uint32_t init_index = ctx->index;
     // not doing C11 UTF8 encoding prefixes
     if (!aven_c_lex_char(ctx, '\"')) {
@@ -559,7 +610,7 @@ static inline bool aven_c_lex_string_lit(AvenCLexPpCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_lex_punctuator(AvenCLexPpCtx *ctx) {
+static inline bool aven_c_lex_punctuator(AvenCLexCtx *ctx) {
     uint32_t init_index = ctx->index;
     aven_c_lex_next(ctx, init_index);
     switch (ctx->next) {
@@ -706,7 +757,7 @@ static inline bool aven_c_lex_punctuator(AvenCLexPpCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_lex_ignore(AvenCLexPpCtx *ctx) {
+static inline bool aven_c_lex_ignore(AvenCLexCtx *ctx) {
     assert(ctx->index == ctx->token_start);
     bool done = false;
     while (!done) {
@@ -719,22 +770,22 @@ static inline bool aven_c_lex_ignore(AvenCLexPpCtx *ctx) {
             case '\n': {
                 break;
             }
-            case '/': {
-                if (aven_c_lex_char(ctx, '/')) {
-                    while (!aven_c_lex_char(ctx, '\n')) {
-                        ctx->token_start = ctx->index;
-                        aven_c_lex_next(ctx, ctx->index);
-                    }
-                } else if (aven_c_lex_char(ctx, '*')) {
-                    while (!aven_c_lex_str(ctx, aven_str("*/"))) {
-                        ctx->token_start = ctx->index;
-                        aven_c_lex_next(ctx, ctx->index);
-                    }
-                } else {
-                    done = true;
-                }
-                break;
-            }
+            // case '/': {
+            //     if (aven_c_lex_char(ctx, '/')) {
+            //         while (!aven_c_lex_char(ctx, '\n')) {
+            //             ctx->token_start = ctx->index;
+            //             aven_c_lex_next(ctx, ctx->index);
+            //         }
+            //     } else if (aven_c_lex_char(ctx, '*')) {
+            //         while (!aven_c_lex_str(ctx, aven_str("*/"))) {
+            //             ctx->token_start = ctx->index;
+            //             aven_c_lex_next(ctx, ctx->index);
+            //         }
+            //     } else {
+            //         done = true;
+            //     }
+            //     break;
+            // }
             // We only accept and ignore escaped newlines between tokens
             case '\\': {
                 if (
@@ -747,31 +798,31 @@ static inline bool aven_c_lex_ignore(AvenCLexPpCtx *ctx) {
                 }
                 break;
             }
-            case '#': {
-                bool line_done = false;
-                while (!line_done) {
-                    ctx->token_start = ctx->index;
-                    aven_c_lex_next(ctx, ctx->index);
-                    switch (ctx->next) {
-                        case '\n': {
-                            line_done = true;
-                            break;
-                        }
-                        case '\\': {
-                            if (aven_c_lex_char(ctx, '\r')) {
-                                aven_c_lex_char(ctx, '\n');
-                            } else {
-                                aven_c_lex_char(ctx, '\n');
-                            }
-                            break;
-                        }
-                        default: {
-                            break;
-                        }
-                    }
-                }
-                break;
-            }
+            // case '#': {
+            //     bool line_done = false;
+            //     while (!line_done) {
+            //         ctx->token_start = ctx->index;
+            //         aven_c_lex_next(ctx, ctx->index);
+            //         switch (ctx->next) {
+            //             case '\n': {
+            //                 line_done = true;
+            //                 break;
+            //             }
+            //             case '\\': {
+            //                 if (aven_c_lex_char(ctx, '\r')) {
+            //                     aven_c_lex_char(ctx, '\n');
+            //                 } else {
+            //                     aven_c_lex_char(ctx, '\n');
+            //                 }
+            //                 break;
+            //             }
+            //             default: {
+            //                 break;
+            //             }
+            //         }
+            //     }
+            //     break;
+            // }
             default: {
                 done = true;
                 break;
@@ -783,26 +834,115 @@ static inline bool aven_c_lex_ignore(AvenCLexPpCtx *ctx) {
     return false;
 }
 
-static inline bool aven_c_lex_pp_other(AvenCLexPpCtx *ctx) {
+static inline bool aven_c_lex_step(AvenCLexCtx *ctx);
+
+static inline void aven_c_lex_line(AvenCLexCtx * ctx) {
+    for (; ctx->index < ctx->bytes.len; ctx->index += 1) {
+        if (get(ctx->bytes, ctx->index) == '\n') {
+            if (get(ctx->bytes, ctx->index - 1) == '\\') {
+                continue;
+            }
+            if (
+                ctx->index > 1 and
+                get(ctx->bytes, ctx->index - 1) == '\r' and
+                get(ctx->bytes, ctx->index - 2) == '\\'
+            ) {
+                continue;
+            }
+            break;
+        }
+    }
+}
+
+static inline bool aven_c_lex_ppd(AvenCLexCtx *ctx) {
+    assert(ctx->index == ctx->token_start);
+    uint32_t init_index = ctx->index;
+    if (!aven_c_lex_char(ctx, '#')) {
+        return false;
+    }
+    uint32_t start = ctx->index;
+    aven_c_lex_line(ctx);
+    uint32_t first = (uint32_t)ctx->child_tokens.len;
+    list_push(ctx->child_tokens) = (AvenCToken){
+        .type = AVEN_C_TOKEN_TYPE_PNC,
+        .index = init_index,
+        .len = 1,
+    };
+    AvenCLexCtx pp_ctx = aven_c_lex_init_child(
+        aven_str_head(ctx->bytes, ctx->index),
+        start,
+        ctx->child_tokens
+    );
+    while (!aven_c_lex_step(&pp_ctx)) {}
+    ctx->child_tokens = pp_ctx.tokens;
+    uint32_t last = (uint32_t)ctx->child_tokens.len;
+    list_push(ctx->tokens) = (AvenCToken){
+        .type = AVEN_C_TOKEN_TYPE_PPD,
+        .index = first,
+        .len = last - first,
+    };
+    ctx->token_start = ctx->index;
+
+    return true;
+}
+
+static inline bool aven_c_lex_comment(AvenCLexCtx *ctx) {
+    uint32_t init_index = ctx->index;
+    if (aven_c_lex_str(ctx, aven_str("//"))) {
+        aven_c_lex_line(ctx);
+        return true;
+    } else if (aven_c_lex_str(ctx, aven_str("/*"))) {
+        ctx->index += 1;
+        for (; ctx->index < ctx->bytes.len; ctx->index += 1) {
+            if (
+                get(ctx->bytes, ctx->index) == '/' and
+                get(ctx->bytes, ctx->index - 1) == '*'
+            ) {
+                break;
+            }
+        }
+        if (ctx->index == ctx->bytes.len) {
+            ctx->index = init_index;
+            return false;
+        }
+        ctx->index += 1;
+        return true;
+    }
+    return false;
+}
+
+static inline bool aven_c_lex_other(AvenCLexCtx *ctx) {
     aven_c_lex_next(ctx, ctx->index);
     return true;
 }
 
-static inline bool aven_c_lex_pp_step(AvenCLexPpCtx *ctx) {
+static inline bool aven_c_lex_step(AvenCLexCtx *ctx) {
     assert(ctx->index == ctx->token_start);
     aven_c_lex_ignore(ctx);
+    if (!ctx->child and aven_c_lex_ppd(ctx)) {
+        return false;
+    }
+    if (aven_c_lex_comment(ctx)) {
+        list_push(ctx->tokens) = (AvenCToken){
+            .type = AVEN_C_TOKEN_TYPE_CMT,
+            .index = ctx->token_start,
+            .len = ctx->index - ctx->token_start,
+        };
+        ctx->token_start = ctx->index;
+        return false;
+    }
     if (aven_c_lex_identifier(ctx)) {
         AvenStr name = aven_str_range(ctx->bytes, ctx->token_start, ctx->index);
         AvenCKeyword keyword = aven_c_keyword(name);
         if (keyword == AVEN_C_KEYWORD_NONE) {
-            list_push(ctx->tokens) = (AvenCPpToken){
-                .type = AVEN_C_PP_TOKEN_TYPE_ID,
+            list_push(ctx->tokens) = (AvenCToken){
+                .type = AVEN_C_TOKEN_TYPE_ID,
                 .index = ctx->token_start,
                 .len = ctx->index - ctx->token_start,
             };
         } else {
-            list_push(ctx->tokens) = (AvenCPpToken){
-                .type = AVEN_C_PP_TOKEN_TYPE_KEY,
+            list_push(ctx->tokens) = (AvenCToken){
+                .type = AVEN_C_TOKEN_TYPE_KEY,
                 .index = ctx->token_start,
                 .len = (uint32_t)keyword,
             };
@@ -810,9 +950,9 @@ static inline bool aven_c_lex_pp_step(AvenCLexPpCtx *ctx) {
         ctx->token_start = ctx->index;
         return false;
     }
-    if (aven_c_lex_pp_number(ctx)) {
-        list_push(ctx->tokens) = (AvenCPpToken){
-            .type = AVEN_C_PP_TOKEN_TYPE_NUM,
+    if (aven_c_lex_number(ctx)) {
+        list_push(ctx->tokens) = (AvenCToken){
+            .type = AVEN_C_TOKEN_TYPE_NUM,
             .index = ctx->token_start,
             .len = ctx->index - ctx->token_start,
         };
@@ -820,8 +960,8 @@ static inline bool aven_c_lex_pp_step(AvenCLexPpCtx *ctx) {
         return false;
     }
     if (aven_c_lex_character_const(ctx)) {
-        list_push(ctx->tokens) = (AvenCPpToken){
-            .type = AVEN_C_PP_TOKEN_TYPE_CHR,
+        list_push(ctx->tokens) = (AvenCToken){
+            .type = AVEN_C_TOKEN_TYPE_CHR,
             .index = ctx->token_start,
             .len = ctx->index - ctx->token_start,
         };
@@ -829,8 +969,8 @@ static inline bool aven_c_lex_pp_step(AvenCLexPpCtx *ctx) {
         return false;
     }
     if (aven_c_lex_string_lit(ctx)) {
-        list_push(ctx->tokens) = (AvenCPpToken){
-            .type = AVEN_C_PP_TOKEN_TYPE_STR,
+        list_push(ctx->tokens) = (AvenCToken){
+            .type = AVEN_C_TOKEN_TYPE_STR,
             .index = ctx->token_start,
             .len = ctx->index - ctx->token_start,
         };
@@ -838,17 +978,17 @@ static inline bool aven_c_lex_pp_step(AvenCLexPpCtx *ctx) {
         return false;
     }
     if (aven_c_lex_punctuator(ctx)) {
-        list_push(ctx->tokens) = (AvenCPpToken){
-            .type = AVEN_C_PP_TOKEN_TYPE_PNC,
+        list_push(ctx->tokens) = (AvenCToken){
+            .type = AVEN_C_TOKEN_TYPE_PNC,
             .index = ctx->token_start,
             .len = ctx->index - ctx->token_start,
         };
         ctx->token_start = ctx->index;
         return false;
     }
-    if (aven_c_lex_pp_other(ctx)) {
-        list_push(ctx->tokens) = (AvenCPpToken){
-            .type = AVEN_C_PP_TOKEN_TYPE_OTH,
+    if (aven_c_lex_other(ctx)) {
+        list_push(ctx->tokens) = (AvenCToken){
+            .type = AVEN_C_TOKEN_TYPE_OTH,
             .index = ctx->token_start,
             .len = ctx->index - ctx->token_start,
         };
@@ -856,26 +996,23 @@ static inline bool aven_c_lex_pp_step(AvenCLexPpCtx *ctx) {
         return false;
     }
     // We NONE-terminate the token list
-    list_push(ctx->tokens) = (AvenCPpToken){
-        .type = AVEN_C_PP_TOKEN_TYPE_NONE,
+    list_push(ctx->tokens) = (AvenCToken){
+        .type = AVEN_C_TOKEN_TYPE_NONE,
         .index = ctx->token_start,
         .len = ctx->index - ctx->token_start,
     };
     return true;
 }
 
-static inline AvenCPpTokenSet aven_c_lex_pp(AvenStr bytes, AvenArena *arena) {
-    AvenCLexPpCtx ctx = aven_c_lex_pp_init(bytes, arena);
+static inline AvenCTokenSet aven_c_lex(AvenStr bytes, AvenArena *arena) {
+    AvenCLexCtx ctx = aven_c_lex_init(bytes, arena);
 
-    while (!aven_c_lex_pp_step(&ctx)) {}
+    while (!aven_c_lex_step(&ctx)) {}
 
-    return (AvenCPpTokenSet){
+    return (AvenCTokenSet){
         .bytes = bytes,
-        .tokens = aven_arena_commit_list_to_slice(
-            AvenCPpTokenSlice,
-            arena,
-            ctx.tokens
-        ),
+        .tokens = slice_list(ctx.tokens),
+        .ppd_tokens = slice_list(ctx.child_tokens),
     };
 }
 
@@ -920,7 +1057,7 @@ typedef Slice(AvenCAstNode) AvenCAstNodeSlice;
 typedef Slice(uint32_t) AvenCAstDataSlice;
 
 typedef struct {
-    AvenCPpTokenSet tset;
+    AvenCTokenSet tset;
     AvenCAstNodeSlice nodes;
     AvenCAstDataSlice data;
     uint32_t root;
@@ -935,7 +1072,7 @@ static inline uint32_t aven_c_ast_data(AvenCAst *ast, uint32_t index) {
 }
 
 typedef struct {
-    AvenCPpTokenSet tset;
+    AvenCTokenSet tset;
     List(AvenCAstNode) nodes;
     List(uint32_t) data;
     List(uint32_t) scratch;
@@ -953,7 +1090,7 @@ typedef struct {
 } AvenCAstCtxState;
 
 static inline AvenCAstCtx aven_c_ast_init(
-    AvenCPpTokenSet tset,
+    AvenCTokenSet tset,
     AvenArena *arena
 ) {
     AvenCAstCtx ctx = {
@@ -988,8 +1125,23 @@ static inline void aven_c_ast_restore(
     ctx->token_index = state.token_index;
 }
 
-static inline AvenCPpToken aven_c_ast_next(AvenCAstCtx *ctx) {
-    return get(ctx->tset.tokens, ctx->token_index);
+static inline uint32_t aven_c_ast_next_index(AvenCAstCtx *ctx) {
+    uint32_t index = ctx->token_index;
+    AvenCTokenType type = get(ctx->tset.tokens, index).type;
+    while (type == AVEN_C_TOKEN_TYPE_CMT or type == AVEN_C_TOKEN_TYPE_PPD) {
+        index += 1;
+        type = get(ctx->tset.tokens, index).type;
+    }
+    return index;
+}
+
+static inline uint32_t aven_c_ast_inc_index(AvenCAstCtx *ctx) {
+    ctx->token_index = aven_c_ast_next_index(ctx);
+    return ctx->token_index++;
+}
+
+static inline AvenCToken aven_c_ast_next(AvenCAstCtx *ctx) {
+    return get(ctx->tset.tokens, aven_c_ast_next_index(ctx));
 }
 
 static inline uint32_t aven_c_ast_push(
@@ -1043,22 +1195,22 @@ static inline uint32_t aven_c_ast_scratch_commit(
 }
 
 static inline uint32_t aven_c_ast_parse_identifier(AvenCAstCtx *ctx) {
-    if (aven_c_ast_next(ctx).type == AVEN_C_PP_TOKEN_TYPE_ID) {
+    if (aven_c_ast_next(ctx).type == AVEN_C_TOKEN_TYPE_ID) {
         return aven_c_ast_push_leaf(
             ctx,
             AVEN_C_AST_NODE_TYPE_IDENTIFIER,
-            ctx->token_index++
+            aven_c_ast_inc_index(ctx)
         );
     }
     return 0;
 }
 
 static inline uint32_t aven_c_ast_parse_string_literal(AvenCAstCtx *ctx) {
-    if (aven_c_ast_next(ctx).type == AVEN_C_PP_TOKEN_TYPE_STR) {
+    if (aven_c_ast_next(ctx).type == AVEN_C_TOKEN_TYPE_STR) {
         return aven_c_ast_push_leaf(
             ctx,
             AVEN_C_AST_NODE_TYPE_STRING_LITERAL,
-            ctx->token_index++
+            aven_c_ast_inc_index(ctx)
         );
     }
     return 0;
@@ -1066,12 +1218,12 @@ static inline uint32_t aven_c_ast_parse_string_literal(AvenCAstCtx *ctx) {
 
 static inline uint32_t aven_c_ast_parse_constant(AvenCAstCtx *ctx) {
     switch (aven_c_ast_next(ctx).type) {
-        case AVEN_C_PP_TOKEN_TYPE_NUM:
-        case AVEN_C_PP_TOKEN_TYPE_CHR: {
+        case AVEN_C_TOKEN_TYPE_NUM:
+        case AVEN_C_TOKEN_TYPE_CHR: {
             return aven_c_ast_push_leaf(
                 ctx,
                 AVEN_C_AST_NODE_TYPE_CONSTANT,
-                ctx->token_index++
+                aven_c_ast_inc_index(ctx)
             );
         }
         default: {
@@ -1087,13 +1239,13 @@ static inline bool aven_c_ast_match_punctuator(
     AvenStr str
 ) {
     if (
-        aven_c_ast_next(ctx).type == AVEN_C_PP_TOKEN_TYPE_PNC and
+        aven_c_ast_next(ctx).type == AVEN_C_TOKEN_TYPE_PNC and
         aven_str_equals(
-            aven_c_pp_token_str(ctx->tset, ctx->token_index),
+            aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx)),
             str
         )
     ) {
-        ctx->token_index += 1;
+        aven_c_ast_inc_index(ctx);
         return true;
     }
     return false;
@@ -1105,13 +1257,13 @@ static inline bool aven_c_ast_match_keyword(
 ) {
     AvenStr keyword_str = aven_c_keyword_str(keyword);
     if (
-        aven_c_ast_next(ctx).type == AVEN_C_PP_TOKEN_TYPE_KEY and
+        aven_c_ast_next(ctx).type == AVEN_C_TOKEN_TYPE_KEY and
         aven_str_equals(
-            aven_c_pp_token_str(ctx->tset, ctx->token_index),
+            aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx)),
             keyword_str
         )
     ) {
-        ctx->token_index += 1;
+        aven_c_ast_inc_index(ctx);
         return true;
     }
     return false;
@@ -1138,10 +1290,10 @@ static inline uint32_t aven_c_ast_parse_struct_specifier(AvenCAstCtx *ctx) {
 }
 
 static inline uint32_t aven_c_ast_parse_type_specifier(AvenCAstCtx *ctx) {
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     uint32_t node = 0;
     switch (aven_c_ast_next(ctx).type) {
-        case AVEN_C_PP_TOKEN_TYPE_KEY: {
+        case AVEN_C_TOKEN_TYPE_KEY: {
             char nchar = get(ctx->tset.bytes, aven_c_ast_next(ctx).index);
             switch (nchar) {
                 case 'b': {
@@ -1262,8 +1414,8 @@ static inline uint32_t aven_c_ast_parse_type_specifier(AvenCAstCtx *ctx) {
                 }
             }
         }
-        case AVEN_C_PP_TOKEN_TYPE_ID: {
-            ctx->token_index += 1;
+        case AVEN_C_TOKEN_TYPE_ID: {
+            aven_c_ast_inc_index(ctx);
             AvenCAstCtxState state = aven_c_ast_save(ctx);
             if (!aven_c_ast_match_punctuator(ctx, aven_str("("))) {
                 break;
@@ -1299,10 +1451,10 @@ static inline uint32_t aven_c_ast_parse_type_specifier(AvenCAstCtx *ctx) {
 }
 
 static inline uint32_t aven_c_ast_parse_type_qualifier(AvenCAstCtx *ctx) {
-    if (aven_c_ast_next(ctx).type != AVEN_C_PP_TOKEN_TYPE_KEY) {
+    if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_KEY) {
         return 0;
     }
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     char nchar = get(ctx->tset.bytes, aven_c_ast_next(ctx).index);
     uint32_t node = 0;
     switch (nchar) {
@@ -1352,7 +1504,7 @@ static inline uint32_t aven_c_ast_parse_type_qualifier(AvenCAstCtx *ctx) {
 
 static inline uint32_t aven_c_ast_parse_type_name(AvenCAstCtx *ctx) {
     uint32_t scratch_top = aven_c_ast_scratch_init(ctx);
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     for (;;) {
         uint32_t node = aven_c_ast_parse_type_specifier(ctx);
         if (node == 0) {
@@ -1392,7 +1544,7 @@ static inline uint32_t aven_c_ast_parse_primary_expr(AvenCAstCtx *ctx) {
         return exp_node;
     }
 
-    uint32_t token = ctx->token_index;
+    uint32_t token = aven_c_ast_next_index(ctx);
     if (!aven_c_ast_match_punctuator(ctx, aven_str("("))) {
         return 0;
     }
@@ -1427,7 +1579,7 @@ static inline uint32_t aven_c_ast_parse_postfix_expr_initializer(
         aven_c_ast_restore(ctx, state);
         return 0;
     }
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     if (!aven_c_ast_match_punctuator(ctx, aven_str("{"))) {
         aven_c_ast_restore(ctx, state);
         return 0;
@@ -1460,12 +1612,12 @@ static inline uint32_t aven_c_ast_parse_postfix_op(
     uint32_t parent
 ) {
     assert(parent != 0);
-    if (aven_c_ast_next(ctx).type != AVEN_C_PP_TOKEN_TYPE_PNC) {
+    if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PNC) {
         return 0;
     }
     AvenCAstCtxState state = aven_c_ast_save(ctx);
     char nchar = get(ctx->tset.bytes, aven_c_ast_next(ctx).index);
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     uint32_t node = 0;
     switch (nchar) {
         case '[': {
@@ -1601,11 +1753,11 @@ static inline uint32_t aven_c_ast_parse_postfix_expr(AvenCAstCtx *ctx) {
 static inline uint32_t aven_c_ast_parse_unary_expr(AvenCAstCtx *ctx) {
     AvenCAstCtxState state = aven_c_ast_save(ctx);
     uint32_t node = 0;
-    uint32_t main_token = ctx->token_index;
-    AvenCPpTokenType token_type = aven_c_ast_next(ctx).type;
-    AvenStr token_str = aven_c_pp_token_str(ctx->tset, main_token);
+    uint32_t main_token = aven_c_ast_next_index(ctx);
+    AvenCTokenType token_type = aven_c_ast_next(ctx).type;
+    AvenStr token_str = aven_c_token_str(ctx->tset, main_token);
     switch (token_type) {
-        case AVEN_C_PP_TOKEN_TYPE_KEY: {
+        case AVEN_C_TOKEN_TYPE_KEY: {
             bool sizeof_op = aven_str_equals(token_str, aven_str("sizeof"));
             bool alignof_op = !sizeof_op and
                 aven_str_equals(token_str, aven_str("_Alignof"));
@@ -1613,9 +1765,9 @@ static inline uint32_t aven_c_ast_parse_unary_expr(AvenCAstCtx *ctx) {
                 aven_c_ast_restore(ctx, state);
                 break;
             }
-            ctx->token_index += 1;
+            aven_c_ast_inc_index(ctx);
             bool parens = alignof_op or aven_str_equals(
-                aven_c_pp_token_str(ctx->tset, ctx->token_index),
+                aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx)),
                 aven_str("(")
             );
             if (parens and !aven_c_ast_match_punctuator(ctx, aven_str("("))) {
@@ -1640,7 +1792,7 @@ static inline uint32_t aven_c_ast_parse_unary_expr(AvenCAstCtx *ctx) {
             );
             break;
         }
-        case AVEN_C_PP_TOKEN_TYPE_PNC: {
+        case AVEN_C_TOKEN_TYPE_PNC: {
             if (token_str.len != 1) {
                 if (
                     !(
@@ -1671,7 +1823,7 @@ static inline uint32_t aven_c_ast_parse_unary_expr(AvenCAstCtx *ctx) {
                     case '-':
                     case '~':
                     case '!': {
-                        ctx->token_index += 1;
+                        aven_c_ast_inc_index(ctx);
                         uint32_t child = aven_c_ast_parse_unary_expr(ctx);
                         if (child == 0) {
                             aven_c_ast_restore(ctx, state);
@@ -1713,7 +1865,7 @@ static inline uint32_t aven_c_ast_parse_cast_expr(AvenCAstCtx *ctx) {
         aven_c_ast_restore(ctx, state);
         return 0;
     }
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     if (!aven_c_ast_match_punctuator(ctx, aven_str(")"))) {
         aven_c_ast_restore(ctx, state);
         return 0;
@@ -1739,18 +1891,18 @@ static inline uint32_t aven_c_ast_parse_multiply_op(
     if (aven_c_ast_next(ctx).len != 1) {
         return 0;
     }
-    if (aven_c_ast_next(ctx).type != AVEN_C_PP_TOKEN_TYPE_PNC) {
+    if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PNC) {
         return 0;
     }
     AvenCAstCtxState state = aven_c_ast_save(ctx);
     char nchar = get(ctx->tset.bytes, aven_c_ast_next(ctx).index);
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     uint32_t rhs = 0;
     switch (nchar) {
         case '*':
         case '/':
         case '%': {
-            ctx->token_index += 1;
+            aven_c_ast_inc_index(ctx);
             rhs = aven_c_ast_parse_cast_expr(ctx);
             break;
         }
@@ -1793,17 +1945,17 @@ static inline uint32_t aven_c_ast_parse_add_op(
     if (aven_c_ast_next(ctx).len != 1) {
         return 0;
     }
-    if (aven_c_ast_next(ctx).type != AVEN_C_PP_TOKEN_TYPE_PNC) {
+    if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PNC) {
         return 0;
     }
     AvenCAstCtxState state = aven_c_ast_save(ctx);
     char nchar = get(ctx->tset.bytes, aven_c_ast_next(ctx).index);
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     uint32_t rhs = 0;
     switch (nchar) {
         case '+':
         case '-': {
-            ctx->token_index += 1;
+            aven_c_ast_inc_index(ctx);
             rhs = aven_c_ast_parse_multiply_expr(ctx);
             break;
         }
@@ -1843,12 +1995,12 @@ static inline uint32_t aven_c_ast_parse_shift_op(
     AvenCAstCtx *ctx,
     uint32_t lhs
 ) {
-    if (aven_c_ast_next(ctx).type != AVEN_C_PP_TOKEN_TYPE_PNC) {
+    if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PNC) {
         return 0;
     }
     AvenCAstCtxState state = aven_c_ast_save(ctx);
     char nchar = get(ctx->tset.bytes, aven_c_ast_next(ctx).index);
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     uint32_t rhs = 0;
     switch (nchar) {
         case '<': {
@@ -1899,12 +2051,12 @@ static inline uint32_t aven_c_ast_parse_relate_op(
     AvenCAstCtx *ctx,
     uint32_t lhs
 ) {
-    if (aven_c_ast_next(ctx).type != AVEN_C_PP_TOKEN_TYPE_PNC) {
+    if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PNC) {
         return 0;
     }
     AvenCAstCtxState state = aven_c_ast_save(ctx);
     char nchar = get(ctx->tset.bytes, aven_c_ast_next(ctx).index);
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     uint32_t rhs = 0;
     switch (nchar) {
         case '>': {
@@ -1961,12 +2113,12 @@ static inline uint32_t aven_c_ast_parse_equal_op(
     AvenCAstCtx *ctx,
     uint32_t lhs
 ) {
-    if (aven_c_ast_next(ctx).type != AVEN_C_PP_TOKEN_TYPE_PNC) {
+    if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PNC) {
         return 0;
     }
     AvenCAstCtxState state = aven_c_ast_save(ctx);
     char nchar = get(ctx->tset.bytes, aven_c_ast_next(ctx).index);
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     uint32_t rhs = 0;
     switch (nchar) {
         case '=': {
@@ -2018,7 +2170,7 @@ static inline uint32_t aven_c_ast_parse_and_op(
     uint32_t lhs
 ) {
     AvenCAstCtxState state = aven_c_ast_save(ctx);
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     if (!aven_c_ast_match_punctuator(ctx, aven_str("&"))) {
         return 0;
     }
@@ -2056,7 +2208,7 @@ static inline uint32_t aven_c_ast_parse_xor_op(
     uint32_t lhs
 ) {
     AvenCAstCtxState state = aven_c_ast_save(ctx);
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     if (!aven_c_ast_match_punctuator(ctx, aven_str("^"))) {
         return 0;
     }
@@ -2094,7 +2246,7 @@ static inline uint32_t aven_c_ast_parse_or_op(
     uint32_t lhs
 ) {
     AvenCAstCtxState state = aven_c_ast_save(ctx);
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     if (!aven_c_ast_match_punctuator(ctx, aven_str("|"))) {
         return 0;
     }
@@ -2132,7 +2284,7 @@ static inline uint32_t aven_c_ast_parse_logical_and_op(
     uint32_t lhs
 ) {
     AvenCAstCtxState state = aven_c_ast_save(ctx);
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     if (
         !(
             aven_c_ast_match_punctuator(ctx, aven_str("&&")) or
@@ -2175,7 +2327,7 @@ static inline uint32_t aven_c_ast_parse_logical_or_op(
     uint32_t lhs
 ) {
     AvenCAstCtxState state = aven_c_ast_save(ctx);
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     if (aven_c_ast_match_punctuator(ctx, aven_str("||"))) {
         return 0;
     }
@@ -2213,7 +2365,7 @@ static inline uint32_t aven_c_ast_parse_conditional_op(
     uint32_t lhs
 ) {
     AvenCAstCtxState state = aven_c_ast_save(ctx);
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     uint32_t scratch_top = aven_c_ast_scratch_init(ctx);
     if (!aven_c_ast_match_punctuator(ctx, aven_str("?"))) {
         return 0;
@@ -2262,12 +2414,12 @@ static inline uint32_t aven_c_ast_parse_assign_op(
     AvenCAstCtx *ctx,
     uint32_t lhs
 ) {
-    if (aven_c_ast_next(ctx).type != AVEN_C_PP_TOKEN_TYPE_PNC) {
+    if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PNC) {
         return 0;
     }
     AvenCAstCtxState state = aven_c_ast_save(ctx);
     char nchar = get(ctx->tset.bytes, aven_c_ast_next(ctx).index);
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     uint32_t rhs = 0;
     switch (nchar) {
         case '=': {
@@ -2373,7 +2525,7 @@ static inline uint32_t aven_c_ast_parse_comma_op(
     uint32_t lhs
 ) {
     AvenCAstCtxState state = aven_c_ast_save(ctx);
-    uint32_t main_token = ctx->token_index;
+    uint32_t main_token = aven_c_ast_next_index(ctx);
     if (!aven_c_ast_match_punctuator(ctx, aven_str(","))) {
         return 0;
     }
@@ -2415,7 +2567,7 @@ static inline bool aven_c_ast_parse_step(AvenCAstCtx *ctx) {
     return true;
 }
 
-static inline AvenCAst aven_c_ast_parse(AvenCPpTokenSet tset, AvenArena *arena) {
+static inline AvenCAst aven_c_ast_parse(AvenCTokenSet tset, AvenArena *arena) {
     AvenArena temp_arena = *arena;
     AvenCAstCtx ctx = aven_c_ast_init(tset, &temp_arena);
     while (!aven_c_ast_parse_step(&ctx)) {}
@@ -2435,6 +2587,7 @@ typedef struct {
     AvenCAst *ast;
     AvenIoWriter *writer;
     AvenStr line;
+    AvenStr line_sep;
     int io_error;
     uint32_t cursor;
     uint32_t indent;
@@ -2463,7 +2616,11 @@ static inline void aven_c_ast_render_restore(
 }
 
 static inline bool aven_c_ast_render_write(AvenCAstRenderCtx* ctx, AvenStr str) {
-    AvenStr rem = aven_str_range(ctx->line, ctx->cursor, ctx->line.len - 1);
+    AvenStr rem = aven_str_range(
+        ctx->line,
+        ctx->cursor,
+        ctx->line.len - ctx->line_sep.len
+    );
     if (ctx->cursor == 0) {
         AvenStr indent = aven_str_init("    ");
         for (uint32_t i = 0; i < ctx->indent; i += 1) {
@@ -2487,8 +2644,9 @@ static inline bool aven_c_ast_render_flush_line(AvenCAstRenderCtx *ctx) {
     if (ctx->cursor == 0) {
         return true;
     }
-    get(ctx->line, ctx->cursor) = '\n';
-    AvenStr line = aven_str_head(ctx->line, ctx->cursor + 1);
+    slice_copy(aven_str_tail(ctx->line, ctx->cursor), ctx->line_sep);
+    ctx->cursor += ctx->line_sep.len;
+    AvenStr line = aven_str_head(ctx->line, ctx->cursor);
     AvenIoResult res = aven_io_writer_push(ctx->writer, slice_as_bytes(line));
     if (res.error != 0) {
         ctx->io_error = res.error;
@@ -2540,11 +2698,11 @@ static inline bool aven_c_ast_render_flush_line(AvenCAstRenderCtx *ctx) {
     } while (0)
 #define aven_c_ast_render_print_token(c, i, s, l) \
     do { \
-        if (!aven_c_ast_render_token_pp(c, i, s)) { \
+        if (!aven_c_ast_render_token(c, i, s)) { \
             aven_c_ast_render_restore(c, l); \
             return false; \
         } \
-        AvenStr token_str = aven_c_pp_token_str( \
+        AvenStr token_str = aven_c_token_str( \
             c->ast->tset, \
             i \
         ); \
@@ -2587,7 +2745,7 @@ typedef enum {
     AVEN_C_AST_RENDER_PP_STATE_PPDIR,
 } AvenCAstRenderPpState;
 
-static inline bool aven_c_ast_render_token_pp(
+static inline bool aven_c_ast_render_token(
     AvenCAstRenderCtx *ctx,
     uint32_t token_index,
     bool split
@@ -2597,7 +2755,7 @@ static inline bool aven_c_ast_render_token_pp(
     }
     uint32_t start_index = 0;
     if (token_index > 0) {
-        AvenCPpToken token = get(ctx->ast->tset.tokens, token_index - 1);
+        AvenCToken token = get(ctx->ast->tset.tokens, token_index - 1);
         start_index = token.index + token.len;
     }
     uint32_t end_index = get(ctx->ast->tset.tokens, token_index).index;
@@ -2845,13 +3003,19 @@ static inline int aven_c_ast_render(
     AvenCAst *ast,
     AvenIoWriter *writer,
     size_t line_len,
+    AvenStr line_sep,
     AvenArena temp_arena
 ) {
     assert(line_len > 1);
     AvenCAstRenderCtx ctx = {
         .ast = ast,
         .writer = writer,
-        .line = aven_arena_create_slice(char, &temp_arena, line_len),
+        .line = aven_arena_create_slice(
+            char,
+            &temp_arena,
+            line_len + line_sep.len
+        ),
+        .line_sep = line_sep,
     };
     if (
         !aven_c_ast_render_expr(
@@ -2877,7 +3041,7 @@ static inline int aven_c_ast_render(
         return ctx.io_error;
     }
     if (
-        !aven_c_ast_render_token_pp(
+        !aven_c_ast_render_token(
             &ctx,
             (uint32_t)(ast->tset.tokens.len - 1),
             true
