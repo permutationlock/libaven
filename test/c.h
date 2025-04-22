@@ -174,6 +174,7 @@ static AvenTestResult test_aven_c_ast_render(
         &writer,
         fmt_args->line_len,
         aven_str("\n"),
+        aven_str("    "),
         arena
     );
     if (error != 0) {
@@ -671,8 +672,8 @@ static int test_c(AvenArena arena) {
             .desc = aven_str("aven_c_ast_render expression"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
-                .src = aven_str("x = 2 + 2\n"),
-                .expected = aven_str("x = 2 + 2\n"),
+                .src = aven_str("x = 2 + 2"),
+                .expected = aven_str("x = 2 + 2"),
                 .line_len = 16,
             },
         },
@@ -680,11 +681,11 @@ static int test_c(AvenArena arena) {
             .desc = aven_str("aven_c_ast_render expression split same op add"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
-                .src = aven_str("x = 2 + 2 * 4 - 7\n"),
+                .src = aven_str("x = 2 + 2 * 4 - 7"),
                 .expected = aven_str(
                     "x = 2 +\n"
                     "    2 * 4 -\n"
-                    "    7\n"
+                    "    7"
                 ),
                 .line_len = 16,
             },
@@ -697,7 +698,7 @@ static int test_c(AvenArena arena) {
                 .expected = aven_str(
                     "x = 10 -\n"
                     "    2 * 2 * 4 -\n"
-                    "    7\n"
+                    "    7"
                 ),
                 .line_len = 16,
             },
@@ -710,7 +711,7 @@ static int test_c(AvenArena arena) {
                 .expected = aven_str(
                     "10 -\n"
                     "2 * 2 * 4 -\n"
-                    "7\n"
+                    "7"
                 ),
                 .line_len = 16,
             },
@@ -723,10 +724,27 @@ static int test_c(AvenArena arena) {
                 .expected = aven_str(
                     "x = 10 -\n"
                     "    2 * 2 * 4 -\n"
-                    "    7\n"
-                    " = 32 + 7 + 14\n"
+                    "    7 = 32 +\n"
+                    "    7 +\n"
+                    "    14"
                 ),
                 .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render comma expression "),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14)\n"),
+                .expected = aven_str(
+                    "x = (\n"
+                    "        10 -\n"
+                    "        2 * 2 * 4 -\n"
+                    "        7,\n"
+                    "        32 + 7 + 14\n"
+                    "    )"
+                ),
+                .line_len = 24,
             },
         },
         {
@@ -748,12 +766,37 @@ static int test_c(AvenArena arena) {
                 .src = aven_str("x = 2 + /* add */ 2\n"),
                 .expected = aven_str(
                     "x = 2 +\n"
-                    "    /*\n"
-                    "     * add \n"
-                    "     */\n"
-                    "    2\n"
+                    "    /* add */\n"
+                    "    2"
                 ),
                 .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render pp define simple const expr"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("#define NUM 1"),
+                .expected = aven_str("#define NUM 1\n"),
+                .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render pp define fn const expr"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("#define ADD1(n) (n + 1)"),
+                .expected = aven_str("#define ADD1(n) \\\n    (n + 1)\n"),
+                .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render pp define fn const expr longer line"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("#define ADD1(n) (n + 1)"),
+                .expected = aven_str("#define ADD1(n) ( \\\n        n + 1 \\\n    )\n"),
+                .line_len = 18,
             },
         },
         {
