@@ -1046,6 +1046,7 @@ typedef enum {
     AVEN_C_AST_NODE_TYPE_PREPROCESSOR_DEFINE,
     AVEN_C_AST_NODE_TYPE_PREPROCESSOR_DEFINE_FN,
     AVEN_C_AST_NODE_TYPE_PREPROCESSOR_DIRECTIVE,
+    AVEN_C_AST_NODE_TYPE_COMMENT,
 } AvenCAstNodeType;
 
 typedef struct {
@@ -1063,6 +1064,7 @@ typedef struct {
     AvenCTokenSet tset;
     AvenCAstNodeSlice nodes;
     AvenCAstDataSlice data;
+    AvenCAstDataSlice pp_nodes;
     uint32_t root;
 } AvenCAst;
 
@@ -1079,6 +1081,7 @@ typedef struct {
     List(AvenCAstNode) nodes;
     List(uint32_t) data;
     List(uint32_t) scratch;
+    AvenCAstDataSlice pp_nodes;
     uint32_t token_index;
     uint32_t root;
 } AvenCAstCtx;
@@ -1096,43 +1099,80 @@ static inline AvenCAstCtx aven_c_ast_init(
     AvenCTokenSet tset,
     AvenArena *arena
 ) {
+    size_t max_tokens = tset.tokens.len + tset.ppd_tokens.len;
     AvenCAstCtx ctx = {
         .tset = tset,
-        .nodes = { .cap = tset.tokens.len },
-        .data =  { .cap = tset.tokens.len },
-        .scratch = { .cap = tset.tokens.len },
+        .nodes = { .cap = max_tokens },
+        .pp_nodes = { .len = tset.tokens.len },
+        .data =  { .cap = max_tokens },
+        .scratch = { .cap = max_tokens },
     };
     ctx.nodes.ptr = aven_arena_create_array(AvenCAstNode, arena, ctx.nodes.cap);
     ctx.data.ptr = aven_arena_create_array(uint32_t, arena, ctx.data.cap);
     ctx.scratch.ptr = aven_arena_create_array(uint32_t, arena, ctx.scratch.cap);
+    ctx.pp_nodes.ptr = aven_arena_create_array(
+        uint32_t,
+        arena,
+        ctx.pp_nodes.len
+    );
 
     return ctx;
 }
 
 static inline AvenCAstCtx aven_c_ast_init_ppd(
-    AvenCTokenSet tset,
-    AvenCToken token,
-    AvenArena *arena
+    AvenCAstCtx *ctx,
+    uint32_t token
 ) {
-    AvenCAstCtx ctx = {
+    AvenCToken ppd_token = get(ctx->tset.tokens, token);
+    assert(ppd_token.type == AVEN_C_TOKEN_TYPE_PPD);
+    return (AvenCAstCtx){
         .tset = {
-            .bytes = tset.bytes,
+            .bytes = ctx->tset.bytes,
             .tokens = slice_range(
-                tset.ppd_tokens,
-                token.index,
-                token.index + token.len
+                ctx->tset.ppd_tokens,
+                ppd_token.index,
+                ppd_token.index + ppd_token.len
             ),
         },
-        .nodes = { .cap = token.len },
-        .data =  { .cap = token.len },
-        .scratch = { .cap = token.len },
+        .nodes = ctx->nodes,
+        .data = ctx->data,
+        .scratch = ctx->scratch,
     };
-    ctx.nodes.ptr = aven_arena_create_array(AvenCAstNode, arena, ctx.nodes.cap);
-    ctx.data.ptr = aven_arena_create_array(uint32_t, arena, ctx.data.cap);
-    ctx.scratch.ptr = aven_arena_create_array(uint32_t, arena, ctx.scratch.cap);
-
-    return ctx;
 }
+
+static inline void aven_c_ast_commit_ppd(
+    AvenCAstCtx *ctx,
+    AvenCAstCtx* ppd_ctx
+) {
+    assert(ctx->scratch.len == ppd_ctx->scratch.len);
+    ctx->nodes.len = ppd_ctx->nodes.len;
+    ctx->data.len = ppd_ctx->data.len;
+}
+
+// static inline AvenCAstCtx aven_c_ast_init_ppd(
+//     AvenCTokenSet tset,
+//     AvenCToken token,
+//     AvenArena *arena
+// ) {
+//     AvenCAstCtx ctx = {
+//         .tset = {
+//             .bytes = tset.bytes,
+//             .tokens = slice_range(
+//                 tset.ppd_tokens,
+//                 token.index,
+//                 token.index + token.len
+//             ),
+//         },
+//         .nodes = { .cap = token.len },
+//         .data =  { .cap = token.len },
+//         .scratch = { .cap = token.len },
+//     };
+//     ctx.nodes.ptr = aven_arena_create_array(AvenCAstNode, arena, ctx.nodes.cap);
+//     ctx.data.ptr = aven_arena_create_array(uint32_t, arena, ctx.data.cap);
+//     ctx.scratch.ptr = aven_arena_create_array(uint32_t, arena, ctx.scratch.cap);
+
+//     return ctx;
+// }
 
 static inline AvenCAstCtxState aven_c_ast_save(AvenCAstCtx *ctx) {
     return (AvenCAstCtxState){
@@ -1151,24 +1191,6 @@ static inline void aven_c_ast_restore(
     ctx->data.len = state.data_len;
     ctx->scratch.len = state.scratch_len;
     ctx->token_index = state.token_index;
-}
-
-static inline uint32_t aven_c_ast_next_index(AvenCAstCtx *ctx) {
-    AvenCTokenType type = get(ctx->tset.tokens, ctx->token_index).type;
-    while (type == AVEN_C_TOKEN_TYPE_CMT or type == AVEN_C_TOKEN_TYPE_PPD) {
-        ctx->token_index += 1;
-        type = get(ctx->tset.tokens, ctx->token_index).type;
-    }
-    return ctx->token_index;
-}
-
-static inline uint32_t aven_c_ast_inc_index(AvenCAstCtx *ctx) {
-    ctx->token_index = aven_c_ast_next_index(ctx);
-    return ctx->token_index++;
-}
-
-static inline AvenCToken aven_c_ast_next(AvenCAstCtx *ctx) {
-    return get(ctx->tset.tokens, aven_c_ast_next_index(ctx));
 }
 
 static inline uint32_t aven_c_ast_push(
@@ -1193,6 +1215,40 @@ static inline uint32_t aven_c_ast_push_leaf(
     uint32_t token
 ) {
     return aven_c_ast_push(ctx, type, token, 0, 0);
+}
+
+static inline uint32_t aven_c_ast_parse_preprocessor_directive(
+    AvenCAstCtx *ctx
+);
+
+static inline uint32_t aven_c_ast_next_index(AvenCAstCtx *ctx) {
+    AvenCTokenType type = get(ctx->tset.tokens, ctx->token_index).type;
+    while (type == AVEN_C_TOKEN_TYPE_CMT or type == AVEN_C_TOKEN_TYPE_PPD) {
+        if (type == AVEN_C_TOKEN_TYPE_PPD) {
+            AvenCAstCtx ppd_ctx = aven_c_ast_init_ppd(ctx, ctx->token_index);
+            get(ctx->pp_nodes, ctx->token_index) =
+                aven_c_ast_parse_preprocessor_directive(&ppd_ctx);
+            aven_c_ast_commit_ppd(ctx, &ppd_ctx);
+        } else {
+            get(ctx->pp_nodes, ctx->token_index) = aven_c_ast_push_leaf(
+                ctx,
+                AVEN_C_AST_NODE_TYPE_COMMENT,
+                ctx->token_index
+            );
+        }
+        ctx->token_index += 1;
+        type = get(ctx->tset.tokens, ctx->token_index).type;
+    }
+    return ctx->token_index;
+}
+
+static inline uint32_t aven_c_ast_inc_index(AvenCAstCtx *ctx) {
+    ctx->token_index = aven_c_ast_next_index(ctx);
+    return ctx->token_index++;
+}
+
+static inline AvenCToken aven_c_ast_next(AvenCAstCtx *ctx) {
+    return get(ctx->tset.tokens, aven_c_ast_next_index(ctx));
 }
 
 static inline uint32_t aven_c_ast_scratch_init(AvenCAstCtx *ctx) {
@@ -2615,17 +2671,13 @@ static inline bool aven_c_ast_parse_step(AvenCAstCtx *ctx) {
 }
 
 static inline AvenCAst aven_c_ast_parse(AvenCTokenSet tset, AvenArena *arena) {
-    AvenArena temp_arena = *arena;
-    AvenCAstCtx ctx = aven_c_ast_init(tset, &temp_arena);
+    AvenCAstCtx ctx = aven_c_ast_init(tset, arena);
     while (!aven_c_ast_parse_step(&ctx)) {}
-    if (ctx.root == 0) {
-        return (AvenCAst){ .tset = ctx.tset, };
-    }
-    *arena = temp_arena;
     return (AvenCAst){
         .tset = tset,
         .nodes = slice_list(ctx.nodes),
         .data = slice_list(ctx.data),
+        .pp_nodes = ctx.pp_nodes,
         .root = ctx.root,
     };
 }
@@ -2711,25 +2763,25 @@ static inline uint32_t aven_c_ast_parse_preprocessor_directive(AvenCAstCtx *ctx)
     );
 }
 
-static inline AvenCAst aven_c_ast_ppd_parse(
-    AvenCTokenSet tset,
-    AvenCToken token,
-    AvenArena *arena
-) {
-    AvenArena temp_arena = *arena;
-    AvenCAstCtx ctx = aven_c_ast_init_ppd(tset, token, &temp_arena);
-    ctx.root = aven_c_ast_parse_preprocessor_directive(&ctx);
-    if (ctx.root == 0) {
-        return (AvenCAst){ .tset = ctx.tset, };
-    }
-    *arena = temp_arena;
-    return (AvenCAst){
-        .tset = ctx.tset,
-        .nodes = slice_list(ctx.nodes),
-        .data = slice_list(ctx.data),
-        .root = ctx.root,
-    };
-}
+// static inline AvenCAst aven_c_ast_ppd_parse(
+//     AvenCTokenSet tset,
+//     AvenCToken token,
+//     AvenArena *arena
+// ) {
+//     AvenArena temp_arena = *arena;
+//     AvenCAstCtx ctx = aven_c_ast_init_ppd(tset, token, &temp_arena);
+//     ctx.root = aven_c_ast_parse_preprocessor_directive(&ctx);
+//     if (ctx.root == 0) {
+//         return (AvenCAst){ .tset = ctx.tset, };
+//     }
+//     *arena = temp_arena;
+//     return (AvenCAst){
+//         .tset = ctx.tset,
+//         .nodes = slice_list(ctx.nodes),
+//         .data = slice_list(ctx.data),
+//         .root = ctx.root,
+//     };
+// }
 
 typedef struct {
     AvenArena arena;
@@ -2741,11 +2793,13 @@ typedef struct {
     int io_error;
     uint32_t cursor;
     uint32_t indent;
+    bool ppd;
 } AvenCAstRenderCtx;
 
 typedef struct {
     uint32_t cursor;
     uint32_t indent;
+    bool ppd;
 } AvenCAstRenderCtxState;
 
 static inline AvenCAstRenderCtxState aven_c_ast_render_save(
@@ -2754,6 +2808,7 @@ static inline AvenCAstRenderCtxState aven_c_ast_render_save(
     return (AvenCAstRenderCtxState){
         .cursor = ctx->cursor,
         .indent = ctx->indent,
+        .ppd = ctx->ppd,
     };
 }
 
@@ -2763,13 +2818,14 @@ static inline void aven_c_ast_render_restore(
 ) {
     ctx->cursor = state.cursor;
     ctx->indent = state.indent;
+    ctx->ppd = state.ppd;
 }
 
 static inline bool aven_c_ast_render_write(AvenCAstRenderCtx* ctx, AvenStr str) {
     AvenStr rem = aven_str_range(
         ctx->line,
         ctx->cursor,
-        ctx->line.len - ctx->newline_str.len
+        ctx->line.len - (ctx->newline_str.len + 1)
     );
     if (ctx->cursor == 0) {
         for (uint32_t i = 0; i < ctx->indent; i += 1) {
@@ -2797,6 +2853,10 @@ static inline bool aven_c_ast_render_flush_line(
         return true;
     }
     if (newline) {
+        if (ctx->ppd) {
+            get(ctx->line, ctx->cursor) = '\\';
+            ctx->cursor += 1;
+        }
         slice_copy(aven_str_tail(ctx->line, ctx->cursor), ctx->newline_str);
         ctx->cursor += ctx->newline_str.len;
     }
@@ -2819,7 +2879,6 @@ static inline bool aven_c_ast_render_flush_line(
         if (!aven_c_ast_render_node(c, t, n, p, false)) { \
             if (s) { \
                 if (!aven_c_ast_render_node(c, t, n, p, true)) { \
-                    aven_c_ast_render_restore(c, l); \
                     return false; \
                 } \
             } else { \
@@ -2834,7 +2893,6 @@ static inline bool aven_c_ast_render_flush_line(
             if (s) { \
                 c->indent += 1; \
                 if (!aven_c_ast_render_node(c, t, n, p, true)) { \
-                    aven_c_ast_render_restore(c, l); \
                     return false; \
                 } \
                 c->indent -= 1; \
@@ -2853,7 +2911,7 @@ static inline bool aven_c_ast_render_flush_line(
     } while (0)
 #define aven_c_ast_render_print_token(c, i, s, l) \
     do { \
-        if (!aven_c_ast_render_pp_tokens(c, i, s)) { \
+        if (!aven_c_ast_render_pp_nodes(c, i, s)) { \
             aven_c_ast_render_restore(c, l); \
             return false; \
         } \
@@ -2891,22 +2949,24 @@ static inline bool aven_c_ast_render_flush_line(
         } \
     } while (0)
 
-static inline int aven_c_ast_render(
-    AvenCAst *ast,
-    AvenIoWriter *writer,
-    size_t line_len,
-    AvenStr newline_str,
-    AvenStr indent_str,
-    AvenArena temp_arena
+static inline bool aven_c_ast_render_node(
+    AvenCAstRenderCtx *ctx,
+    AvenCAstNodeType parent_type,
+    uint32_t index,
+    bool split_same,
+    bool split
 );
 
-static inline bool aven_c_ast_render_pp_tokens(
+static inline bool aven_c_ast_render_pp_nodes(
     AvenCAstRenderCtx *ctx,
     uint32_t token_index,
     bool split
 ) {
     if (ctx->io_error != 0) {
         return false;
+    }
+    if (ctx->ppd) {
+        return true;
     }
     uint32_t start_index = token_index;
     while (start_index > 0) {
@@ -2927,77 +2987,21 @@ static inline bool aven_c_ast_render_pp_tokens(
     }
     for (uint32_t i = start_index; i < token_index; i += 1) {
         aven_c_ast_render_flush_line(ctx, true);
-        AvenCToken token = get(ctx->ast->tset.tokens, i);
-        if (token.type == AVEN_C_TOKEN_TYPE_CMT) {
-            for (uint32_t j = 0; j < ctx->indent; j += 1) {
-                AvenIoResult res = aven_io_writer_push(
-                    ctx->writer,
-                    slice_as_bytes(ctx->indent_str)
-                );
-                if (res.error != 0) {
-                    ctx->io_error = res.error;
-                    return false;
-                }
-                if (res.payload != ctx->indent_str.len) {
-                    ctx->io_error = AVEN_IO_ERROR_NOSPACE;
-                    return false;
-                }
-            }
-            AvenStr tstr = aven_c_token_str(ctx->ast->tset, i);
-            AvenIoResult res = aven_io_writer_push(
-                ctx->writer,
-                slice_as_bytes(tstr)
-            );
-            if (res.error != 0) {
-                ctx->io_error = res.error;
-                return false;
-            }
-            if (res.payload != tstr.len) {
-                ctx->io_error = AVEN_IO_ERROR_NOSPACE;
-                return false;
-            }
-        } else {
-            AvenArena temp_arena = ctx->arena;
-            AvenCAst sub_ast = aven_c_ast_ppd_parse(
-                ctx->ast->tset,
-                token,
-                &temp_arena
-            );
-            ctx->io_error = aven_c_ast_render(
-                &sub_ast,
-                ctx->writer,
-                ctx->line.len - ctx->newline_str.len,
-                aven_str_concat(aven_str(" \\"), ctx->newline_str, &temp_arena),
-                ctx->indent_str,
-                temp_arena
-            );
-            if (ctx->io_error != 0) {
-                return false;
-            }
-        }
-        AvenIoResult res = aven_io_writer_push(
-            ctx->writer,
-            slice_as_bytes(ctx->newline_str)
+        ctx->ppd = true;
+        AvenCAstRenderCtxState state = aven_c_ast_render_save(ctx);
+        aven_c_ast_render_node_try(
+            ctx,
+            AVEN_C_AST_NODE_TYPE_NONE,
+            get(ctx->ast->pp_nodes, i),
+            split,
+            split,
+            state
         );
-        if (res.error != 0) {
-            ctx->io_error = res.error;
-            return false;
-        }
-        if (res.payload != ctx->newline_str.len) {
-            ctx->io_error = AVEN_IO_ERROR_NOSPACE;
-            return false;
-        }
+        ctx->ppd = false;
+        aven_c_ast_render_flush_line(ctx, true);
     }
     return true;
 }
-
-static inline bool aven_c_ast_render_node(
-    AvenCAstRenderCtx *ctx,
-    AvenCAstNodeType parent_type,
-    uint32_t index,
-    bool split_same,
-    bool split
-);
 
 static inline bool aven_c_ast_render_data(
     AvenCAstRenderCtx *ctx,
@@ -3088,7 +3092,7 @@ static inline bool aven_c_ast_render_node(
                 node.type,
                 node.lhs,
                 false,
-                false,
+                split,
                 state
             );
             break;
@@ -3117,6 +3121,48 @@ static inline bool aven_c_ast_render_node(
             );
             if (split) {
                 ctx->indent -= 1;
+            }
+            break;
+        }
+        case AVEN_C_AST_NODE_TYPE_COMMENT: {
+            for (uint32_t j = 0; j < ctx->indent; j += 1) {
+                AvenIoResult res = aven_io_writer_push(
+                    ctx->writer,
+                    slice_as_bytes(ctx->indent_str)
+                );
+                if (res.error != 0) {
+                    ctx->io_error = res.error;
+                    return false;
+                }
+                if (res.payload != ctx->indent_str.len) {
+                    ctx->io_error = AVEN_IO_ERROR_NOSPACE;
+                    return false;
+                }
+            }
+            AvenStr tstr = aven_c_token_str(ctx->ast->tset, node.token);
+            AvenIoResult res = aven_io_writer_push(
+                ctx->writer,
+                slice_as_bytes(tstr)
+            );
+            if (res.error != 0) {
+                ctx->io_error = res.error;
+                return false;
+            }
+            if (res.payload != tstr.len) {
+                ctx->io_error = AVEN_IO_ERROR_NOSPACE;
+                return false;
+            }
+            res = aven_io_writer_push(
+                ctx->writer,
+                slice_as_bytes(ctx->newline_str)
+            );
+            if (res.error != 0) {
+                ctx->io_error = res.error;
+                return false;
+            }
+            if (res.payload != tstr.len) {
+                ctx->io_error = AVEN_IO_ERROR_NOSPACE;
+                return false;
             }
             break;
         }
@@ -3225,6 +3271,7 @@ static inline bool aven_c_ast_render_node(
             break;
         }
     }
+
     return true;
 }
 
@@ -3244,7 +3291,7 @@ static inline int aven_c_ast_render(
         .line = aven_arena_create_slice(
             char,
             &temp_arena,
-            line_len + newline_str.len
+            line_len + newline_str.len + 1
         ),
         .newline_str = newline_str,
         .indent_str = indent_str,
@@ -3286,7 +3333,7 @@ static inline int aven_c_ast_render(
         return ctx.io_error;
     }
     if (
-        !aven_c_ast_render_pp_tokens(
+        !aven_c_ast_render_pp_nodes(
             &ctx,
             (uint32_t)(ast->tset.tokens.len - 1),
             true
