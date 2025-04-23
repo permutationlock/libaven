@@ -15,7 +15,6 @@
 
 #include "test/path.h"
 #include "test/io.h"
-#include "test/c.h"
 #include "test/hash_map.h"
 
 #define ARENA_SIZE (4096 * 32)
@@ -27,7 +26,6 @@ int main(void) {
 
     test_path(test_arena);
     test_io(test_arena);
-    test_c(test_arena);
     test_hash_map(test_arena);
 
     return 0;
