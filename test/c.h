@@ -750,6 +750,30 @@ static int test_c(AvenArena arena) {
             },
         },
         {
+            .desc = aven_str("aven_c_ast_render ternary expression"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("x = true ? 1 : 0\n"),
+                .expected = aven_str(
+                    "x = true ? 1 : 0"
+                ),
+                .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render ternary expression"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("x = true ? 1 : 0\n"),
+                .expected = aven_str(
+                    "x = true ?\n"
+                    "    1 :\n"
+                    "    0"
+                ),
+                .line_len = 12,
+            },
+        },
+        {
             .desc = aven_str("aven_c_ast_render comma expression "),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
@@ -829,6 +853,33 @@ static int test_c(AvenArena arena) {
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("#define ADD1(n) (n + 1)"),
                 .expected = aven_str("#define ADD1(n) ( \\\n        n + 1 \\\n    )\n"),
+                .line_len = 18,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render string literal"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("\"Hello, World!\""),
+                .expected = aven_str("\"Hello, World!\""),
+                .line_len = 18,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render compound string literal"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("\"Hello,\" \" World!\""),
+                .expected = aven_str("\"Hello,\"\n    \" World!\""),
+                .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render compound string literal w/macro"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("MY_STR \" World!\""),
+                .expected = aven_str("MY_STR \" World!\""),
                 .line_len = 18,
             },
         },
