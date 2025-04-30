@@ -715,8 +715,8 @@ static int test_c(AvenArena arena) {
                 .src = aven_str("x = 10 - 2 * 2 * 4 - 7\n"),
                 .expected = aven_str(
                     "x = 10 -\n"
-                    "    2 * 2 * 4 -\n"
-                    "    7"
+                        "    2 * 2 * 4 -\n"
+                        "    7"
                 ),
                 .line_len = 16,
             },
@@ -843,12 +843,21 @@ static int test_c(AvenArena arena) {
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("#define ADD1(n) (n + 1)"),
+                .expected = aven_str("#define ADD1(n) (n + 1)\n"),
+                .line_len = 24,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render pp define fn const expr short line"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("#define ADD1(n) (n + 1)"),
                 .expected = aven_str("#define ADD1(n) \\\n    (n + 1)\n"),
                 .line_len = 16,
             },
         },
         {
-            .desc = aven_str("aven_c_ast_render pp define fn const expr longer line"),
+            .desc = aven_str("aven_c_ast_render pp define fn const expr middle line"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("#define ADD1(n) (n + 1)"),
@@ -870,6 +879,15 @@ static int test_c(AvenArena arena) {
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("\"Hello,\" \" World!\""),
+                .expected = aven_str("\"Hello,\" \" World!\""),
+                .line_len = 20,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render compound string literal short line"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("\"Hello,\" \" World!\""),
                 .expected = aven_str("\"Hello,\"\n    \" World!\""),
                 .line_len = 16,
             },
@@ -883,25 +901,34 @@ static int test_c(AvenArena arena) {
                 .line_len = 18,
             },
         },
-        // {
-        //     .desc = aven_str("aven_c_ast_render multi-line pp directive"),
-        //     .fn = test_aven_c_ast_render,
-        //     .args = &(TestAvenCAstRenderArgs){
-        //         .src = aven_str(
-        //             "#define Slice(T) struct {\\\n"
-        //             "        size_t len;\\\n"
-        //             "        T *ptr;\\\n"
-        //             "    }\n"
-        //         ),
-        //         .expected = aven_str(
-        //             "#define Slice(T) struct {\\\n"
-        //             "        size_t len;\\\n"
-        //             "        T *ptr;\\\n"
-        //             "    }\n"
-        //         ),
-        //         .line_len = 16,
-        //     },
-        // },
+        {
+            .desc = aven_str("aven_c_ast_render compound string literal in parens"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("(\"Hello there,\" \" World!\")"),
+                .expected = aven_str("(\n    \"Hello there,\"\n        \" World!\"\n)"),
+                .line_len = 20,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render multi-line pp directive"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "#define Slice(T) struct {\\\n"
+                    "        size_t len;\\\n"
+                    "        T *ptr;\\\n"
+                    "    }\n"
+                ),
+                .expected = aven_str(
+                    "#define Slice(T) struct { \\\n"
+                    "        size_t len; \\\n"
+                    "        T *ptr; \\\n"
+                    "    }\n"
+                ),
+                .line_len = 28,
+            },
+        },
     };
 
     AvenTestCaseSlice tcases = slice_array(tcase_data);
