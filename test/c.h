@@ -102,7 +102,7 @@ static AvenTestResult test_aven_c_token_loc(
     }
     for (uint32_t i = 0; i < pp_args->expected.len; i += 1) {
         AvenCToken at = get(actual, i);
-        AvenCTokenLoc al = aven_c_token_loc(at, pp_args->src);
+        AvenCTokenLoc al = aven_c_token_loc(tset, i);
         TestAvenCTokenLoc et = get(pp_args->expected, i);
 
         AvenStr as = aven_c_token_str(tset, i);
@@ -1012,24 +1012,24 @@ static int test_c(AvenArena arena) {
             },
         },
         {
-            .desc = aven_str("aven_c_ast_render full function definition"),
+            .desc = aven_str("aven_c_ast_render complex function definition"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str(
                     "AVEN_FN void *aven_arena_alloc(\n"
                     "    AvenArena *arena,\n"
-                    "    size_t count,\n"
-                    "    size_t align,\n"
+                    "    size_t count, size_t align,\n\n"
                     "    size_t size\n"
                     ") {\n"
-                    "    assert((align & (align - 1)) == 0);\n"
+                    "    assert((align & (align - 1)) == 0);\n\n"
                     "    ptrdiff_t padding = (ptrdiff_t)(-(uintptr_t)arena->base & (align - 1));\n"
-                    "    ptrdiff_t available = arena->top - arena->base - padding;\n"
+                    "    ptrdiff_t available = arena->top - arena->base - padding;\n\n\n\n"
                     "    if (available < 0 || count > ((size_t)available / size)) {\n"
+                    "        // OOM unrecoverable, panic\n"
                     "        aven_panic(\"arena out of memory\");\n"
-                    "    }\n"
+                    "    }\n\n\n"
                     "    void *ptr = arena->base + padding;\n"
-                    "    arena->base += (size_t)padding + size * count;\n"
+                    "    arena->base += (size_t)padding + size * count;\n\n"
                     "    return ptr;\n"
                     "}\n"
                 ),
@@ -1040,18 +1040,59 @@ static int test_c(AvenArena arena) {
                     "    size_t align,\n"
                     "    size_t size\n"
                     ") {\n"
-                    "    assert((align & (align - 1)) == 0);\n"
+                    "    assert((align & (align - 1)) == 0);\n\n"
                     "    ptrdiff_t padding = (ptrdiff_t)(-(uintptr_t)arena->base & (align - 1));\n"
-                    "    ptrdiff_t available = arena->top - arena->base - padding;\n"
+                    "    ptrdiff_t available = arena->top - arena->base - padding;\n\n"
                     "    if (available < 0 || count > ((size_t)available / size)) {\n"
+                    "        // OOM unrecoverable, panic\n"
                     "        aven_panic(\"arena out of memory\");\n"
-                    "    }\n"
+                    "    }\n\n"
                     "    void *ptr = arena->base + padding;\n"
-                    "    arena->base += (size_t)padding + size * count;\n"
+                    "    arena->base += (size_t)padding + size * count;\n\n"
                     "    return ptr;\n"
                     "}\n"
                 ),
                 .line_len = 80,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render function definition inside ifdef"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "#ifndef A\n"
+                    "#define A\n\n"
+                    "void main(int argc, const char **argv) { printf(\"Hello, World!\"); }\n"
+                    "#endif\n"
+                    "void main(\n"
+                    "    int argc,\n"
+                    "    const char **argv\n"
+                    ") {\n"
+                    "#ifdef A\n"
+                    "    printf(\"Hello, World!\");\n"
+                    "#endif\n"
+                    "}\n"
+                ),
+                .expected = aven_str(
+                    "#ifndef A\n"
+                    "    #define A\n\n"
+                    "    void main(\n"
+                    "        int argc,\n"
+                    "        const char **argv\n"
+                    "    ) {\n"
+                    "        printf(\"Hello, World!\");\n"
+                    "    }\n"
+                    "#endif\n"
+                    "void main(\n"
+                    "    int argc,\n"
+                    "    const char **argv\n"
+                    ") {\n"
+                    "#ifdef A\n"
+                    "    printf(\"Hello, World!\");\n"
+                    "#endif\n"
+                    "}\n"
+                ),
+                .line_len = 36,
             },
         },
     };
