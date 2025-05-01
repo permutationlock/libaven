@@ -724,8 +724,8 @@ static int test_c(AvenArena arena) {
                 .src = aven_str("int x = 10 - 2 * 2 * 4 - 7;\n"),
                 .expected = aven_str(
                     "int x = 10 -\n"
-                        "    2 * 2 * 4 -\n"
-                        "    7;\n"
+                    "    2 * 2 * 4 -\n"
+                    "    7;\n"
                 ),
                 .line_len = 16,
             },
@@ -770,7 +770,7 @@ static int test_c(AvenArena arena) {
             },
         },
         {
-            .desc = aven_str("aven_c_ast_render ternary expression"),
+            .desc = aven_str("aven_c_ast_render ternary expression split"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("bool x = true ? 1 : 0;\n"),
@@ -783,19 +783,28 @@ static int test_c(AvenArena arena) {
             },
         },
         {
-            .desc = aven_str("aven_c_ast_render comma expression "),
+            .desc = aven_str("aven_c_ast_render comma expression"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("int x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14);\n"),
+                .expected = aven_str("int x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14);\n"),
+                .line_len = 48,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render comma expression split"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("int x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14);\n"),
                 .expected = aven_str(
                     "int x = (\n"
-                    "    10 -\n"
-                    "    2 * 2 * 4 -\n"
-                    "    7,\n"
-                    "    32 + 7 + 14\n"
-                    ");\n"
+                    "        10 -\n"
+                    "        2 * 2 * 4 -\n"
+                    "        7,\n"
+                    "        32 + 7 + 14\n"
+                    "    );\n"
                 ),
-                .line_len = 16,
+                .line_len = 24,
             },
         },
         {
@@ -834,6 +843,38 @@ static int test_c(AvenArena arena) {
                     "int x = 2 +\n"
                     "    /* add */\n"
                     "    2;\n"
+                ),
+                .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render empty line after comment"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "// Hello World!\n\n"
+                    "int x = 2 + 2;\n"
+                ),
+                .expected = aven_str(
+                    "// Hello World!\n\n"
+                    "int x = 2 + 2;\n"
+                ),
+                .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render empty line before comment"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "int x = 2 + 2;\n\n"
+                    "// Hello World!\n"
+                    "int y = x;\n"
+                ),
+                .expected = aven_str(
+                    "int x = 2 + 2;\n\n"
+                    "// Hello World!\n"
+                    "int y = x;\n"
                 ),
                 .line_len = 16,
             },
@@ -893,7 +934,7 @@ static int test_c(AvenArena arena) {
             },
         },
         {
-            .desc = aven_str("aven_c_ast_render compound string literal"),
+            .desc = aven_str("aven_c_ast_render compound string literal short line"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("char str[] = \"Hello,\" \" World!\";\n"),
@@ -902,7 +943,7 @@ static int test_c(AvenArena arena) {
             },
         },
         {
-            .desc = aven_str("aven_c_ast_render compound string literal short line"),
+            .desc = aven_str("aven_c_ast_render compound string literal param"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("void *p = make(\"Hello,\" \" World!\");\n"),
@@ -911,15 +952,15 @@ static int test_c(AvenArena arena) {
             },
         },
         {
-            .desc = aven_str("aven_c_ast_render compound string literal short line"),
+            .desc = aven_str("aven_c_ast_render compound string literal param short line"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("void *p = make(\"Hello,\" \" World!\");\n"),
                 .expected = aven_str(
                     "void *p = make(\n"
-                    "    \"Hello,\"\n"
-                    "    \" World!\"\n"
-                    ");\n"
+                    "        \"Hello,\"\n"
+                    "        \" World!\"\n"
+                    "    );\n"
                 ),
                 .line_len = 20,
             },
@@ -1018,19 +1059,27 @@ static int test_c(AvenArena arena) {
                 .src = aven_str(
                     "AVEN_FN void *aven_arena_alloc(\n"
                     "    AvenArena *arena,\n"
-                    "    size_t count, size_t align,\n\n"
+                    "    size_t count, size_t align,\n"
+                    "\n"
                     "    size_t size\n"
                     ") {\n"
-                    "    assert((align & (align - 1)) == 0);\n\n"
+                    "\n"
+                    "    assert((align & (align - 1)) == 0);\n"
+                    "\n"
                     "    ptrdiff_t padding = (ptrdiff_t)(-(uintptr_t)arena->base & (align - 1));\n"
-                    "    ptrdiff_t available = arena->top - arena->base - padding;\n\n\n\n"
+                    "    ptrdiff_t available = arena->top - arena->base - padding;\n"
+                    "\n"
+                    "\n"
+                    "\n"
                     "    if (available < 0 || count > ((size_t)available / size)) {\n"
-                    "        // OOM unrecoverable, panic\n"
-                    "        aven_panic(\"arena out of memory\");\n"
-                    "    }\n\n\n"
+                    "            // OOM unrecoverable, panic\n"
+                    "            aven_panic(\"arena out of memory\");\n"
+                    "    }\n"
+                    "\n"
+                    "\n"
                     "    void *ptr = arena->base + padding;\n"
                     "    arena->base += (size_t)padding + size * count;\n\n"
-                    "    return ptr;\n"
+                    "    return ptr;\n\n"
                     "}\n"
                 ),
                 .expected = aven_str(
@@ -1040,13 +1089,16 @@ static int test_c(AvenArena arena) {
                     "    size_t align,\n"
                     "    size_t size\n"
                     ") {\n"
-                    "    assert((align & (align - 1)) == 0);\n\n"
+                    "    assert((align & (align - 1)) == 0);\n"
+                    "\n"
                     "    ptrdiff_t padding = (ptrdiff_t)(-(uintptr_t)arena->base & (align - 1));\n"
-                    "    ptrdiff_t available = arena->top - arena->base - padding;\n\n"
+                    "    ptrdiff_t available = arena->top - arena->base - padding;\n"
+                    "\n"
                     "    if (available < 0 || count > ((size_t)available / size)) {\n"
                     "        // OOM unrecoverable, panic\n"
                     "        aven_panic(\"arena out of memory\");\n"
-                    "    }\n\n"
+                    "    }\n"
+                    "\n"
                     "    void *ptr = arena->base + padding;\n"
                     "    arena->base += (size_t)padding + size * count;\n\n"
                     "    return ptr;\n"
@@ -1061,7 +1113,8 @@ static int test_c(AvenArena arena) {
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str(
                     "#ifndef A\n"
-                    "#define A\n\n"
+                    "#define A\n"
+                    "\n"
                     "void main(int argc, const char **argv) { printf(\"Hello, World!\"); }\n"
                     "#endif\n"
                     "void main(\n"
@@ -1075,7 +1128,8 @@ static int test_c(AvenArena arena) {
                 ),
                 .expected = aven_str(
                     "#ifndef A\n"
-                    "    #define A\n\n"
+                    "    #define A\n"
+                    "\n"
                     "    void main(\n"
                     "        int argc,\n"
                     "        const char **argv\n"

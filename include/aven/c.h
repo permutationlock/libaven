@@ -4637,10 +4637,15 @@ static inline bool aven_c_ast_render_node_try_surround_internal(
     if (!aven_c_ast_render_write(ctx, open_str)) {
         return false;
     }
-    if (!aven_c_ast_render_node(ctx, parent_type, index, split_same, false)) {
+    AvenCAstRenderCtxState state = aven_c_ast_render_save(ctx);
+    if (
+        !aven_c_ast_render_node(ctx, parent_type, index, split_same, false) or
+        !aven_c_ast_render_write(ctx, close_str)
+    ) {
         if (!split) {
             return false;
         }
+        aven_c_ast_render_restore(ctx, state);
         ctx->indent += 1;
         if (!aven_c_ast_render_flush_line(ctx, true)) {
             return false;
@@ -4674,9 +4679,9 @@ static inline bool aven_c_ast_render_node_try_surround_internal(
         if (!aven_c_ast_render_flush_line(ctx, true)) {
             return false;
         }
-    }
-    if (!aven_c_ast_render_write(ctx, close_str)) {
-        return false;
+        if (!aven_c_ast_render_write(ctx, close_str)) {
+            return false;
+        }
     }
     return true;
 }
@@ -4795,6 +4800,7 @@ static inline bool aven_c_ast_render_data_try_surround_internal(
     if (!aven_c_ast_render_write(ctx, open_str)) {
         return false;
     }
+    AvenCAstRenderCtxState state = aven_c_ast_render_save(ctx);
     if (
         !aven_c_ast_render_data(
             ctx,
@@ -4802,11 +4808,13 @@ static inline bool aven_c_ast_render_data_try_surround_internal(
             index,
             sep,
             false
-        )
+        ) or
+        !aven_c_ast_render_write(ctx, close_str)
     ) {
         if (!split) {
             return false;
         }
+        aven_c_ast_render_restore(ctx, state);
         if (!aven_c_ast_render_flush_line(ctx, true)) {
             return false;
         }
@@ -4838,10 +4846,6 @@ static inline bool aven_c_ast_render_data_try_surround_internal(
                 return false;
             }
         }
-        return true;
-    }
-    if (!aven_c_ast_render_write(ctx, close_str)) {
-        return false;
     }
     return true;
 }
@@ -5209,12 +5213,6 @@ static inline bool aven_c_ast_render_node(
             break;
         }
         case AVEN_C_AST_NODE_TYPE_PRIMARY_EXPR: {
-            bool reduce_indent = ctx->cursor != 0 and
-                ctx->indent > 0 and
-                parent_type != AVEN_C_AST_NODE_TYPE_PREPROCESSOR_DIRECTIVE;
-            if (reduce_indent) {
-                ctx->indent -= 1;
-            }
             aven_c_ast_render_print_try_token(ctx, node.token, split, state);
             aven_c_ast_render_node_try_surround(
                 ctx,
@@ -5226,9 +5224,6 @@ static inline bool aven_c_ast_render_node(
                 split,
                 state
             );
-            if (reduce_indent) {
-                ctx->indent += 1;
-            }
             break;
         }
         case AVEN_C_AST_NODE_TYPE_MACRO_INVOCATION: {
@@ -5289,10 +5284,6 @@ static inline bool aven_c_ast_render_node(
             break;
         }
         case AVEN_C_AST_NODE_TYPE_INITIALIZER_LIST: {
-            bool reduce_indent = ctx->cursor != 0 and ctx->indent > 0;
-            if (reduce_indent) {
-                ctx->indent -= 1;
-            }
             aven_c_ast_render_print_try_token(ctx, node.token, split, state);
             aven_c_ast_render_data_try_surround(
                 ctx,
@@ -5305,9 +5296,6 @@ static inline bool aven_c_ast_render_node(
                 split,
                 state
             );
-            if (reduce_indent) {
-                ctx->indent += 1;
-            }
             break;
         }
         case AVEN_C_AST_NODE_TYPE_DOT_DESIGNATOR: {
@@ -5401,10 +5389,6 @@ static inline bool aven_c_ast_render_node(
                 state
             );
             aven_c_ast_render_print_try_token(ctx, node.token, split, state);
-            bool reduce_indent = ctx->cursor != 0 and ctx->indent > 0;
-            if (reduce_indent) {
-                ctx->indent -= 1;
-            }
             aven_c_ast_render_data_try_surround(
                 ctx,
                 node.type,
@@ -5416,9 +5400,6 @@ static inline bool aven_c_ast_render_node(
                 split,
                 state
             );
-            if (reduce_indent) {
-                ctx->indent += 1;
-            }
             break;
         }
         case AVEN_C_AST_NODE_TYPE_POSTFIX_EXPR_BOP: {
