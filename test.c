@@ -18,7 +18,7 @@
 #include "test/c.h"
 #include "test/hash_map.h"
 
-#define ARENA_SIZE (4096 * 32)
+#define ARENA_SIZE (4096 * 64)
 
 int main(void) {
     aven_fs_utf8_mode();
