@@ -162,7 +162,18 @@ static AvenTestResult test_aven_c_ast_render(
     TestAvenCAstRenderArgs *fmt_args = args;
 
     AvenCTokenSet tset = aven_c_lex(fmt_args->src, &arena);
-    AvenCAst ast = aven_c_ast_parse(tset, &arena);
+    AvenCAstResult ast_res = aven_c_ast_parse(tset, &arena);
+    if (ast_res.type == AVEN_C_AST_RESULT_TYPE_ERROR) {
+        return (AvenTestResult){
+            .error = 1,
+            .message = aven_fmt(
+                emsg_arena,
+                "encountered parse error: \"{}\"",
+                aven_fmt_str(ast_res.data.error)
+            ),
+        };
+    }
+    AvenCAst ast = ast_res.data.ast;
     ByteSlice out_buffer = aven_arena_create_slice(
         unsigned char,
         &arena,

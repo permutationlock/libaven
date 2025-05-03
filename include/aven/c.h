@@ -3,6 +3,7 @@
 
 #include "../aven.h"
 #include "arena.h"
+#include "aven/fmt.h"
 #include "io.h"
 #include "str.h"
 
@@ -123,6 +124,9 @@ static inline AvenCKeyword aven_c_keyword(AvenStr str) {
 }
 
 static inline AvenStr aven_c_keyword_str(AvenCKeyword kwd) {
+    if (kwd == AVEN_C_KEYWORD_NONE) {
+        return (AvenStr){ 0 };
+    }
     return get(aven_c_keywords, kwd);
 }
 
@@ -181,7 +185,9 @@ static inline AvenStr aven_c_token_str(
     uint32_t index
 ) {
     AvenCToken token = get(tset.tokens, index);
-    if (token.type == AVEN_C_TOKEN_TYPE_KEY) {
+    if (token.type == AVEN_C_TOKEN_TYPE_NONE) {
+        return (AvenStr){ 0 };
+    } else if (token.type == AVEN_C_TOKEN_TYPE_KEY) {
         return aven_c_keyword_str((AvenCKeyword)token.len);
     } else if (token.type == AVEN_C_TOKEN_TYPE_PPD) {
         // Grab entire text chunk for all tokens within directive
@@ -205,7 +211,9 @@ static inline AvenStr aven_c_ppd_token_str(
     uint32_t index
 ) {
     AvenCToken token = get(tset.ppd_tokens, index);
-    if (token.type == AVEN_C_TOKEN_TYPE_KEY) {
+    if (token.type == AVEN_C_TOKEN_TYPE_NONE) {
+        return (AvenStr){ 0 };
+    } else if (token.type == AVEN_C_TOKEN_TYPE_KEY) {
         return aven_c_keyword_str((AvenCKeyword)token.len);
     }
     return aven_str_range(
@@ -1045,6 +1053,18 @@ typedef struct {
     AvenCAstDataSlice pp_nodes;
     uint32_t root;
 } AvenCAst;
+typedef enum {
+    AVEN_C_AST_RESULT_TYPE_ERROR,
+    AVEN_C_AST_RESULT_TYPE_AST,
+} AvenCAstResultType;
+typedef union {
+    AvenStr error;
+    AvenCAst ast;
+} AvenCAstResultData;
+typedef struct {
+    AvenCAstResultType type;
+    AvenCAstResultData data;
+} AvenCAstResult;
 
 static inline AvenCAstNode aven_c_ast_node(AvenCAst *ast, uint32_t index) {
     return get(ast->nodes, index - 1);
@@ -1104,7 +1124,7 @@ static inline AvenCAstCtx aven_c_ast_init(
     for (uint32_t i = 0; i < ctx.pp_nodes.len; i += 1) {
         get(ctx.pp_nodes, i) = 0;
     }
-    size_t err_arena_size = tset.bytes.len + 32;
+    size_t err_arena_size = tset.bytes.len + 64;
     ctx.err_arena = aven_arena_init(
         aven_arena_alloc(arena, err_arena_size, 1, 1),
         err_arena_size
@@ -1192,39 +1212,44 @@ static inline uint32_t aven_c_ast_parse_preprocessor_directive(
 );
 
 static inline uint32_t aven_c_ast_next_index(AvenCAstCtx *ctx) {
-    AvenCToken token = get(ctx->tset.tokens, ctx->token_index);
+    return ctx->token_index - 1;
+}
+
+static inline uint32_t aven_c_ast_inc_index(AvenCAstCtx *ctx) {
+    uint32_t og_index = ctx->token_index;
+    ctx->token_index += 1;
+    AvenCToken token = get(ctx->tset.tokens, ctx->token_index - 1);
     while (
         token.type == AVEN_C_TOKEN_TYPE_CMT or
         token.type == AVEN_C_TOKEN_TYPE_PPD
     ) {
         if (token.type == AVEN_C_TOKEN_TYPE_PPD) {
-            AvenCAstCtx ppd_ctx = aven_c_ast_init_ppd(ctx, ctx->token_index);
+            AvenCAstCtx ppd_ctx = aven_c_ast_init_ppd(ctx, ctx->token_index - 1);
+            aven_c_ast_inc_index(&ppd_ctx);
             uint32_t node = aven_c_ast_parse_preprocessor_directive(&ppd_ctx);
-            if (ppd_ctx.token_index != ppd_ctx.tset.tokens.len - 1) {
+            if (
+                node == 0 or
+                ppd_ctx.token_index <= ppd_ctx.tset.tokens.len - 1
+            ) {
                 ctx->error = ppd_ctx.error;
-                ctx->error.pp_token = ctx->error.token;
-                ctx->error.token = ctx->token_index;
+                ctx->error.pp_token = ctx->error.token + 1;
+                ctx->error.token = ctx->token_index - 1;
                 break;
             } else {
-                get(ctx->pp_nodes, ctx->token_index) = node;
+                get(ctx->pp_nodes, ctx->token_index - 1) = node;
                 aven_c_ast_commit_ppd(ctx, &ppd_ctx);
             }
         } else {
-            get(ctx->pp_nodes, ctx->token_index) = aven_c_ast_push_leaf(
+            get(ctx->pp_nodes, ctx->token_index - 1) = aven_c_ast_push_leaf(
                 ctx,
                 AVEN_C_AST_NODE_TYPE_COMMENT,
-                ctx->token_index
+                ctx->token_index - 1
             );
         }
         ctx->token_index += 1;
-        token = get(ctx->tset.tokens, ctx->token_index);
+        token = get(ctx->tset.tokens, ctx->token_index - 1);
     }
-    return ctx->token_index;
-}
-
-static inline uint32_t aven_c_ast_inc_index(AvenCAstCtx *ctx) {
-    ctx->token_index = aven_c_ast_next_index(ctx);
-    return ctx->token_index++;
+    return og_index - 1;
 }
 
 static inline AvenCToken aven_c_ast_next(AvenCAstCtx *ctx) {
@@ -1272,28 +1297,16 @@ static inline AvenCAstDataSlice aven_c_ast_data_get(
 }
 
 #define aven_c_ast_error_fmt(c, t, f, ...) do { \
-        AvenArena aven_c_ast_error_fmt_arena = c->err_arena; \
-        aven_c_ast_error_internal( \
-            c, \
-            t, \
-            aven_fmt(&aven_c_ast_error_fmt_arena, f, __VA_ARGS__) \
-        ) \
+        uint32_t aven_c_ast_error_fmt_token = aven_c_ast_next_index(c); \
+        if (aven_c_ast_error_fmt_token >= c->error.token) { \
+            AvenArena aven_c_ast_error_fmt_arena = c->err_arena; \
+            ctx->error = (AvenCAstError){ \
+                .token = aven_c_ast_error_fmt_token, \
+                .type = t, \
+                .msg = aven_fmt(&aven_c_ast_error_fmt_arena, f, __VA_ARGS__), \
+            }; \
+        } \
     } while (0)
-
-static inline void aven_c_ast_error_internal(
-    AvenCAstCtx *ctx,
-    AvenCAstNodeType type,
-    AvenStr msg
-) {
-    uint32_t token = aven_c_ast_next_index(ctx);
-    if (token > ctx->error.token) {
-        ctx->error = (AvenCAstError){
-            .token = token,
-            .msg = msg,
-            .type = type,
-        };
-    }
-}
 
 static inline uint32_t aven_c_ast_parse_identifier(AvenCAstCtx *ctx) {
     if (aven_c_ast_next(ctx).type == AVEN_C_TOKEN_TYPE_ID) {
@@ -1303,12 +1316,23 @@ static inline uint32_t aven_c_ast_parse_identifier(AvenCAstCtx *ctx) {
             aven_c_ast_inc_index(ctx)
         );
     }
-    aven_c_ast_error_fmt(
-        ctx,
-        AVEN_C_AST_NODE_TYPE_IDENTIFIER,
-        "expected identifier, found: {}",
-        aven_fmt_str(aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx)))
-    );
+    if (
+        aven_c_ast_next_index(ctx) >= ctx->error.token and
+        aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PPD
+    ) {
+        AvenArena temp_arena = ctx->err_arena;
+        AvenStr token_str = aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx));
+        AvenStr msg = aven_fmt(
+            &temp_arena,
+            "expected identifier, found: \"{}\"",
+            aven_fmt_str(token_str)
+        );
+        ctx->error = (AvenCAstError){
+            .token = aven_c_ast_next_index(ctx),
+            .type = AVEN_C_AST_NODE_TYPE_IDENTIFIER,
+            .msg = msg,
+        };
+    }
     return 0;
 }
 
@@ -1320,12 +1344,23 @@ static inline uint32_t aven_c_ast_parse_string_literal(AvenCAstCtx *ctx) {
             aven_c_ast_inc_index(ctx)
         );
     }
-    aven_c_ast_error_fmt(
-        ctx,
-        AVEN_C_AST_NODE_TYPE_STRING_LITERAL,
-        "expected string literal, found: {}",
-        aven_fmt_str(aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx)))
-    );
+    if (
+        aven_c_ast_next_index(ctx) >= ctx->error.token and
+        aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PPD
+    ) {
+        AvenArena temp_arena = ctx->err_arena;
+        AvenStr token_str = aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx));
+        AvenStr msg = aven_fmt(
+            &temp_arena,
+            "expected string literal, found: \"{}\"",
+            aven_fmt_str(token_str)
+        );
+        ctx->error = (AvenCAstError){
+            .token = aven_c_ast_next_index(ctx),
+            .type = AVEN_C_AST_NODE_TYPE_STRING_LITERAL,
+            .msg = msg,
+        };
+    }
     return 0;
 }
 
@@ -1343,12 +1378,23 @@ static inline uint32_t aven_c_ast_parse_constant(AvenCAstCtx *ctx) {
             break;
         }
     }
-    aven_c_ast_error_fmt(
-        ctx,
-        AVEN_C_AST_NODE_TYPE_CONSTANT,
-        "expected constant, found: {}",
-        aven_fmt_str(aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx)))
-    );
+    if (
+        aven_c_ast_next_index(ctx) >= ctx->error.token and
+        aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PPD
+    ) {
+        AvenArena temp_arena = ctx->err_arena;
+        AvenStr token_str = aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx));
+        AvenStr msg = aven_fmt(
+            &temp_arena,
+            "expected constant, found: \"{}\"",
+            aven_fmt_str(token_str)
+        );
+        ctx->error = (AvenCAstError){
+            .token = aven_c_ast_next_index(ctx),
+            .type = AVEN_C_AST_NODE_TYPE_CONSTANT,
+            .msg = msg,
+        };
+    }
     return 0;
 }
 
@@ -1366,13 +1412,24 @@ static inline bool aven_c_ast_match_punctuator(
         aven_c_ast_inc_index(ctx);
         return true;
     }
-    aven_c_ast_error_fmt(
-        ctx,
-        AVEN_C_AST_NODE_TYPE_PUNCTUATOR,
-        "expected punctuator {}, found: {}",
-        aven_fmt_str(str),
-        aven_fmt_str(aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx)))
-    );
+    if (
+        aven_c_ast_next_index(ctx) >= ctx->error.token and
+        aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PPD
+    ) {
+        AvenArena temp_arena = ctx->err_arena;
+        AvenStr token_str = aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx));
+        AvenStr msg = aven_fmt(
+            &temp_arena,
+            "expected punctuator \"{}\", found: \"{}\"",
+            aven_fmt_str(str),
+            aven_fmt_str(token_str)
+        );
+        ctx->error = (AvenCAstError){
+            .token = aven_c_ast_next_index(ctx),
+            .type = AVEN_C_AST_NODE_TYPE_PUNCTUATOR,
+            .msg = msg,
+        };
+    }
     return false;
 }
 
@@ -1391,13 +1448,24 @@ static inline bool aven_c_ast_match_keyword(
         aven_c_ast_inc_index(ctx);
         return true;
     }
-    aven_c_ast_error_fmt(
-        ctx,
-        AVEN_C_AST_NODE_TYPE_KEYWORD,
-        "expected keyword {}, found: {}",
-        aven_fmt_str(keyword_str),
-        aven_fmt_str(aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx)))
-    );
+    if (
+        aven_c_ast_next_index(ctx) >= ctx->error.token and
+        aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PPD
+    ) {
+        AvenArena temp_arena = ctx->err_arena;
+        AvenStr token_str = aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx));
+        AvenStr msg = aven_fmt(
+            &temp_arena,
+            "expected keyword \"{}\", found: \"{}\"",
+            aven_fmt_str(keyword_str),
+            aven_fmt_str(token_str)
+        );
+        ctx->error = (AvenCAstError){
+            .token = aven_c_ast_next_index(ctx),
+            .type = AVEN_C_AST_NODE_TYPE_KEYWORD,
+            .msg = msg,
+        };
+    }
     return false;
 }
 
@@ -4347,31 +4415,105 @@ static inline uint32_t aven_c_ast_parse_translation_unit(AvenCAstCtx *ctx) {
     );
 }
 
-static inline AvenCAst aven_c_ast_parse(AvenCTokenSet tset, AvenArena *arena) {
-    AvenCAstCtx ctx = aven_c_ast_init(tset, arena);
+static inline AvenCAstResult aven_c_ast_parse(AvenCTokenSet tset, AvenArena *arena) {
+    AvenArena temp_arena = *arena;
+    AvenCAstCtx ctx = aven_c_ast_init(tset, &temp_arena);
+    aven_c_ast_inc_index(&ctx);
     uint32_t root = aven_c_ast_parse_translation_unit(&ctx);
-    if (ctx.token_index != ctx.tset.tokens.len - 1) {
+    if (root == 0 or ctx.token_index <= ctx.tset.tokens.len - 1) {
+        AvenCToken token = get(ctx.tset.tokens, ctx.error.token);
         AvenCTokenLoc eloc = aven_c_token_loc(ctx.tset, ctx.error.token);
         if (ctx.error.pp_token != 0) {
             eloc = aven_c_ppd_token_loc(
                 ctx.tset,
-                ctx.error.pp_token
+                ctx.error.pp_token - 1
             );
+            token = get(ctx.tset.ppd_tokens, ctx.error.pp_token);
         }
-        aven_io_perrf(
-            "error at {}:{}\n    {}",
-            aven_fmt_uint(eloc.line),
-            aven_fmt_uint(eloc.col),
-            aven_fmt_str(ctx.error.msg)
-        );
-        aven_panic("parse_error");
+        size_t offset = 48;
+        size_t start = token.index >= offset ? token.index - offset : 0;
+        for (size_t i = start; i < (size_t)token.index; i += 1) {
+            if (get(ctx.tset.bytes, i) == '\n') {
+                start = i + 1;
+            }
+        }
+        size_t len = min(100 - offset, token.len + offset);
+        size_t end = token.index + len < ctx.tset.bytes.len ?
+            token.index + len :
+            ctx.tset.bytes.len;
+        for (uint32_t i = token.index; i < end; i += 1) {
+            if (get(ctx.tset.bytes, i) == '\n') {
+                end = i;
+                break;
+            }
+        }
+        AvenStr line = aven_str_range(ctx.tset.bytes, start, end);
+        char arrow_buffer[132];
+        AvenStr arrow_str = slice_array(arrow_buffer);
+        size_t arrow_len = 0;
+        size_t ln_digits = aven_fmt_uint_decimal_digits(eloc.line);
+        for (size_t i = 0; i < ln_digits; i += 1) {
+            get(arrow_str, arrow_len) = ' ';
+            arrow_len += 1;
+        }
+        for (size_t i = start; i < (size_t)token.index; i += 1) {
+            get(arrow_str, arrow_len) = ' ';
+            arrow_len += 1;
+        }
+        get(arrow_str, arrow_len) = '^';
+        arrow_len += 1;
+        arrow_str = aven_str_head(arrow_str, arrow_len);
+        return (AvenCAstResult) {
+            .type = AVEN_C_AST_RESULT_TYPE_ERROR,
+            .data = {
+                .error = aven_fmt(
+                    arena,
+                    "error at {}:{}: {}\n{}:    {}\n    {}",
+                    aven_fmt_uint(eloc.line),
+                    aven_fmt_uint(eloc.col),
+                    aven_fmt_str(ctx.error.msg),
+                    aven_fmt_uint(eloc.line),
+                    aven_fmt_str(line),
+                    aven_fmt_str(arrow_str)
+                ),
+            },
+        };
     }
-    return (AvenCAst){
-        .tset = tset,
-        .nodes = slice_list(ctx.nodes),
-        .data = slice_list(ctx.data),
-        .pp_nodes = ctx.pp_nodes,
-        .root = root,
+    AvenCAstNodeSlice nodes = aven_arena_create_slice(
+        AvenCAstNode,
+        arena,
+        ctx.nodes.len
+    );
+    AvenCAstDataSlice data = aven_arena_create_slice(
+        uint32_t,
+        arena,
+        ctx.data.len
+    );
+    AvenCAstDataSlice pp_nodes = aven_arena_create_slice(
+        uint32_t,
+        arena,
+        ctx.pp_nodes.len
+    );
+    for (size_t i = 0; i < nodes.len; i += 1) {
+        get(nodes, i) = get(ctx.nodes, i);
+    }
+    for (size_t i = 0; i < data.len; i += 1) {
+        get(data, i) = get(ctx.data, i);
+    }
+    for (size_t i = 0; i < pp_nodes.len; i += 1) {
+        get(pp_nodes, i) = get(ctx.pp_nodes, i);
+    }
+    return (AvenCAstResult){
+        .type = AVEN_C_AST_RESULT_TYPE_AST,
+        .data = {
+            .ast = {
+                .tset = tset,
+                .nodes = nodes,
+                .data = data,
+                .pp_nodes = pp_nodes,
+                .root = root,
+            },
+        },
     };
 }
 
