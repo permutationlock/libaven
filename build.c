@@ -85,8 +85,18 @@ int main(int argc, char **argv) {
         &arena
     );
 
+    // Build the c pretty printer
+
+    AvenBuildStep fmt_step = libaven_build_step_fmt(
+        &opts,
+        root_dir,
+        &out_dir_step,
+        &arena
+    );
+
     AvenBuildStep root_step = aven_build_step_root();
     aven_build_step_add_dep(&root_step, &libaven_step, &arena);
+    aven_build_step_add_dep(&root_step, &fmt_step, &arena);
 
     // Build and run tests
 

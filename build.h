@@ -180,4 +180,37 @@ static inline AvenBuildStep libaven_build_step_winpthreads(
     );
 }
 
+static inline AvenBuildStep libaven_build_step_fmt(
+    AvenBuildCommonOpts *opts,
+    AvenStr root_path,
+    AvenBuildStep *out_dir_step,
+    AvenArena *arena
+) {
+    AvenStr include_paths[] = {
+        libaven_build_include_path(root_path, arena),
+    };
+    AvenStrSlice includes = slice_array(include_paths);
+    AvenStrSlice macros = { 0 };
+    AvenStrSlice syslibs = { 0 };
+    AvenBuildStepPtrSlice objs = { 0 };
+    bool graphical = false;
+
+    return aven_build_common_step_cc_ld_exe_ex(
+        opts,
+        includes,
+        macros,
+        syslibs,
+        objs,
+        aven_path(
+            arena,
+            root_path,
+            aven_str("src"),
+            aven_str("fmt.c")
+        ),
+        out_dir_step,
+        graphical,
+        arena
+    );
+}
+
 #endif // LIBAVEN_BUILD_H

@@ -180,21 +180,21 @@ static AvenTestResult test_aven_c_ast_render(
         8 * fmt_args->expected.len
     );
     AvenIoWriter writer = aven_io_writer_init_bytes(out_buffer);
-    int error =  aven_c_ast_render(
+    AvenCAstRenderResult ren_res =  aven_c_ast_render(
         &ast,
         &writer,
         fmt_args->line_len,
         aven_str("\n"),
         aven_str("    "),
-        arena
+        &arena
     );
-    if (error != 0) {
+    if (ren_res.error != AVEN_C_AST_RENDER_ERROR_NONE) {
         return (AvenTestResult){
             .error = 1,
             .message = aven_fmt(
                 emsg_arena,
-                "encountered io error: {}",
-                aven_fmt_int(error)
+                "rendering error: {}",
+                aven_fmt_str(ren_res.msg)
             ),
         };
     }
@@ -794,6 +794,15 @@ static int test_c(AvenArena arena) {
             },
         },
         {
+            .desc = aven_str("aven_c_ast_render postfix '.'"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("int error = result.error;\n"),
+                .expected = aven_str("int error = result.error;\n"),
+                .line_len = 36,
+            },
+        },
+        {
             .desc = aven_str("aven_c_ast_render comma expression"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
@@ -1162,6 +1171,65 @@ static int test_c(AvenArena arena) {
                     "    printf(\"Hello, World!\");\n"
                     "#endif\n"
                     "}\n"
+                ),
+                .line_len = 36,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render function definition w/args"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "int foo(\n"
+                    "    int argc,\n"
+                    "#ifndef A\n"
+                    "    const char **argv,\n"
+                    "#else\n"
+                    "    const long **argv,\n"
+                    "#endif\n"
+                    "    bool split\n"
+                    ") {\n"
+                    "    printf(\"Hello, World!\");\n"
+                    "}\n"
+                ),
+                .expected = aven_str(
+                    "int foo(\n"
+                    "    int argc,\n"
+                    "#ifndef A\n"
+                    "    const char **argv,\n"
+                    "#else\n"
+                    "    const long **argv,\n"
+                    "#endif\n"
+                    "    bool split\n"
+                    ") {\n"
+                    "    printf(\"Hello, World!\");\n"
+                    "}\n"
+                ),
+                .line_len = 36,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render local include directive"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "#include \"aven.h\"\n"
+                ),
+                .expected = aven_str(
+                    "#include \"aven.h\"\n"
+                ),
+                .line_len = 36,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render system include directive"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "#include <aven.h>\n"
+                ),
+                .expected = aven_str(
+                    "#include <aven.h>\n"
                 ),
                 .line_len = 36,
             },

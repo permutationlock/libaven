@@ -210,6 +210,7 @@ static inline void aven_pool_push_free_internal(
 
 #define slice_array(...) { .ptr = (__VA_ARGS__), .len = countof(__VA_ARGS__) }
 #define slice_list(l) { .ptr = (l).ptr, .len = (l).len }
+#define slice_list_free(l) { .ptr = (l).ptr + (l).len, .len = (l).cap - (l).len }
 #define slice_queue_front(q) { \
         .ptr = ((q).used > 0) ? (q).ptr + (q).front : NULL, \
         .len = min((q).cap, (q).front + (q).used) - (q).front, \
