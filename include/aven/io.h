@@ -248,12 +248,13 @@ static inline AvenIoWriter aven_io_writer_init_stderr_buffered(
 }
 
 static int aven_io_writer_flush(AvenIoWriter *writer) {
-    AvenIoResult res = writer->write(writer->ctx, writer->buffer);
-    if (res.payload == writer->buffer.len) {
+    ByteSlice written = slice_head(writer->buffer, writer->index);
+    AvenIoResult res = writer->write(writer->ctx, written);
+    if (res.payload == written.len) {
         writer->index = 0;
     } else if (res.payload > 0) {
-        ByteSlice dest_rem = slice_tail(writer->buffer, res.payload);
-        if (dest_rem.len > writer->buffer.len / 2) {
+        ByteSlice dest_rem = slice_tail(written, res.payload);
+        if (dest_rem.len > written.len / 2) {
             for (size_t i = 0; i < dest_rem.len; i += 1) {
                 get(writer->buffer, i) = get(dest_rem, i);
             }

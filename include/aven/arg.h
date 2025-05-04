@@ -210,7 +210,7 @@ static inline AvenArgError aven_arg_parse(
         }
     }
 
-    int error = 0;
+    AvenArgError error = 0;
     for (size_t j = 0; j < args.len; j += 1) {
         AvenArg arg = get(args, j);
         if (!arg.optional and arg.value.type != arg.type) {

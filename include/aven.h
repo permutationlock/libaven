@@ -157,7 +157,7 @@ static inline void aven_pool_push_free_internal(
             assert((i) < (q).used), \
             ((q).front + (i) < (q).cap) ? \
                 (q).front + (i) : \
-                (q).front + (i) - (q).cap \
+                (q).front - (q).cap + (i) \
         ) \
     ]
 #define queue_front(q) (q).ptr[(assert((q).used > 0), (q).front)]
@@ -232,7 +232,7 @@ static inline void aven_pool_push_free_internal(
         .len = ( \
             assert((j) <= (s).len), \
             assert((i) <= (j)), \
-            (j) - (i) \
+            ((j)) - (i) \
         ), \
     }
 #define list_array(...) { .ptr = (__VA_ARGS__), .cap = countof(__VA_ARGS__) }
