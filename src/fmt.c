@@ -22,7 +22,11 @@ int main(void) {
     AvenCFmtResult fmt_res = aven_c_fmt(
         &aven_io_stdin,
         &stdout,
+#ifdef A
+        &arena,
+#else
         &arena
+#endif
     );
     aven_io_writer_flush(&stdout);
     if (fmt_res.error != AVEN_C_FMT_ERROR_NONE) {
