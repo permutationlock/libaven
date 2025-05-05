@@ -951,12 +951,12 @@ static int test_c(AvenArena arena) {
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("#define ADD1(n) (n + 1)"),
-                .expected = aven_str("#define ADD1(n) \\\n    (n + 1)\n"),
-                .line_len = 17,
+                .expected = aven_str("#define ADD1(n) ( \\\n        n + 1 \\\n    )\n"),
+                .line_len = 19,
             },
         },
         {
-            .desc = aven_str("aven_c_ast_render pp define fn const expr middle line"),
+            .desc = aven_str("aven_c_ast_render pp define fn const expr short force fit"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("#define ADD1(n) (n + 1)"),
