@@ -716,6 +716,15 @@ static int test_c(AvenArena arena) {
             },
         },
         {
+            .desc = aven_str("aven_c_ast_render char declaration init expr"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("char c = '\\n';\n"),
+                .expected = aven_str("char c = '\\n';\n"),
+                .line_len = 16,
+            },
+        },
+        {
             .desc = aven_str("aven_c_ast_render expression split same op add"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
@@ -818,13 +827,13 @@ static int test_c(AvenArena arena) {
                 .src = aven_str("int x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14);\n"),
                 .expected = aven_str(
                     "int x = (\n"
-                    "        10 -\n"
+                    "    10 -\n"
                     "        2 * 2 * 4 -\n"
                     "        7,\n"
-                    "        32 + 7 + 14\n"
-                    "    );\n"
+                    "    32 + 7 + 14\n"
+                    ");\n"
                 ),
-                .line_len = 24,
+                .line_len = 20,
             },
         },
         {
@@ -1019,6 +1028,27 @@ static int test_c(AvenArena arena) {
                 .src = aven_str("const char *str = MY_STR \" World!\";"),
                 .expected = aven_str("const char *str = MY_STR\n    \" World!\";\n"),
                 .line_len = 28,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render enum typedef"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "typedef enum {\n"
+                    "    AVEN_ARG_TYPE_BOOL = 0,\n"
+                    "    AVEN_ARG_TYPE_INT,\n"
+                    "    AVEN_ARG_TYPE_STRING\n"
+                    "} AvenArgType;\n"
+                ),
+                .expected = aven_str(
+                    "typedef enum {\n"
+                    "    AVEN_ARG_TYPE_BOOL = 0,\n"
+                    "    AVEN_ARG_TYPE_INT,\n"
+                    "    AVEN_ARG_TYPE_STRING,\n"
+                    "} AvenArgType;\n"
+                ),
+                .line_len = 80,
             },
         },
         {
@@ -1261,6 +1291,40 @@ static int test_c(AvenArena arena) {
                 ),
                 .expected = aven_str(
                     "#include <aven.h>\n"
+                ),
+                .line_len = 36,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render init decl initializer list"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "AvenCAstRenderCtx ctx = {\n"
+                    "    .ast = ast,\n"
+                    "    .writer = writer,\n"
+                    "    .line = aven_arena_create_slice(\n"
+                    "        char,\n"
+                    "        &temp_arena,\n"
+                    "        line_len + 2\n"
+                    "    ),\n"
+                    "    .newline_str = newline_str,\n"
+                    "    .indent_str = indent_str,\n"
+                    "};\n"
+                ),
+                .expected = aven_str(
+                    "AvenCAstRenderCtx ctx = {\n"
+                    "        .ast = ast,\n"
+                    "        .writer = writer,\n"
+                    "        .line =\n"
+                    "            aven_arena_create_slice(\n"
+                    "                char,\n"
+                    "                &temp_arena,\n"
+                    "                line_len + 2\n"
+                    "            ),\n"
+                    "        .newline_str = newline_str,\n"
+                    "        .indent_str = indent_str,\n"
+                    "    };\n"
                 ),
                 .line_len = 36,
             },

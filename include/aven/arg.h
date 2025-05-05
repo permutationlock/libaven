@@ -41,39 +41,45 @@ typedef enum {
 
 static void aven_arg_print_type(AvenArgType arg_type) {
     switch (arg_type) {
-        case AVEN_ARG_TYPE_BOOL:
-            break;
-        case AVEN_ARG_TYPE_INT:
+        case AVEN_ARG_TYPE_INT: {
             aven_io_print(" n");
             break;
-        case AVEN_ARG_TYPE_STRING:
+        }
+        case AVEN_ARG_TYPE_STRING: {
             aven_io_print(" \"str\"");
             break;
-        default:
+        }
+        case AVEN_ARG_TYPE_BOOL:
+        default: {
             break;
+        }
     }
 }
 
 static void aven_arg_print_value(AvenArgValue value) {
     switch (value.type) {
-        case AVEN_ARG_TYPE_BOOL:
+        case AVEN_ARG_TYPE_BOOL: {
             if (value.data.arg_bool) {
                 aven_io_print("true");
             } else {
                 aven_io_print("false");
             }
             break;
-        case AVEN_ARG_TYPE_INT:
+        }
+        case AVEN_ARG_TYPE_INT: {
             aven_io_printf("{}", aven_fmt_int(value.data.arg_int));
             break;
-        case AVEN_ARG_TYPE_STRING:
+        }
+        case AVEN_ARG_TYPE_STRING: {
             aven_io_printf(
                 "\"{}\"",
                 aven_fmt_str(value.data.arg_str)
             );
             break;
-        default:
+        }
+        default: {
             break;
+        }
     }
 }
 
@@ -137,7 +143,7 @@ static inline AvenArgError aven_arg_parse(
             }
 
             switch (arg->type) {
-                case AVEN_ARG_TYPE_BOOL:
+                case AVEN_ARG_TYPE_BOOL: {
                     if (
                         i + 1 < argc and
                         aven_str_equals(
@@ -160,7 +166,8 @@ static inline AvenArgError aven_arg_parse(
                         arg->value.data.arg_bool = true;
                     }
                     break;
-                case AVEN_ARG_TYPE_INT:
+                }
+                case AVEN_ARG_TYPE_INT: {
                     if (i + 1 >= argc) {
                         aven_io_print("missing expected argument value:\n");
                         aven_arg_print(*arg);
@@ -182,7 +189,8 @@ static inline AvenArgError aven_arg_parse(
                     arg->value.type = AVEN_ARG_TYPE_INT;
                     i += 1;
                     break;
-                case AVEN_ARG_TYPE_STRING:
+                }
+                case AVEN_ARG_TYPE_STRING: {
                     if (i + 1 >= argc) {
                         aven_io_print("missing expected argument value:\n");
                         aven_arg_print(*arg);
@@ -192,8 +200,10 @@ static inline AvenArgError aven_arg_parse(
                     arg->value.type = AVEN_ARG_TYPE_STRING;
                     i += 1;
                     break;
-                default:
+                }
+                default: {
                     break;
+                }
             }
 
             found = true;
