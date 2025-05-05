@@ -462,11 +462,13 @@ static inline bool aven_c_lex_escape_seq(AvenCLexCtx * ctx) {
         case '\'':
         case '\"':
         case '\\':
-        case '?':
+        case '?': {
             return true;
-        default:
+        }
+        default: {
             ctx->index -= 1;
             break;
+        }
     }
     uint32_t oct_digits;
     for (oct_digits = 0; oct_digits < 3; oct_digits += 1) {
@@ -4697,7 +4699,7 @@ static inline uint32_t aven_c_ast_parse_preprocessor_define(AvenCAstCtx *ctx) {
         !aven_str_equals(id_token_str, aven_str("define"))
     ) {
         aven_c_ast_restore(ctx, state);
-        return false;
+        return 0;
     }
     aven_c_ast_inc_index(ctx);
     AvenCToken name_token = aven_c_ast_next(ctx);
@@ -4711,7 +4713,7 @@ static inline uint32_t aven_c_ast_parse_preprocessor_define(AvenCAstCtx *ctx) {
     }
     if (name_node == 0) {
         aven_c_ast_restore(ctx, state);
-        return false; 
+        return 0; 
     }
     // no space between name and '(' for function macro
     AvenCToken paren_token = aven_c_ast_next(ctx);
@@ -4743,7 +4745,7 @@ static inline uint32_t aven_c_ast_parse_preprocessor_define(AvenCAstCtx *ctx) {
     }
     if (!aven_c_ast_match_punctuator(ctx, aven_str(")"))) {
         aven_c_ast_restore(ctx, state);
-        return false;
+        return 0;
     }
     return aven_c_ast_push(
         ctx,
@@ -4772,7 +4774,7 @@ static inline uint32_t aven_c_ast_parse_preprocessor_directive(AvenCAstCtx *ctx)
     }
     if (lhs == 0) {
         aven_c_ast_restore(ctx, state);
-        return false;
+        return 0;
     }
     uint32_t rhs = aven_c_ast_parse_expr(ctx);
     if (rhs == 0) {
@@ -5304,6 +5306,7 @@ static inline bool aven_c_ast_render_data_try_surround_internal(
     uint32_t index,
     AvenStr sep,
     bool trailing_sep,
+    bool spaces,
     AvenStr open_str,
     AvenStr close_str,
     bool split,
@@ -5315,6 +5318,7 @@ static inline bool aven_c_ast_render_data_try_surround_internal(
     AvenCAstRenderCtxState state = aven_c_ast_render_save(ctx);
     if (
         force_split or
+        (spaces and !aven_c_ast_render_write(ctx, aven_str(" "), false)) or
         !aven_c_ast_render_data(
             ctx,
             parent_type,
@@ -5323,6 +5327,7 @@ static inline bool aven_c_ast_render_data_try_surround_internal(
             trailing_sep,
             false
         ) or
+        (spaces and !aven_c_ast_render_write(ctx, aven_str(" "), false)) or
         !aven_c_ast_render_pp_nodes_next(ctx, split) or
         !aven_c_ast_render_write(ctx, close_str, false)
     ) {
@@ -5367,7 +5372,7 @@ static inline bool aven_c_ast_render_data_try_surround_internal(
             return false; \
         } \
     } while (0)
-#define aven_c_ast_render_data_try_surround(c, t, n, p, b, e, f, s, l) \
+#define aven_c_ast_render_data_try_surround(c, t, n, p, b, g, e, f, s, l) \
     do { \
         if ( \
             !aven_c_ast_render_data_try_surround_internal( \
@@ -5376,6 +5381,7 @@ static inline bool aven_c_ast_render_data_try_surround_internal(
                 n, \
                 p, \
                 b, \
+                g, \
                 e, \
                 f, \
                 s, \
@@ -5386,7 +5392,7 @@ static inline bool aven_c_ast_render_data_try_surround_internal(
             return false; \
         } \
     } while (0)
-#define aven_c_ast_render_data_try_surround_split(c, t, n, p, b, e, f, s, l) \
+#define aven_c_ast_render_data_try_surround_split(c, t, n, p, b, g, e, f, s, l) \
     do { \
         if ( \
             !aven_c_ast_render_data_try_surround_internal( \
@@ -5395,6 +5401,7 @@ static inline bool aven_c_ast_render_data_try_surround_internal(
                 n, \
                 p, \
                 b, \
+                g, \
                 e, \
                 f, \
                 s, \
@@ -5414,6 +5421,9 @@ static inline bool aven_c_ast_render_data_try_surround_internal(
     } while (0)
 
 static inline bool aven_c_ast_render_whitespace(AvenCAstRenderCtx *ctx) {
+    if (ctx->ppd) {
+        return true;
+    }
     if (ctx->trailing_lines > 1) {
         if (!aven_c_ast_render_flush_line(ctx)) {
             return false;
@@ -5437,6 +5447,7 @@ static inline bool aven_c_ast_render_pp_nodes(
     if (ctx->ppd) {
         return true;
     }
+    uint32_t may_split = split or ctx->cursor == 0;
     for (uint32_t i = ctx->pp_cursor; i < token_index; i += 1) {
         AvenCToken token = get(ctx->ast->tset.tokens, i);
         if (
@@ -5445,7 +5456,7 @@ static inline bool aven_c_ast_render_pp_nodes(
         ) {
             continue;
         }
-        if (!split) {
+        if (!may_split) {
             return false;
         }
         ctx->pp_cursor = token_index;
@@ -5489,6 +5500,8 @@ static inline bool aven_c_ast_render_data(
         return true;
     }
     for (uint32_t i = 0; i < data.len; i += 1) {
+        uint32_t cursor = ctx->cursor;
+        uint32_t lines_written = ctx->lines_written;
         aven_c_ast_render_node_try(
             ctx,
             parent_type,
@@ -5497,13 +5510,17 @@ static inline bool aven_c_ast_render_data(
             split,
             state
         );
+        bool written = cursor != ctx->cursor or
+            lines_written != ctx->lines_written;
         if (i + 1 < data.len) {
             if (!aven_c_ast_render_write(ctx, sep, split)) {
                 aven_c_ast_render_restore(ctx, state);
                 return false;
             }
-            aven_c_ast_render_space_try(ctx, split, state);
-        } else if (trailing_sep) {
+            if (written) {
+                aven_c_ast_render_space_try(ctx, split, state);
+            }
+        } else if (split and trailing_sep) {
             if (!aven_c_ast_render_write(ctx, sep, split)) {
                 aven_c_ast_render_restore(ctx, state);
                 return false;
@@ -5678,6 +5695,7 @@ static inline bool aven_c_ast_render_node(
                 node.rhs,
                 aven_str(","),
                 false,
+                false,
                 aven_str("("),
                 aven_str(")"),
                 split,
@@ -5763,7 +5781,7 @@ static inline bool aven_c_ast_render_node(
             break;
         }
         case AVEN_C_AST_NODE_TYPE_COMMENT: {
-            for (uint32_t j = 0; j < ctx->indent; j += 1) {
+            for (uint32_t j = 0; j < ctx->indent + ctx->pp_indent; j += 1) {
                 AvenIoResult res = aven_io_writer_push(
                     ctx->writer,
                     slice_as_bytes(ctx->indent_str)
@@ -5932,6 +5950,7 @@ static inline bool aven_c_ast_render_node(
                 node.rhs,
                 aven_str(","),
                 false,
+                false,
                 aven_str("("),
                 aven_str(")"),
                 split,
@@ -5983,12 +6002,12 @@ static inline bool aven_c_ast_render_node(
                 split,
                 state
             );
-            aven_c_ast_render_space_try(ctx, false, state);
-            aven_c_ast_render_data_try_surround_split(
+            aven_c_ast_render_data_try_surround(
                 ctx,
                 node.type,
                 node.lhs,
                 aven_str(","),
+                true,
                 true,
                 aven_str(""),
                 aven_str("}"),
@@ -6067,6 +6086,14 @@ static inline bool aven_c_ast_render_node(
                 split,
                 state
             );
+            aven_c_ast_render_node_try(
+                ctx,
+                node.type,
+                node.rhs,
+                false,
+                split,
+                state
+            );
             break;
         }
         case AVEN_C_AST_NODE_TYPE_POSTFIX_EXPR_BRAC: {
@@ -6121,6 +6148,7 @@ static inline bool aven_c_ast_render_node(
                 node.type,
                 node.rhs,
                 aven_str(","),
+                false,
                 false,
                 aven_str(""),
                 aven_str(")"),
@@ -6408,6 +6436,7 @@ static inline bool aven_c_ast_render_node(
                 node.rhs,
                 aven_str(","),
                 false,
+                false,
                 aven_str(""),
                 aven_str(")"),
                 split,
@@ -6445,6 +6474,7 @@ static inline bool aven_c_ast_render_node(
                 node.rhs,
                 aven_str(","),
                 false,
+                false,
                 aven_str(""),
                 aven_str("]"),
                 split,
@@ -6456,6 +6486,13 @@ static inline bool aven_c_ast_render_node(
             break;
         }
         case AVEN_C_AST_NODE_TYPE_POINTER: {
+            if (
+                ctx->cursor != 0 and
+                get(ctx->line, ctx->cursor - 1) != '*' and
+                get(ctx->line, ctx->cursor - 1) != ' '
+            ) {
+                aven_c_ast_render_space_try(ctx, false, state);
+            }
             aven_c_ast_render_print_try_token(ctx, node.token, split, state);
             aven_c_ast_render_data_try_seq(
                 ctx,
@@ -6468,7 +6505,9 @@ static inline bool aven_c_ast_render_node(
                 break;
             }
             if (
-                ctx->cursor != 0 and get(ctx->line, ctx->cursor - 1) != '*'
+                ctx->cursor != 0 and
+                get(ctx->line, ctx->cursor - 1) != '*' and
+                get(ctx->line, ctx->cursor - 1) != ' '
             ) {
                 aven_c_ast_render_space_try(ctx, false, state);
             }
@@ -6523,6 +6562,7 @@ static inline bool aven_c_ast_render_node(
                 node.type,
                 node.lhs,
                 aven_str(","),
+                false,
                 false,
                 aven_str("("),
                 aven_str(")"),
@@ -6622,6 +6662,7 @@ static inline bool aven_c_ast_render_node(
                 node.rhs,
                 aven_str(""),
                 false,
+                true,
                 aven_str("{"),
                 aven_str("}"),
                 split,
@@ -6675,6 +6716,7 @@ static inline bool aven_c_ast_render_node(
                 node.type,
                 node.rhs,
                 aven_str(","),
+                true,
                 true,
                 aven_str("{"),
                 aven_str("}"),
@@ -6831,6 +6873,7 @@ static inline bool aven_c_ast_render_node(
                 node.type,
                 node.lhs,
                 aven_str(";"),
+                false,
                 false,
                 aven_str("("),
                 aven_str(")"),
@@ -7033,9 +7076,6 @@ static inline bool aven_c_ast_render_node(
                 parent_type == AVEN_C_AST_NODE_TYPE_DO_STATEMENT
             ) {
                 break;
-            }
-            if (!aven_c_ast_render_flush_line(ctx)) {
-                return false;
             }
             break;
         }

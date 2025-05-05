@@ -1076,6 +1076,25 @@ static int test_c(AvenArena arena) {
             },
         },
         {
+            .desc = aven_str("aven_c_ast_render initializer list w/pointer cast"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "static const AvenStrSlice aven_c_keywords = {\n"
+                    "    .ptr = (AvenStr *)aven_c_keyword_data,\n"
+                    "    .len = countof(aven_c_keyword_data),\n"
+                    "};\n"
+                ),
+                .expected = aven_str(
+                    "static const AvenStrSlice aven_c_keywords = {\n"
+                    "    .ptr = (AvenStr *)aven_c_keyword_data,\n"
+                    "    .len = countof(aven_c_keyword_data),\n"
+                    "};\n"
+                ),
+                .line_len = 80,
+            },
+        },
+        {
             .desc = aven_str("aven_c_ast_render enum typedef"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
@@ -1141,6 +1160,29 @@ static int test_c(AvenArena arena) {
                 ),
                 .expected = aven_str(
                     "#define assert(c) ((!(c)) ? aven_panic(\"assert(\" #c \") failed\") : (void)0)\n"
+                ),
+                .line_len = 80,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render pp directive do statement w/return"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "#define aven_c_lex_next(c, i) do { \\\n"
+                    "        if (!aven_c_lex_next_internal(c)) { \\\n"
+                    "            c->index = i; \\\n"
+                    "            return false; \\\n"
+                    "        } \\\n"
+                    "    } while (0)\n"
+                ),
+                .expected = aven_str(
+                    "#define aven_c_lex_next(c, i) do { \\\n"
+                    "        if (!aven_c_lex_next_internal(c)) { \\\n"
+                    "            c->index = i; \\\n"
+                    "            return false; \\\n"
+                    "        } \\\n"
+                    "    } while (0)\n"
                 ),
                 .line_len = 80,
             },
@@ -1372,6 +1414,29 @@ static int test_c(AvenArena arena) {
                     "};\n"
                 ),
                 .line_len = 34,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render fn w/comment at start of block"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "static inline AvenStr aven_c_token_str(AvenCTokenSet tset, uint32_t index) {\n"
+                    "    // Grab entire text chunk for all tokens within directive\n"
+                    "    AvenCToken t1 = get(tset.ppd_tokens, token.index);\n"
+                    "    AvenCToken tn = get(tset.ppd_tokens, token.index + (token.len - 1));\n"
+                    "    return aven_str_range(tset.bytes, t1.index, tn.index + tn.len);\n"
+                    "}\n"
+                ),
+                .expected = aven_str(
+                    "static inline AvenStr aven_c_token_str(AvenCTokenSet tset, uint32_t index) {\n"
+                    "    // Grab entire text chunk for all tokens within directive\n"
+                    "    AvenCToken t1 = get(tset.ppd_tokens, token.index);\n"
+                    "    AvenCToken tn = get(tset.ppd_tokens, token.index + (token.len - 1));\n"
+                    "    return aven_str_range(tset.bytes, t1.index, tn.index + tn.len);\n"
+                    "}\n"
+                ),
+                .line_len = 80,
             },
         },
         {
