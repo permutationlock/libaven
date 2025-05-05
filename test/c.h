@@ -772,8 +772,8 @@ static int test_c(AvenArena arena) {
                     "int x = 10 -\n"
                     "    2 * 2 * 4 -\n"
                     "    7 = 32 +\n"
-                    "        7 +\n"
-                    "        14;\n"
+                    "    7 +\n"
+                    "    14;\n"
                 ),
                 .line_len = 16,
             },
@@ -796,8 +796,8 @@ static int test_c(AvenArena arena) {
                 .src = aven_str("bool x = true ? 1 : 0;\n"),
                 .expected = aven_str(
                     "bool x = true ?\n"
-                    "        1 :\n"
-                    "        0;\n"
+                    "    1 :\n"
+                    "    0;\n"
                 ),
                 .line_len = 16,
             },
@@ -833,7 +833,27 @@ static int test_c(AvenArena arena) {
                     "    32 + 7 + 14\n"
                     ");\n"
                 ),
-                .line_len = 20,
+                .line_len = 19,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render complex paren assign expression split"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("int x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14) = 1 + 2 + 3 + 4 + 5;\n"),
+                .expected = aven_str(
+                    "int x = (\n"
+                    "    10 -\n"
+                    "        2 * 2 * 4 -\n"
+                    "        7,\n"
+                    "    32 + 7 + 14\n"
+                    ") = 1 +\n"
+                    "    2 +\n"
+                    "    3 +\n"
+                    "    4 +\n"
+                    "    5;\n"
+                ),
+                .line_len = 19,
             },
         },
         {
@@ -932,7 +952,7 @@ static int test_c(AvenArena arena) {
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("#define ADD1(n) (n + 1)"),
                 .expected = aven_str("#define ADD1(n) \\\n    (n + 1)\n"),
-                .line_len = 18,
+                .line_len = 17,
             },
         },
         {
@@ -941,7 +961,32 @@ static int test_c(AvenArena arena) {
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("#define ADD1(n) (n + 1)"),
                 .expected = aven_str("#define ADD1(n) ( \\\n        n + 1 \\\n    )\n"),
-                .line_len = 19,
+                .line_len = 18,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render comment in pp directive"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("#define NUM 1 // number of entries\n"),
+                .expected = aven_str("#define NUM 1\n// number of entries\n"),
+                .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render multi-line comment in pp directive"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "#define NUM 1 /* number of\n"
+                    "                 entries */\n"
+                ),
+                .expected = aven_str(
+                    "#define NUM 1\n"
+                    "/* number of\n"
+                    "                 entries */\n"
+                ),
+                .line_len = 16,
             },
         },
         {
@@ -1005,9 +1050,9 @@ static int test_c(AvenArena arena) {
                 .src = aven_str("void *p = make(\"Hello,\" \" World!\");\n"),
                 .expected = aven_str(
                     "void *p = make(\n"
-                    "        \"Hello,\"\n"
-                    "        \" World!\"\n"
-                    "    );\n"
+                    "    \"Hello,\"\n"
+                    "    \" World!\"\n"
+                    ");\n"
                 ),
                 .line_len = 20,
             },
@@ -1314,19 +1359,19 @@ static int test_c(AvenArena arena) {
                 ),
                 .expected = aven_str(
                     "AvenCAstRenderCtx ctx = {\n"
-                    "        .ast = ast,\n"
-                    "        .writer = writer,\n"
-                    "        .line =\n"
-                    "            aven_arena_create_slice(\n"
-                    "                char,\n"
-                    "                &temp_arena,\n"
-                    "                line_len + 2\n"
-                    "            ),\n"
-                    "        .newline_str = newline_str,\n"
-                    "        .indent_str = indent_str,\n"
-                    "    };\n"
+                    "    .ast = ast,\n"
+                    "    .writer = writer,\n"
+                    "    .line =\n"
+                    "        aven_arena_create_slice(\n"
+                    "            char,\n"
+                    "            &temp_arena,\n"
+                    "            line_len + 2\n"
+                    "        ),\n"
+                    "    .newline_str = newline_str,\n"
+                    "    .indent_str = indent_str,\n"
+                    "};\n"
                 ),
-                .line_len = 36,
+                .line_len = 34,
             },
         },
         {
@@ -1398,14 +1443,14 @@ static int test_c(AvenArena arena) {
                     "    AvenArena arena = aven_arena_init(mem, ARENA_SIZE);\n"
                     "    AvenIoWriter stdout = aven_io_writer_init_stdout_buffered(8192, &arena);\n"
                     "    AvenCFmtResult fmt_res = aven_c_fmt(\n"
-                    "            &aven_io_stdin,\n"
-                    "            &stdout,\n"
+                    "        &aven_io_stdin,\n"
+                    "        &stdout,\n"
                     "#ifdef A\n"
-                    "            &arena,\n"
+                    "        &arena,\n"
                     "#else\n"
-                    "            &arena\n"
+                    "        &arena\n"
                     "#endif\n"
-                    "        );\n"
+                    "    );\n"
                     "    aven_io_writer_flush(&stdout);\n"
                     "    if (fmt_res.error != AVEN_C_FMT_ERROR_NONE) {\n"
                     "        aven_io_perrf(\"error: {}\\n\", aven_fmt_str(fmt_res.msg));\n"
