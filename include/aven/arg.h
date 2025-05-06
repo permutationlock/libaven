@@ -107,9 +107,9 @@ static void aven_arg_print(AvenArg arg) {
 }
 
 static void aven_arg_help(AvenArgSlice args, AvenStr overview, AvenStr usage) {
-    aven_io_printf("OVERVIEW: {}\n\n", aven_fmt_str(overview));
-    aven_io_printf("USAGE: {}\n\n", aven_fmt_str(usage));
-    aven_io_print("OPTIONS:\n");
+    aven_io_printf("overview: {}\n\n", aven_fmt_str(overview));
+    aven_io_printf("usage: {}\n\n", aven_fmt_str(usage));
+    aven_io_print("options:\n");
     aven_io_print("    help, -h, -help, --help -- Show this message\n");
     for (size_t i = 0; i < args.len; i += 1) {
         aven_arg_print(get(args, i));

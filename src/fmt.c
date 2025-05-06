@@ -49,8 +49,8 @@ int main(int argc, char **argv) {
         args,
         argv,
         argc,
-        aven_str("OVERVIEW: Aven C Formatter"),
-        aven_str("USAGE: fmt [-i input] [-o output] [-io in_place]")
+        aven_str("Aven C Formatter"),
+        aven_str("fmt [-i input] [-o output] [-io in_place]")
     );
     switch (parse_error) {
         case AVEN_ARG_ERROR_NONE: {
