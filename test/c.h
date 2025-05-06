@@ -812,6 +812,24 @@ static int test_c(AvenArena arena) {
             },
         },
         {
+            .desc = aven_str("aven_c_ast_render postfix []"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("int error = arr[2];\n"),
+                .expected = aven_str("int error = arr[2];\n"),
+                .line_len = 36,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render postfix [] and ()"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("int error = arr[2](x,y);\n"),
+                .expected = aven_str("int error = arr[2](x, y);\n"),
+                .line_len = 36,
+            },
+        },
+        {
             .desc = aven_str("aven_c_ast_render comma expression"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
@@ -854,6 +872,80 @@ static int test_c(AvenArena arena) {
                     "    5;\n"
                 ),
                 .line_len = 19,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render sizeof operator"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "const size_t x = 2 + sizeof(int);\n"
+                ),
+                .expected = aven_str(
+                    "const size_t x = 2 + sizeof(int);\n"
+                ),
+                .line_len = 32,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render _Atomic specifier"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "_Atomic(size_t) x;\n"
+                ),
+                .expected = aven_str(
+                    "_Atomic(size_t) x;\n"
+                ),
+                .line_len = 32,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render _Alignas specifier"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "_Alignas(1) uint64_t x;\n"
+                ),
+                .expected = aven_str(
+                    "_Alignas(1) uint64_t x;\n"
+                ),
+                .line_len = 32,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render static assert"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "_Static_assert(x == 2, \"OHNO\");\n"
+                ),
+                .expected = aven_str(
+                    "_Static_assert(x == 2, \"OHNO\");\n"
+                ),
+                .line_len = 32,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render struct initializer postfix"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("int x = (struct T){ .x = 7 };\n"),
+                .expected = aven_str("int x = (struct T){ .x = 7 };\n"),
+                .line_len = 32,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render struct initializer postfix short"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("int x = (struct T){ .x = 7 };\n"),
+                .expected = aven_str(
+                    "int x = (struct T){\n"
+                    "    .x = 7,\n"
+                    "};\n"
+                ),
+                .line_len = 24,
             },
         },
         {
@@ -947,21 +1039,21 @@ static int test_c(AvenArena arena) {
             },
         },
         {
-            .desc = aven_str("aven_c_ast_render pp define fn const expr short line"),
-            .fn = test_aven_c_ast_render,
-            .args = &(TestAvenCAstRenderArgs){
-                .src = aven_str("#define ADD1(n) (n + 1)"),
-                .expected = aven_str("#define ADD1(n) ( \\\n        n + 1 \\\n    )\n"),
-                .line_len = 19,
-            },
-        },
-        {
-            .desc = aven_str("aven_c_ast_render pp define fn const expr short force fit"),
+            .desc = aven_str("aven_c_ast_render pp define fn const expr wrap body"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("#define ADD1(n) (n + 1)"),
                 .expected = aven_str("#define ADD1(n) ( \\\n        n + 1 \\\n    )\n"),
                 .line_len = 18,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render pp define fn const expr vrap def"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("#define ADD1(n) (n + 1)"),
+                .expected = aven_str("#define ADD1( \\\n        n \\\n    ) (n + 1)\n"),
+                .line_len = 16,
             },
         },
         {
@@ -1111,6 +1203,52 @@ static int test_c(AvenArena arena) {
                     "    AVEN_ARG_TYPE_INT,\n"
                     "    AVEN_ARG_TYPE_STRING,\n"
                     "} AvenArgType;\n"
+                ),
+                .line_len = 80,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render for statement"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "void bar(int n) {\n"
+                    "    for (int x = 0; x < n; x++) {\n"
+                    "        foo(x);\n"
+                    "    }\n"
+                    "}\n"
+                ),
+                .expected = aven_str(
+                    "void bar(int n) {\n"
+                    "    for (int x = 0; x < n; x++) {\n"
+                    "        foo(x);\n"
+                    "    }\n"
+                    "}\n"
+                ),
+                .line_len = 80,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render array designators"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "static const AvenStr aven_c_keyword_data[] = {\n"
+                    "    [AVEN_C_KEYWORD_AUTO] = aven_str_init(\"auto\"),\n"
+                    "    [AVEN_C_KEYWORD_BREAK] = aven_str_init(\"break\"),\n"
+                    "    [AVEN_C_KEYWORD_CASE] = aven_str_init(\"case\"),\n"
+                    "    [AVEN_C_KEYWORD_CHAR] = aven_str_init(\"char\"),\n"
+                    "    [AVEN_C_KEYWORD_CONST] = aven_str_init(\"const\")\n"
+                    "};\n"
+                ),
+                .expected = aven_str(
+                    "static const AvenStr aven_c_keyword_data[] = {\n"
+                    "    [AVEN_C_KEYWORD_AUTO] = aven_str_init(\"auto\"),\n"
+                    "    [AVEN_C_KEYWORD_BREAK] = aven_str_init(\"break\"),\n"
+                    "    [AVEN_C_KEYWORD_CASE] = aven_str_init(\"case\"),\n"
+                    "    [AVEN_C_KEYWORD_CHAR] = aven_str_init(\"char\"),\n"
+                    "    [AVEN_C_KEYWORD_CONST] = aven_str_init(\"const\"),\n"
+                    "};\n"
                 ),
                 .line_len = 80,
             },
@@ -1273,6 +1411,64 @@ static int test_c(AvenArena arena) {
                     "}\n"
                 ),
                 .line_len = 80,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render function definition w/switch"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "void collatz(int n) {\n"
+                    "    switch (n % 2) {\n"
+                    "        case 0: {\n"
+                    "            return n / 2;\n"
+                    "            break;\n"
+                    "        }\n"
+                    "        default: {\n"
+                    "            return 3 * n + 1;\n"
+                    "            break;\n"
+                    "        }\n"
+                    "    }\n"
+                    "}\n"
+                ),
+                .expected = aven_str(
+                    "void collatz(int n) {\n"
+                    "    switch (n % 2) {\n"
+                    "        case 0: {\n"
+                    "            return n / 2;\n"
+                    "            break;\n"
+                    "        }\n"
+                    "        default: {\n"
+                    "            return 3 * n + 1;\n"
+                    "            break;\n"
+                    "        }\n"
+                    "    }\n"
+                    "}\n"
+                ),
+                .line_len = 48,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render function definition w/while"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "void main(void) {\n"
+                    "    char c = 0;\n"
+                    "    while (c != '\\n') {\n"
+                    "        c = getc();\n"
+                    "    }\n"
+                    "}\n"
+                ),
+                .expected = aven_str(
+                    "void main(void) {\n"
+                    "    char c = 0;\n"
+                    "    while (c != '\\n') {\n"
+                    "        c = getc();\n"
+                    "    }\n"
+                    "}\n"
+                ),
+                .line_len = 48,
             },
         },
         {
