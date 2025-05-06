@@ -154,10 +154,10 @@ static inline uint64_t aven_wyhash64(uint64_t A, uint64_t B){ A^=0x2d358dccaa6c7
 static inline uint64_t aven_wyhahs_rand(uint64_t *seed){ *seed+=0x2d358dccaa6c78a5ull; return aven_wyhash_wymix_internal(*seed,*seed^0x8bb84b93962eacc9ull);}
 
 //convert any 64 bit pseudo random numbers to uniform distribution [0,1). It can be combined with aven_wyhahs_rand, aven_wyhash64 or wyhash.
-static inline double aven_wyhash_wy2u01(uint64_t r){ const double _wynorm=1.0/(1ull<<52); return (r>>12)*_wynorm;}
+static inline double aven_wyhash_wy2u01(uint64_t r){ const double _wynorm=1.0/(1ull<<52); return ((double)(r>>12))*_wynorm;}
 
 //convert any 64 bit pseudo random numbers to APPROXIMATE Gaussian distribution. It can be combined with aven_wyhahs_rand, aven_wyhash64 or wyhash.
-static inline double aven_wyhash_wy2gau(uint64_t r){ const double _wynorm=1.0/(1ull<<20); return ((r&0x1fffff)+((r>>21)&0x1fffff)+((r>>42)&0x1fffff))*_wynorm-3.0;}
+static inline double aven_wyhash_wy2gau(uint64_t r){ const double _wynorm=1.0/(1ull<<20); return ((double)((r&0x1fffff)+((r>>21)&0x1fffff)+((r>>42)&0x1fffff)))*_wynorm-3.0;}
 
 #if(!AVEN_WYHASH_32BIT_MUM)
 //fast range integer random number generation on [0,k) credit to Daniel Lemire. May not work when AVEN_WYHASH_32BIT_MUM=1. It can be combined with aven_wyhahs_rand, aven_wyhash64 or wyhash.

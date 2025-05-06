@@ -275,16 +275,19 @@ static inline void aven_pool_push_free_internal(
 void *memset(void *ptr, int value, size_t num);
 int memcmp(const void *buffer1, const void *buffer2, size_t count);
 
-#define slice_copy(d, s) memcpy( \
-        (d).ptr, \
-        (s).ptr, \
-        ( \
-            assert( \
-                (s).len * sizeof(*(s).ptr) <= \
-                (d).len * sizeof(*(d).ptr) \
-            ), \
-            (s).len * sizeof(*(s).ptr) \
-        ) \
+#define slice_copy(d, s) ( \
+        (s).len > 0 ? \
+            memcpy( \
+                (d).ptr, \
+                (s).ptr, \
+                ( \
+                    assert( \
+                        (s).len * sizeof(*(s).ptr) <= \
+                        (d).len * sizeof(*(d).ptr) \
+                    ), \
+                    (s).len * sizeof(*(s).ptr) \
+                ) \
+            ) : (void *)0 \
     )
 
 static inline bool bytes_equal(ByteSlice b1, ByteSlice b2) {

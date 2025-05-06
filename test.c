@@ -30,5 +30,7 @@ int main(void) {
     test_c(test_arena);
     test_hash_map(test_arena);
 
+    free(mem);
+
     return 0;
 }

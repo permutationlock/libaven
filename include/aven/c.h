@@ -1599,6 +1599,29 @@ static inline uint32_t aven_c_ast_parse_declarator(AvenCAstCtx *ctx);
 static inline uint32_t aven_c_ast_parse_parameter_type_list(AvenCAstCtx *ctx);
 static inline uint32_t aven_c_ast_parse_abstract_declarator(AvenCAstCtx *ctx);
 
+static inline uint32_t aven_c_ast_parse_macro_argument(AvenCAstCtx *ctx) {
+    AvenCAstCtxState state = aven_c_ast_save(ctx);
+    uint32_t expr_index = 0;
+    uint32_t expr = aven_c_ast_parse_assign_expr(ctx);
+    if (expr != 0) {
+        expr_index = ctx->token_index;
+        aven_c_ast_restore(ctx, state);
+    }
+    uint32_t type_name_index = 0;
+    uint32_t type_name = aven_c_ast_parse_type_name(ctx);
+    if (type_name != 0) {
+        type_name_index = ctx->token_index;
+        aven_c_ast_restore(ctx, state);
+    }
+    if (type_name_index > expr_index) {
+        return aven_c_ast_parse_type_name(ctx);
+    }
+    if (expr_index > 0) {
+        return aven_c_ast_parse_assign_expr(ctx);
+    }
+    return 0;
+}
+
 static inline uint32_t aven_c_ast_parse_macro_invocation(AvenCAstCtx *ctx) {
     AvenCAstCtxState state = aven_c_ast_save(ctx);
     uint32_t main_token = aven_c_ast_next_index(ctx);
@@ -1610,10 +1633,7 @@ static inline uint32_t aven_c_ast_parse_macro_invocation(AvenCAstCtx *ctx) {
     if (aven_c_ast_match_punctuator(ctx, aven_str("("))) {
         uint32_t scratch_top = aven_c_ast_scratch_init(ctx);
         for (;;) {
-            uint32_t arg = aven_c_ast_parse_assign_expr(ctx);
-            if (arg == 0) {
-                arg = aven_c_ast_parse_type_name(ctx);
-            }
+            uint32_t arg = aven_c_ast_parse_macro_argument(ctx);
             if (arg == 0) {
                 break;
             }
@@ -2964,6 +2984,10 @@ static inline uint32_t aven_c_ast_parse_primary_expr(AvenCAstCtx *ctx) {
     if (exp_node != 0) {
         return exp_node;
     }
+    exp_node = aven_c_ast_parse_macro_invocation(ctx);
+    if (exp_node != 0) {
+        return exp_node;
+    }
     exp_node = aven_c_ast_parse_identifier(ctx);
     if (exp_node != 0) {
         return exp_node;
@@ -3065,9 +3089,6 @@ static inline uint32_t aven_c_ast_parse_postfix_op(
             uint32_t scratch_top = aven_c_ast_scratch_init(ctx);
             for (;;) {
                 uint32_t arg = aven_c_ast_parse_assign_expr(ctx);
-                if (arg == 0) {
-                    arg = aven_c_ast_parse_type_name(ctx);
-                }
                 if (arg == 0) {
                     break;
                 }
@@ -4597,6 +4618,7 @@ static inline AvenCAstResult aven_c_ast_parse(AvenCTokenSet tset, AvenArena *are
         AvenStr arrow_str = slice_array(arrow_buffer);
         size_t arrow_len = 0;
         size_t ln_digits = aven_fmt_uint_decimal_digits(eloc.line);
+        assert(ln_digits < 32);
         for (size_t i = 0; i < ln_digits + 1; i += 1) {
             get(arrow_str, arrow_len) = ' ';
             arrow_len += 1;
@@ -4887,7 +4909,7 @@ static inline bool aven_c_ast_render_write(
                 return false;
             }
             slice_copy(rem, ctx->indent_str);
-            ctx->cursor += ctx->indent_str.len;
+            ctx->cursor += (uint32_t)ctx->indent_str.len;
             rem = aven_str_tail(rem, ctx->indent_str.len);
         }
     }
@@ -4915,7 +4937,7 @@ static inline bool aven_c_ast_render_flush_line(AvenCAstRenderCtx *ctx) {
         ctx->cursor += 1;
     }
     slice_copy(aven_str_tail(ctx->line, ctx->cursor), ctx->newline_str);
-    ctx->cursor += ctx->newline_str.len;
+    ctx->cursor += (uint32_t)ctx->newline_str.len;
 
     AvenStr line = aven_str_head(ctx->line, ctx->cursor);
     AvenIoResult res = aven_io_writer_push(ctx->writer, slice_as_bytes(line));
