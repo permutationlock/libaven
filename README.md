@@ -1,4 +1,4 @@
-# libaven: a tiny portable C library and build system
+# libaven: a tiny portable C library, pretty-printer, and build system
 
 I love programming in C, but I always need slices, optionals, and
 result types (a.k.a. "errors as values").
@@ -12,6 +12,7 @@ The library has expanded to include:
  - arena allocation: `aven/arena.h` ([inspired by this post][2])
  - command line argument parsing: `aven/arg.h`
  - a C build system: `aven/build.h`, `aven/build/common.h`
+ - a C lexer, parser, and AST renderer: `aven/c.h`
  - simple string formatting and parsing: `aven/fmt.h`
  - portable file system interaction: `aven/fs.h`
  - portable I/O independent of libc: `aven/io.h`
@@ -97,9 +98,50 @@ Hopefully many other toolchains are supported as well! The MSVC
 toolchain is so weird that the build configuration has been expanded to be
 very accommodating.
 
-## Building the library
+## Aven C source code formatter
 
-A static object file can built using the contained build system. 
+A recent addition to the library is the C source code lexer, parser, and AST
+renderer in `aven/c.h`. All three are combined into a source code formating
+application in `src/fmt.c`. Personally, I am not a fan of any of the
+possible configurations of `clang-format` (believe me, I tried).
+
+I did not optimize the code very much or
+make any use of SIMD, but benchmarks show that it formats at ~30MB/sec
+for small files, easily fast enough for my use cases.
+Benchmarking a few 10,000 line source files using [`poop`][9] showed that
+my `fmt` ran over 20 times faster than `clang-format`, around the
+speed of `zig fmt` for similar size source files.
+
+The formatter has rudimentary error reporting. It will report the first parse error
+it encounters along with the exact location of the error in the source file. The
+formatter requires that lines be rendered within 80 columns, with a slight allowance of
+one or two characters over to make the rendering logic easier. If a line cannot fit
+within 80 columns due to a long identifier or excessive indent depth,
+then the formatter will error and report the offending
+line in the original source file.
+
+### Usage
+
+The default behavior is to read from `stdin` and write to `stdout`.
+
+```Shell
+cat unformatted.c | fmt > formatted.c
+```
+
+Input and output files can be specified with `-i` and `-o` respectively.
+```Shell
+fmt -i unformatted.c -o formatted.c
+```
+
+Files can be formatted in-place (with no changes on parse or render error) using `-io`.
+```Shell
+fmt -io myfile.c
+```
+
+## Building the formatter and library
+
+The `fmt` binary and a linkable static `aven.o` object file can built using the
+contained build system. 
 
 ### Building the build system
 
@@ -171,9 +213,8 @@ tcc -D__BIGGEST_ALIGNMENT__=16 -o build build.c
     -winutf8
 ```
 
-Note that the `libaven` repo
-itself doesn't produce any executable build artifacts, try this command
-in a project that produces a graphical application like [`libavengraph`][7].
+Try this command in a project that produces a graphical application like
+[`libavengraph`][7].
 
 [^1]: Some things like file system notifications and detecting the path to a
     running executable are not standard across
@@ -198,3 +239,4 @@ in a project that produces a graphical application like [`libavengraph`][7].
 [6]: https://musl.libc.org/
 [7]: https://github.com/permutationlock/libavengraph
 [8]: https://github.com/torvalds/linux/tree/master/tools/include/nolibc
+[9]: https://github.com/andrewrk/poop
