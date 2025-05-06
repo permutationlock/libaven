@@ -20,7 +20,8 @@ static AvenArg arg_data[] = {
     },
 };
 
-// Enough to handle pathological files up to ~10MB, and much larger real files
+// 1GB virtual memory reserve handles pathological files up to ~10MB, and
+// for normal looking source files this limit should never be exceeded
 #define ARENA_SIZE (4096 * 250000)
 
 int main(int argc, char **argv) {

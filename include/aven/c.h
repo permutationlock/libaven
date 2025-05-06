@@ -1156,10 +1156,10 @@ static inline uint32_t aven_c_ast_data(AvenCAst *ast, uint32_t index) {
 }
 
 typedef struct {
+    AvenCTokenType type;
     uint32_t token;
     uint32_t pp_token;
-    AvenCAstNodeType type;
-    AvenStr msg;
+    AvenStr exp;
 } AvenCAstError;
 
 typedef struct {
@@ -1391,17 +1391,9 @@ static inline uint32_t aven_c_ast_parse_identifier(AvenCAstCtx *ctx) {
         aven_c_ast_next_index(ctx) >= ctx->error.token and
         aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PPD
     ) {
-        AvenArena temp_arena = ctx->err_arena;
-        AvenStr token_str = aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx));
-        AvenStr msg = aven_fmt(
-            &temp_arena,
-            "expected identifier, found: \"{}\"",
-            aven_fmt_str(token_str)
-        );
         ctx->error = (AvenCAstError){
+            .type = AVEN_C_TOKEN_TYPE_ID,
             .token = aven_c_ast_next_index(ctx),
-            .type = AVEN_C_AST_NODE_TYPE_IDENTIFIER,
-            .msg = msg,
         };
     }
     return 0;
@@ -1419,17 +1411,9 @@ static inline uint32_t aven_c_ast_parse_string_literal(AvenCAstCtx *ctx) {
         aven_c_ast_next_index(ctx) >= ctx->error.token and
         aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PPD
     ) {
-        AvenArena temp_arena = ctx->err_arena;
-        AvenStr token_str = aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx));
-        AvenStr msg = aven_fmt(
-            &temp_arena,
-            "expected string literal, found: \"{}\"",
-            aven_fmt_str(token_str)
-        );
         ctx->error = (AvenCAstError){
+            .type = AVEN_C_TOKEN_TYPE_STR,
             .token = aven_c_ast_next_index(ctx),
-            .type = AVEN_C_AST_NODE_TYPE_STRING_LITERAL,
-            .msg = msg,
         };
     }
     return 0;
@@ -1453,17 +1437,9 @@ static inline uint32_t aven_c_ast_parse_constant(AvenCAstCtx *ctx) {
         aven_c_ast_next_index(ctx) >= ctx->error.token and
         aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PPD
     ) {
-        AvenArena temp_arena = ctx->err_arena;
-        AvenStr token_str = aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx));
-        AvenStr msg = aven_fmt(
-            &temp_arena,
-            "expected constant, found: \"{}\"",
-            aven_fmt_str(token_str)
-        );
         ctx->error = (AvenCAstError){
             .token = aven_c_ast_next_index(ctx),
-            .type = AVEN_C_AST_NODE_TYPE_CONSTANT,
-            .msg = msg,
+            .type = AVEN_C_TOKEN_TYPE_NUM,
         };
     }
     return 0;
@@ -1487,18 +1463,10 @@ static inline bool aven_c_ast_match_punctuator(
         aven_c_ast_next_index(ctx) >= ctx->error.token and
         aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PPD
     ) {
-        AvenArena temp_arena = ctx->err_arena;
-        AvenStr token_str = aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx));
-        AvenStr msg = aven_fmt(
-            &temp_arena,
-            "expected punctuator \"{}\", found: \"{}\"",
-            aven_fmt_str(str),
-            aven_fmt_str(token_str)
-        );
         ctx->error = (AvenCAstError){
             .token = aven_c_ast_next_index(ctx),
-            .type = AVEN_C_AST_NODE_TYPE_PUNCTUATOR,
-            .msg = msg,
+            .type = AVEN_C_TOKEN_TYPE_PNC,
+            .exp = str,
         };
     }
     return false;
@@ -1523,18 +1491,10 @@ static inline bool aven_c_ast_match_keyword(
         aven_c_ast_next_index(ctx) >= ctx->error.token and
         aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_PPD
     ) {
-        AvenArena temp_arena = ctx->err_arena;
-        AvenStr token_str = aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx));
-        AvenStr msg = aven_fmt(
-            &temp_arena,
-            "expected keyword \"{}\", found: \"{}\"",
-            aven_fmt_str(keyword_str),
-            aven_fmt_str(token_str)
-        );
         ctx->error = (AvenCAstError){
             .token = aven_c_ast_next_index(ctx),
-            .type = AVEN_C_AST_NODE_TYPE_KEYWORD,
-            .msg = msg,
+            .type = AVEN_C_TOKEN_TYPE_KEY,
+            .exp = keyword_str,
         };
     }
     return false;
@@ -4757,25 +4717,39 @@ static inline AvenCAstResult aven_c_ast_parse(AvenCTokenSet tset, AvenArena *are
     if (root == 0 or ctx.token_index <= ctx.tset.tokens.len - 1) {
         AvenCToken token = get(ctx.tset.tokens, ctx.error.token);
         AvenCTokenLoc eloc = aven_c_token_loc(ctx.tset, ctx.error.token);
+        AvenStr token_str = aven_c_token_str(tset, ctx.error.token);
         uint32_t token_index = token.index;
         if (ctx.error.pp_token != 0) {
             eloc = aven_c_ppd_token_loc(
                 ctx.tset,
                 ctx.error.pp_token - 1
             );
+            token_str = aven_c_ppd_token_str(tset, ctx.error.pp_token - 1);
             token = get(ctx.tset.ppd_tokens, ctx.error.pp_token - 1);
             token_index = token.index;
             if (token.type == AVEN_C_TOKEN_TYPE_NONE) {
                 token = get(ctx.tset.ppd_tokens, ctx.error.pp_token - 2);
+                token_str = aven_c_ppd_token_str(tset, ctx.error.pp_token - 2);
                 eloc = aven_c_ppd_token_loc(ctx.tset, ctx.error.pp_token - 2);
                 eloc.col += token.len;
                 token_index = token.index + token.len;
             }
         } else if (token.type == AVEN_C_TOKEN_TYPE_NONE) {
             token = get(ctx.tset.tokens, ctx.error.token - 1);
+            token_str = aven_c_token_str(tset, ctx.error.token - 1);
             eloc = aven_c_token_loc(ctx.tset, ctx.error.token - 1);
             eloc.col += token.len;
             token_index = token.index + token.len;
+        }
+        AvenStr exp_type = aven_c_token_type_str(ctx.error.type);
+        AvenStr act_type = aven_c_token_type_str(token.type);
+        Optional(AvenStr) exp_str = { 0 };
+        if (
+            ctx.error.type == AVEN_C_TOKEN_TYPE_PNC or
+            ctx.error.type == AVEN_C_TOKEN_TYPE_KEY
+        ) {
+            exp_str.valid = true;
+            exp_str.value = ctx.error.exp;
         }
         size_t back_offset = 64;
         size_t start = token_index >= back_offset ?
@@ -4810,19 +4784,38 @@ static inline AvenCAstResult aven_c_ast_parse(AvenCTokenSet tset, AvenArena *are
         get(arrow_str, arrow_len) = '^';
         arrow_len += 1;
         arrow_str = aven_str_head(arrow_str, arrow_len);
+        AvenStr error_str = exp_str.valid ?
+            aven_fmt(
+                arena,
+                "error at {}:{}: expected {} '{}', found {} '{}'\n"
+                "{}:    {}\n    {}",
+                aven_fmt_uint(eloc.line),
+                aven_fmt_uint(eloc.col),
+                aven_fmt_str(exp_type),
+                aven_fmt_str(exp_str.value),
+                aven_fmt_str(act_type),
+                aven_fmt_str(token_str),
+                aven_fmt_uint(eloc.line),
+                aven_fmt_str(line),
+                aven_fmt_str(arrow_str)
+            ) :
+            aven_fmt(
+                arena,
+                "error at {}:{}: expected {}, found {} '{}'\n"
+                "{}:    {}\n    {}",
+                aven_fmt_uint(eloc.line),
+                aven_fmt_uint(eloc.col),
+                aven_fmt_str(exp_type),
+                aven_fmt_str(act_type),
+                aven_fmt_str(token_str),
+                aven_fmt_uint(eloc.line),
+                aven_fmt_str(line),
+                aven_fmt_str(arrow_str)
+            );
         return (AvenCAstResult) {
             .type = AVEN_C_AST_RESULT_TYPE_ERROR,
             .data = {
-                .error = aven_fmt(
-                    arena,
-                    "error at {}:{}: {}\n{}:    {}\n    {}",
-                    aven_fmt_uint(eloc.line),
-                    aven_fmt_uint(eloc.col),
-                    aven_fmt_str(ctx.error.msg),
-                    aven_fmt_uint(eloc.line),
-                    aven_fmt_str(line),
-                    aven_fmt_str(arrow_str)
-                ),
+                .error = error_str
             },
         };
     }
