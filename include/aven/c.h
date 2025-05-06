@@ -428,20 +428,32 @@ static inline bool aven_c_lex_letter(AvenCLexCtx *ctx) {
 
 static inline bool aven_c_lex_id_nondigit(AvenCLexCtx *ctx) {
     uint32_t init_index = ctx->index;
-    if (aven_c_lex_char(ctx, '_') or aven_c_lex_letter(ctx)) {
-        return true;
-    }
-    if (aven_c_lex_char(ctx, '\\')) {
-        if (aven_c_lex_char(ctx, 'u') and aven_c_lex_hex_str(ctx, 4)) {
-            return true;
-        } else if (
-            aven_c_lex_char(ctx, 'U') and
-            aven_c_lex_hex_str(ctx, 8)
-        ) {
+    aven_c_lex_next(ctx, init_index);
+    char c = ctx->next;
+    switch (c) {
+        case '_': {
             return true;
         }
+        case '\\': {
+            if (aven_c_lex_char(ctx, 'u') and aven_c_lex_hex_str(ctx, 4)) {
+                return true;
+            } else if (
+                aven_c_lex_char(ctx, 'U') and
+                aven_c_lex_hex_str(ctx, 8)
+            ) {
+                return true;
+            }
+            ctx->index = init_index;
+            break;
+        }
+        default: {
+            if (aven_c_is_letter(c)) {
+                return true;
+            }
+            ctx->index -= 1;
+            break;
+        }
     }
-    ctx->index = init_index;
     return false;
 }
 
@@ -1320,7 +1332,7 @@ static inline void aven_c_ast_parse_ppd_tokens(AvenCAstCtx *ctx) {
                 ctx->ppd_error.value = (AvenCAstError){
                     .type = ppd_ctx.error.type,
                     .token = i,
-                    .pp_token = ppd_ctx.error.token,
+                    .pp_token = ppd_ctx.error.token + 1,
                     .exp = ppd_ctx.error.exp,
                 };
                 break;
@@ -7224,7 +7236,6 @@ static inline AvenCAstRenderResult aven_c_ast_render(
 
 typedef enum {
     AVEN_C_FMT_ERROR_NONE = 0,
-    AVEN_C_FMT_ERROR_READ,
     AVEN_C_FMT_ERROR_WRITE,
     AVEN_C_FMT_ERROR_PARSE,
     AVEN_C_FMT_ERROR_RENDER,
@@ -7236,41 +7247,11 @@ typedef struct {
 } AvenCFmtResult;
 
 static inline AvenCFmtResult aven_c_fmt(
-    AvenIoReader *reader,
+    AvenStr src,
     AvenIoWriter *writer,
     AvenArena *arena
 ) {
-    size_t block_size = 4096;
     AvenArena temp_arena = *arena;
-    List(char) input = aven_arena_create_list(
-        char,
-        &temp_arena,
-        block_size
-    );
-    for (;;) {
-        AvenStr rem = slice_list_free(input);
-        if (rem.len == 0) {
-            aven_arena_resize_list(&temp_arena, input, input.len + block_size);
-            continue;
-        }
-        AvenIoResult res = aven_io_reader_pop(reader, slice_as_bytes(rem));
-        if (res.error != 0) {
-            return (AvenCFmtResult){
-                .error = AVEN_C_FMT_ERROR_READ,
-                .io_error = res.error,
-                .msg = aven_fmt(
-                    arena,
-                    "reader error code {} while reading src file",
-                    aven_fmt_int(res.error)
-                ),
-            };
-        }
-        if (res.payload == 0) {
-            break;
-        }
-        input.len += res.payload;
-    }
-    AvenStr src = aven_arena_commit_list_to_slice(AvenStr, &temp_arena, input);
     AvenCTokenSet tset = aven_c_lex(src, &temp_arena);
     AvenCAstResult ast_res = aven_c_ast_parse(tset, &temp_arena);
     if (ast_res.type == AVEN_C_AST_RESULT_TYPE_ERROR) {
