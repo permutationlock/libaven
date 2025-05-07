@@ -412,8 +412,8 @@ static int test_c(AvenArena arena) {
                     "int x = 0; // a comment with #\n"
                     "while (x < 2) {\n"
                     "    /*\n"
-                    "     * here we are computing x + 1\n"
-                    "     */\n"
+                    "    ** here we are computing x + 1\n"
+                    "    **/\n"
                     "    x += 1;\n"
                     "}\n"
                 ),
@@ -472,11 +472,15 @@ static int test_c(AvenArena arena) {
                             .type = AVEN_C_TOKEN_TYPE_PNC,
                         },
                         {
-                            .val = aven_str(
-                                "/*\n"
-                                "     * here we are computing x + 1\n"
-                                "     */"
-                            ),
+                            .val = aven_str("/*"),
+                            .type = AVEN_C_TOKEN_TYPE_CMT,
+                        },
+                        {
+                            .val = aven_str("** here we are computing x + 1"),
+                            .type = AVEN_C_TOKEN_TYPE_CMT,
+                        },
+                        {
+                            .val = aven_str("**/"),
                             .type = AVEN_C_TOKEN_TYPE_CMT,
                         },
                         {
@@ -1021,6 +1025,26 @@ static int test_c(AvenArena arena) {
             },
         },
         {
+            .desc = aven_str("aven_c_ast_render empty line within multi-line comment"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "int x = 2 + 2;\n"
+                    "/* Hello World!\n"
+                    "\n"
+                    "*/ int y = x;\n"
+                ),
+                .expected = aven_str(
+                    "int x = 2 + 2;\n"
+                    "/* Hello World!\n"
+                    "\n"
+                    "*/\n"
+                    "int y = x;\n"
+                ),
+                .line_len = 16,
+            },
+        },
+        {
             .desc = aven_str("aven_c_ast_render pp define simple const expr"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
@@ -1071,12 +1095,12 @@ static int test_c(AvenArena arena) {
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str(
                     "#define NUM 1 /* number of\n"
-                    "                 entries */\n"
+                    "              ** entries */\n"
                 ),
                 .expected = aven_str(
                     "#define NUM 1\n"
                     "/* number of\n"
-                    "                 entries */\n"
+                    "** entries */\n"
                 ),
                 .line_len = 16,
             },
@@ -1428,6 +1452,26 @@ static int test_c(AvenArena arena) {
                     "    int argc,\n"
                     "    const char **argv\n"
                     ") {\n"
+                    "    printf(\"Hello, World!\");\n"
+                    "}\n"
+                ),
+                .line_len = 36,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render function definition w/comment"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "void main(int argc, const char **argv) {"
+                    " /* main */ printf(\"Hello, World!\"); }\n"
+                ),
+                .expected = aven_str(
+                    "void main(\n"
+                    "    int argc,\n"
+                    "    const char **argv\n"
+                    ") {\n"
+                    "    /* main */\n"
                     "    printf(\"Hello, World!\");\n"
                     "}\n"
                 ),
@@ -1797,6 +1841,32 @@ static int test_c(AvenArena arena) {
                     "}\n"
                 ),
                 .line_len = 80,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render gcc warn pragma"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "#pragma GCC diagnostic ignored \"-Wunused-function\"\n"
+                ),
+                .expected = aven_str(
+                    "#pragma GCC diagnostic ignored \"-Wunused-function\"\n"
+                ),
+                .line_len = 80,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render msvc warn pragma"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "#pragma warning(disable : 4267)\n"
+                ),
+                .expected = aven_str(
+                    "#pragma warning(disable : 4267)\n"
+                ),
+                .line_len = 36,
             },
         },
     };
