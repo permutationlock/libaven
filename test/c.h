@@ -1245,6 +1245,45 @@ static int test_c(AvenArena arena) {
             },
         },
         {
+            .desc = aven_str("aven_c_ast_render if statement non-compound"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "void bar(int n) {\n"
+                    "    if (n % 2 == 0) return n / 2;\n"
+                    "    return 3 * n + 1;\n"
+                    "}\n"
+                ),
+                .expected = aven_str(
+                    "void bar(int n) {\n"
+                    "    if (n % 2 == 0) return n / 2;\n"
+                    "    return 3 * n + 1;\n"
+                    "}\n"
+                ),
+                .line_len = 32,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render if statement short line"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "void bar(int n) {\n"
+                    "    if (n % 2 == 0) return n / 2;\n"
+                    "    return 3 * n + 1;\n"
+                    "}\n"
+                ),
+                .expected = aven_str(
+                    "void bar(int n) {\n"
+                    "    if (n % 2 == 0)\n"
+                    "        return n / 2;\n"
+                    "    return 3 * n + 1;\n"
+                    "}\n"
+                ),
+                .line_len = 24,
+            },
+        },
+        {
             .desc = aven_str("aven_c_ast_render for statement"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){

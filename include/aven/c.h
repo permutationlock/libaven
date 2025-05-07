@@ -5210,7 +5210,7 @@ static inline bool aven_c_ast_render_flush_line(AvenCAstRenderCtx *ctx) {
             return false; \
         } \
     } while (0)
-#define aven_c_ast_render_token_try_force(c, i, s, l) \
+#define aven_c_ast_render_token_force_try(c, i, s, l) \
     do { \
         if (!aven_c_ast_render_token_try_internal(c, i, s, true)) { \
             aven_c_ast_render_restore(c, l); \
@@ -5321,7 +5321,7 @@ static inline bool aven_c_ast_render_node_try_internal(
     return true;
 }
 
-static inline bool aven_c_ast_render_node_token_try_internal(
+static inline bool aven_c_ast_render_node_surround_try_internal(
     AvenCAstRenderCtx *ctx,
     AvenCAstNodeType parent_type,
     uint32_t index,
@@ -5395,10 +5395,10 @@ static inline bool aven_c_ast_render_node_token_try_internal(
             return false; \
         } \
     } while (0)
-#define aven_c_ast_render_node_token_try(c, t, n, e, f, p, s, l) \
+#define aven_c_ast_render_node_surround_try(c, t, n, e, f, p, s, l) \
     do { \
         if ( \
-            !aven_c_ast_render_node_token_try_internal(c, t, n, e, f, p, s) \
+            !aven_c_ast_render_node_surround_try_internal(c, t, n, e, f, p, s) \
         ) { \
             aven_c_ast_render_restore(c, l); \
             return false; \
@@ -5546,7 +5546,6 @@ static inline bool aven_c_ast_render_pp_nodes(
             true
             )
         ) {
-            assert(false);
             return false;
         }
         ctx->trailing_lines = token.trailing_lines;
@@ -5684,7 +5683,7 @@ static inline bool aven_c_ast_render_data_seq(
     return true;
 }
 
-#define aven_c_ast_render_data_token_try( \
+#define aven_c_ast_render_data_surround_try( \
         ctx, \
         parent_type, \
         index, \
@@ -5698,7 +5697,7 @@ static inline bool aven_c_ast_render_data_seq(
         state \
     ) do { \
         if ( \
-            !aven_c_ast_render_data_token_try_internal( \
+            !aven_c_ast_render_data_surround_try_internal( \
                 ctx, \
                 parent_type, \
                 index, \
@@ -5716,7 +5715,7 @@ static inline bool aven_c_ast_render_data_seq(
         } \
     } while (0)
 
-static inline bool aven_c_ast_render_data_token_try_internal(
+static inline bool aven_c_ast_render_data_surround_try_internal(
     AvenCAstRenderCtx *ctx,
     AvenCAstNodeType parent_type,
     uint32_t index,
@@ -5751,7 +5750,7 @@ static inline bool aven_c_ast_render_data_token_try_internal(
         if (!split) {
             return false;
         }
-        aven_c_ast_render_token_try_force(ctx, open_token, true, state);
+        aven_c_ast_render_token_force_try(ctx, open_token, true, state);
         if (!aven_c_ast_render_flush_line(ctx)) {
             return false;
         }
@@ -5766,6 +5765,10 @@ static inline bool aven_c_ast_render_data_token_try_internal(
                 true
             )
         ) {
+            return false;
+        }
+        if (!aven_c_ast_render_pp_nodes(ctx, close_token, split)) {
+            aven_c_ast_render_restore(ctx, state);
             return false;
         }
         ctx->indent -= 1;
@@ -5861,7 +5864,7 @@ static inline bool aven_c_ast_render_node(
             if (indent) {
                 ctx->indent += 1;
             }
-            aven_c_ast_render_data_token_try(
+            aven_c_ast_render_data_surround_try(
                 ctx,
                 node.type,
                 node.rhs,
@@ -6004,7 +6007,7 @@ static inline bool aven_c_ast_render_node(
                 state
             );
             aven_c_ast_render_space_try(ctx, false, state);
-            aven_c_ast_render_token_try_force(
+            aven_c_ast_render_token_force_try(
                 ctx,
                 node.token,
                 split,
@@ -6052,7 +6055,7 @@ static inline bool aven_c_ast_render_node(
                 state
             );
             aven_c_ast_render_space_try(ctx, false, state);
-            aven_c_ast_render_token_try_force(
+            aven_c_ast_render_token_force_try(
                 ctx,
                 node.token,
                 split,
@@ -6088,7 +6091,7 @@ static inline bool aven_c_ast_render_node(
         }
         case AVEN_C_AST_NODE_TYPE_PRIMARY_EXPR: {
             AvenCAstDataSlice tokens = aven_c_ast_data_get(ctx->ast, node.token);
-            aven_c_ast_render_node_token_try(
+            aven_c_ast_render_node_surround_try(
                 ctx,
                 node.type,
                 node.lhs,
@@ -6122,7 +6125,7 @@ static inline bool aven_c_ast_render_node(
             if (indent) {
                 ctx->indent += 1;
             }
-            aven_c_ast_render_data_token_try(
+            aven_c_ast_render_data_surround_try(
                 ctx,
                 node.type,
                 node.rhs,
@@ -6176,7 +6179,7 @@ static inline bool aven_c_ast_render_node(
         }
         case AVEN_C_AST_NODE_TYPE_INITIALIZER_LIST: {
             AvenCAstDataSlice tokens = aven_c_ast_data_get(ctx->ast, node.token);
-            aven_c_ast_render_data_token_try(
+            aven_c_ast_render_data_surround_try(
                 ctx,
                 node.type,
                 node.lhs,
@@ -6192,7 +6195,7 @@ static inline bool aven_c_ast_render_node(
             break;
         }
         case AVEN_C_AST_NODE_TYPE_DOT_DESIGNATOR: {
-            aven_c_ast_render_token_try_force(
+            aven_c_ast_render_token_force_try(
                 ctx,
                 node.token,
                 split,
@@ -6213,7 +6216,7 @@ static inline bool aven_c_ast_render_node(
                 ctx->ast,
                 node.token
             );
-            aven_c_ast_render_node_token_try(
+            aven_c_ast_render_node_surround_try(
                 ctx,
                 node.type,
                 node.lhs,
@@ -6234,7 +6237,7 @@ static inline bool aven_c_ast_render_node(
                 state
             );
             aven_c_ast_render_space_try(ctx, false, state);
-            aven_c_ast_render_token_try_force(
+            aven_c_ast_render_token_force_try(
                 ctx,
                 node.token,
                 split,
@@ -6282,7 +6285,7 @@ static inline bool aven_c_ast_render_node(
                 ctx->ast,
                 node.token
             );
-            aven_c_ast_render_node_token_try(
+            aven_c_ast_render_node_surround_try(
                 ctx,
                 node.type,
                 node.rhs,
@@ -6303,7 +6306,7 @@ static inline bool aven_c_ast_render_node(
                 split,
                 state
             );
-            aven_c_ast_render_token_try_force(
+            aven_c_ast_render_token_force_try(
                 ctx,
                 node.token,
                 split,
@@ -6328,7 +6331,7 @@ static inline bool aven_c_ast_render_node(
                 split,
                 state
             );
-            aven_c_ast_render_token_try_force(
+            aven_c_ast_render_token_force_try(
                 ctx,
                 node.token,
                 split,
@@ -6341,7 +6344,7 @@ static inline bool aven_c_ast_render_node(
                 ctx->ast,
                 node.token
             );
-            aven_c_ast_render_node_token_try(
+            aven_c_ast_render_node_surround_try(
                 ctx,
                 node.type,
                 node.lhs,
@@ -6389,7 +6392,7 @@ static inline bool aven_c_ast_render_node(
                 split,
                 state
             );
-            aven_c_ast_render_node_token_try(
+            aven_c_ast_render_node_surround_try(
                 ctx,
                 node.type,
                 node.lhs,
@@ -6406,7 +6409,7 @@ static inline bool aven_c_ast_render_node(
                 ctx->ast,
                 node.token
             );
-            aven_c_ast_render_node_token_try(
+            aven_c_ast_render_node_surround_try(
                 ctx,
                 node.type,
                 node.lhs,
@@ -6441,7 +6444,7 @@ static inline bool aven_c_ast_render_node(
                 state
             );
             aven_c_ast_render_space_try(ctx, false, state);
-            aven_c_ast_render_token_try_force(
+            aven_c_ast_render_token_force_try(
                 ctx,
                 get(tokens, 0),
                 split,
@@ -6458,7 +6461,7 @@ static inline bool aven_c_ast_render_node(
                 state
             );
             aven_c_ast_render_space_try(ctx, false, state);
-            aven_c_ast_render_token_try_force(
+            aven_c_ast_render_token_force_try(
                 ctx,
                 get(tokens, 1),
                 split,
@@ -6509,7 +6512,7 @@ static inline bool aven_c_ast_render_node(
                 state
             );
             aven_c_ast_render_space_try(ctx, false, state);
-            aven_c_ast_render_token_try_force(
+            aven_c_ast_render_token_force_try(
                 ctx,
                 node.token,
                 split,
@@ -6532,7 +6535,7 @@ static inline bool aven_c_ast_render_node(
                 ctx->ast,
                 node.token
             );
-            aven_c_ast_render_node_token_try(
+            aven_c_ast_render_node_surround_try(
                 ctx,
                 node.type,
                 node.lhs,
@@ -6641,7 +6644,7 @@ static inline bool aven_c_ast_render_node(
                 );
                 aven_c_ast_render_space_try(ctx, false, state);
             }
-            aven_c_ast_render_token_try_force(
+            aven_c_ast_render_token_force_try(
                 ctx,
                 node.token,
                 split,
@@ -6665,7 +6668,7 @@ static inline bool aven_c_ast_render_node(
                 node.token
             );
             aven_c_ast_render_token_try(ctx, get(tokens, 0), split, state);
-            aven_c_ast_render_node_token_try(
+            aven_c_ast_render_node_surround_try(
                 ctx,
                 node.type,
                 node.lhs,
@@ -6695,7 +6698,7 @@ static inline bool aven_c_ast_render_node(
                 ctx->ast,
                 node.token
             );
-            aven_c_ast_render_token_try_force(ctx, get(tokens, 0), split, state);
+            aven_c_ast_render_token_force_try(ctx, get(tokens, 0), split, state);
             aven_c_ast_render_space_try(ctx, false, state);
             if (node.lhs != 0) {
                 aven_c_ast_render_node_try(
@@ -6708,7 +6711,7 @@ static inline bool aven_c_ast_render_node(
                 );
                 aven_c_ast_render_space_try(ctx, false, state);
             }
-            aven_c_ast_render_data_token_try(
+            aven_c_ast_render_data_surround_try(
                 ctx,
                 node.type,
                 node.rhs,
@@ -6733,7 +6736,7 @@ static inline bool aven_c_ast_render_node(
                 state
             );
             aven_c_ast_render_space_try(ctx, false, state);
-            aven_c_ast_render_token_try_force(
+            aven_c_ast_render_token_force_try(
                 ctx,
                 node.token,
                 split,
@@ -6781,7 +6784,7 @@ static inline bool aven_c_ast_render_node(
                 );
                 aven_c_ast_render_space_try(ctx, false, state);
             }
-            aven_c_ast_render_data_token_try(
+            aven_c_ast_render_data_surround_try(
                 ctx,
                 node.type,
                 node.rhs,
@@ -6803,7 +6806,7 @@ static inline bool aven_c_ast_render_node(
             );
             aven_c_ast_render_token_try(ctx, get(tokens, 0), split, state);
             aven_c_ast_render_space_try(ctx, false, state);
-            aven_c_ast_render_node_token_try(
+            aven_c_ast_render_node_surround_try(
                 ctx,
                 node.type,
                 node.lhs,
@@ -6861,7 +6864,7 @@ static inline bool aven_c_ast_render_node(
             );
             aven_c_ast_render_token_try(ctx, get(tokens, 0), split, state);
             aven_c_ast_render_space_try(ctx, false, state);
-            aven_c_ast_render_node_token_try(
+            aven_c_ast_render_node_surround_try(
                 ctx,
                 node.type,
                 node.lhs,
@@ -6913,7 +6916,7 @@ static inline bool aven_c_ast_render_node(
             aven_c_ast_render_space_try(ctx, false, state);
             aven_c_ast_render_token_try(ctx, get(tokens, 1), split, state);
             aven_c_ast_render_space_try(ctx, false, state);
-            aven_c_ast_render_node_token_try(
+            aven_c_ast_render_node_surround_try(
                 ctx,
                 node.type,
                 node.rhs,
@@ -6932,7 +6935,7 @@ static inline bool aven_c_ast_render_node(
             );
             aven_c_ast_render_token_try(ctx, get(tokens, 0), split, state);
             aven_c_ast_render_space_try(ctx, false, state);
-            aven_c_ast_render_data_token_try(
+            aven_c_ast_render_data_surround_try(
                 ctx,
                 node.type,
                 node.lhs,
@@ -6988,7 +6991,7 @@ static inline bool aven_c_ast_render_node(
                 split,
                 state
             );
-            aven_c_ast_render_token_try_force(
+            aven_c_ast_render_token_force_try(
                 ctx,
                 node.token,
                 split,
@@ -7013,7 +7016,7 @@ static inline bool aven_c_ast_render_node(
                 ctx->ast,
                 node.token
             );
-            aven_c_ast_render_token_try_force(
+            aven_c_ast_render_token_force_try(
                 ctx,
                 get(tokens, 0),
                 split,
@@ -7126,9 +7129,9 @@ static inline bool aven_c_ast_render_node(
                 aven_c_ast_render_restore(ctx, state);
                 return false;
             }
-            if (!aven_c_ast_render_flush_line(ctx)) {
-                return false;
-            }
+            // if (!aven_c_ast_render_flush_line(ctx)) {
+            //     return false;
+            // }
             aven_c_ast_render_node_try(
                 ctx,
                 node.type,
@@ -7137,7 +7140,7 @@ static inline bool aven_c_ast_render_node(
                 split,
                 state
             );
-            aven_c_ast_render_token_try_force(
+            aven_c_ast_render_token_force_try(
                 ctx,
                 node.token,
                 split,
@@ -7293,7 +7296,7 @@ static inline AvenCFmtResult aven_c_fmt(
     AvenCAstRenderResult ren_res = aven_c_ast_render(
         &ast,
         writer,
-        80,
+        256,
         aven_str("\n"),
         aven_str("    "),
         &temp_arena
