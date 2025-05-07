@@ -131,11 +131,13 @@ or declaration, an initializer list, a header path, or any single token. Moreove
 the source file must be parseable C (without semantic analysis) even when all
 preprocessor directive lines removed.
 
-In practice, most files follow these rules unless they make use of compiler
-preprocessor extensions. I prefer restrictions like this to keep
-my macro use sane. In the few places in my own source code where
-these rules were not followed, the formatter immediately found the
-issue and it was simple to comply.
+In practice, most C files will already follow these rules. E.g.
+if the 80 column width requirement is removed, then
+formatter can format the Raylib source code. I prefer these
+restrictions to enforce sane
+my macro practices. In the few places in my own source code where
+the formatter reported an issue, the
+changes required to comply were clear improvements.
 
 ### Usage
 
