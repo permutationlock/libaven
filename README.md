@@ -114,7 +114,7 @@ speed of `zig fmt` for similar size source files.
 
 The formatter has rudimentary error reporting. It will report the first parse error
 it encounters along with the exact location of the error in the source file. The
-formatter requires that lines be rendered within 80 columns, with a slight allowance of
+formatter requires that lines be rendered within 80 columns, with an allowance for
 one or two characters over to make the rendering logic easier. If a line cannot fit
 within 80 columns due to a long identifier or excessive indent depth,
 then the formatter will error and report the offending
@@ -124,11 +124,11 @@ line in the original source file.
 
 The formatter will pretty-print preprocessor directives and macros, but it
 places heavy restrictions on their use. Firstly, the '##' operator is not allowed.
-Moreover, preprocessor directives all be a '#' followed by an identifier
+Preprocessor directives must all be a '#' followed by an identifier
 (or an 'if' or 'else' keyword), and then either a valid expression, a
 (non-terminated) statement
 or declaration, an initializer list, a header path, or any single token. Moreover,
-the source file must be parseable C (without semantic analysis) when all
+the source file must be parseable C (without semantic analysis) even when all
 preprocessor directive lines removed.
 
 In practice, most files follow these rules unless they make use of compiler
