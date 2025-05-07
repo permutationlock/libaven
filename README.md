@@ -120,6 +120,23 @@ within 80 columns due to a long identifier or excessive indent depth,
 then the formatter will error and report the offending
 line in the original source file.
 
+### Limitations
+
+The formatter will pretty-print preprocessor directives and macros, but it
+places heavy restrictions on their use. Firstly, the '##' operator is not allowed.
+Moreover, preprocessor directives all be a '#' followed by an identifier
+(or an 'if' or 'else' keyword), and then either a valid expression, a
+(non-terminated) statement
+or declaration, an initializer list, a header path, or any single token. Moreover,
+the source file must be parseable C (without semantic analysis) when all
+preprocessor directive lines removed.
+
+In practice, most files follow these rules unless they make use of compiler
+preprocessor extensions. I prefer restrictions like this to keep
+my macro use sane. In the few places in my own source code where
+these rules were not followed, the formatter immediately found the
+issue and it was simple to comply.
+
 ### Usage
 
 The default behavior is to read from `stdin` and write to `stdout`.
