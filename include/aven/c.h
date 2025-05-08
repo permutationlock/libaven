@@ -276,10 +276,26 @@ typedef struct {
     AvenCTokenList tokens;
     AvenCTokenList child_tokens;
     uint32_t token_start;
+    uint32_t nest_depth;
     uint32_t index;
     bool child;
     char next;
 } AvenCLexCtx;
+
+#ifndef AVEN_C_MAX_DEPTH
+    #define AVEN_C_MAX_DEPTH 10
+#endif
+
+static inline void aven_c_lex_descend(AvenCLexCtx *ctx) {
+    ctx->nest_depth += 1;
+    if (ctx->nest_depth > AVEN_C_MAX_DEPTH) {
+        ctx->bytes.len = ctx->index;
+    }
+}
+
+static inline void aven_c_lex_ascend(AvenCLexCtx *ctx) {
+    ctx->nest_depth -= 1;
+}
 
 static inline AvenCLexCtx aven_c_lex_init(
     AvenStr bytes,
@@ -624,9 +640,15 @@ static inline bool aven_c_lex_punctuator(AvenCLexCtx *ctx) {
     aven_c_lex_next(ctx, init_index);
     switch (ctx->next) {
         case '[':
+        case '(': {
+            aven_c_lex_descend(ctx);
+            return true;
+        }
         case ']':
-        case '(':
-        case ')':
+        case ')': {
+            aven_c_lex_ascend(ctx);
+            return true;
+        }
         case '{':
         case '}':
         case '?':
@@ -1478,12 +1500,10 @@ static inline bool aven_c_ast_match_punctuator(
     AvenCAstCtx *ctx,
     AvenStr str
 ) {
+    AvenStr pnc_str = aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx));
     if (
         aven_c_ast_next(ctx).type == AVEN_C_TOKEN_TYPE_PNC and
-        aven_str_equals(
-            aven_c_token_str(ctx->tset, aven_c_ast_next_index(ctx)),
-            str
-        )
+        aven_str_equals(pnc_str, str)
     ) {
         aven_c_ast_inc_index(ctx);
         return true;
@@ -1679,25 +1699,23 @@ static inline uint32_t aven_c_ast_parse_macro_argument(AvenCAstCtx *ctx) {
             return msvc;
         }
     }
-    uint32_t expr_index = 0;
     uint32_t expr = aven_c_ast_parse_assign_expr(ctx);
     if (expr != 0) {
-        expr_index = ctx->token_index;
-        aven_c_ast_restore(ctx, state);
+        AvenCAstCtxState last = aven_c_ast_save(ctx);
+        if (
+            !aven_c_ast_match_punctuator(ctx, aven_str(",")) and
+            !aven_c_ast_match_punctuator(ctx, aven_str(")"))
+        ) {
+            expr = 0;
+            aven_c_ast_restore(ctx, state);
+        } else {
+            aven_c_ast_restore(ctx, last);
+        }
     }
-    uint32_t type_name_index = 0;
-    uint32_t type_name = aven_c_ast_parse_type_name(ctx);
-    if (type_name != 0) {
-        type_name_index = ctx->token_index;
-        aven_c_ast_restore(ctx, state);
+    if (expr == 0) {
+        expr = aven_c_ast_parse_type_name(ctx);
     }
-    if (type_name_index > expr_index) {
-        return aven_c_ast_parse_type_name(ctx);
-    }
-    if (expr_index > 0) {
-        return aven_c_ast_parse_assign_expr(ctx);
-    }
-    return 0;
+    return expr;
 }
 
 static inline uint32_t aven_c_ast_parse_macro_invocation(AvenCAstCtx *ctx) {
@@ -2811,7 +2829,7 @@ static inline uint32_t aven_c_ast_parse_direct_declarator_op(
     uint32_t node = 0;
     switch (tstr.ptr[0]) {
         case '[': {
-            aven_c_ast_inc_index(ctx);
+            aven_c_ast_match_punctuator(ctx, aven_str("["));
             uint32_t arg_list = 0;
             {
                 bool stat = false;
@@ -2884,7 +2902,7 @@ static inline uint32_t aven_c_ast_parse_direct_declarator_op(
             break;
         }
         case '(': {
-            aven_c_ast_inc_index(ctx);
+            aven_c_ast_match_punctuator(ctx, aven_str("("));
             uint32_t plist = aven_c_ast_parse_parameter_type_list(ctx);
             if (plist != 0) {
                 uint32_t end_token = aven_c_ast_next_index(ctx);
@@ -3035,7 +3053,7 @@ static inline uint32_t aven_c_ast_parse_direct_abstract_declarator_op(
     uint32_t node = 0;
     switch (tstr.ptr[0]) {
         case '[': {
-            aven_c_ast_inc_index(ctx);
+            aven_c_ast_match_punctuator(ctx, aven_str("["));
             bool stat = false;
             bool ptr = false;
             bool expr = false;
@@ -3103,7 +3121,7 @@ static inline uint32_t aven_c_ast_parse_direct_abstract_declarator_op(
             break;
         }
         case '(': {
-            aven_c_ast_inc_index(ctx);
+            aven_c_ast_match_punctuator(ctx, aven_str("("));
             uint32_t plist = aven_c_ast_parse_parameter_type_list(ctx);
             uint32_t end_token = aven_c_ast_next_index(ctx);
             if (!aven_c_ast_match_punctuator(ctx, aven_str(")"))) {
@@ -4971,15 +4989,15 @@ static inline AvenCAstResult aven_c_ast_parse(AvenCTokenSet tset, AvenArena *are
                 token = get(ctx.tset.ppd_tokens, ppd_error.pp_token - 2);
                 token_str = aven_c_ppd_token_str(tset, ppd_error.pp_token - 2);
                 eloc = aven_c_ppd_token_loc(ctx.tset, ppd_error.pp_token - 2);
-                eloc.col += token.len;
-                token_index = token.index + token.len;
+                eloc.col += token_str.len - 1;
+                token_index = token.index + (uint32_t)token_str.len - 1;
             }
         } else if (token.type == AVEN_C_TOKEN_TYPE_NONE) {
             token = get(ctx.tset.tokens, ctx.error.token - 1);
             token_str = aven_c_token_str(tset, ctx.error.token - 1);
             eloc = aven_c_token_loc(ctx.tset, ctx.error.token - 1);
-            eloc.col += token.len;
-            token_index = token.index + token.len;
+            eloc.col += token_str.len - 1;
+            token_index = token.index + (uint32_t)token_str.len - 1;
         }
         AvenStr exp_type = exp_token_type == AVEN_C_TOKEN_TYPE_NUM ?
             aven_str("constant") :
@@ -7586,7 +7604,7 @@ static inline AvenCFmtResult aven_c_fmt(
     size_t min_column_width = 16;
     if (column_width < min_column_width) {
         return (AvenCFmtResult){
-            .error = AVEN_C_FMT_ERROR_PARSE,
+            .error = AVEN_C_FMT_ERROR_RENDER,
             .msg = aven_fmt(
                 arena,
                 "column width {} is less than the minimum of {}",

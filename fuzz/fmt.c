@@ -25,9 +25,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     AvenCFmtResult fmt_res = aven_c_fmt(
         src,
         &writer,
-        80,
+        2048,
         &temp_arena
     );
     (void)fmt_res;
+    // if (fmt_res.error == AVEN_C_FMT_ERROR_PARSE) {
+    //     return -1;
+    // }
     return 0;
 }
