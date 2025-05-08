@@ -1,0 +1,33 @@
+#define AVEN_IMPLEMENTATION
+#include <aven.h>
+#include <aven/arena.h>
+#include <aven/io.h>
+#include <aven/c.h>
+
+#include <stdlib.h>
+
+#define ARENA_SIZE ((size_t)4096 * (size_t)750000)
+
+static Optional(AvenArena) arena = { 0 };
+
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+    if (!arena.valid) {
+        void *mem = malloc(ARENA_SIZE);
+        if (mem == NULL) {
+            aven_panic("malloc failed\n");
+        }
+        arena.valid = true;
+        arena.value = aven_arena_init(mem, ARENA_SIZE);
+    }
+    AvenArena temp_arena = arena.value;
+    AvenStr src = { .ptr = (char *)data, .len = size };
+    AvenIoWriter writer = aven_io_writer_init_sink();
+    AvenCFmtResult fmt_res = aven_c_fmt(
+        src,
+        &writer,
+        80,
+        &temp_arena
+    );
+    (void)fmt_res;
+    return 0;
+}

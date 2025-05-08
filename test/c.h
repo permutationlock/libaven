@@ -1204,9 +1204,9 @@ static int test_c(AvenArena arena) {
             .desc = aven_str("aven_c_ast_render function typedef"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
-                .src = aven_str("typedef AvenIoResult(AvenIoFn)(AvenIoCtx ctx, ByteSlice bytes);\n"),
+                .src = aven_str("typedef AvenIoResult AvenIoFn(AvenIoCtx ctx, ByteSlice bytes);\n"),
                 .expected = aven_str(
-                    "typedef AvenIoResult (AvenIoFn)(\n"
+                    "typedef AvenIoResult AvenIoFn(\n"
                     "    AvenIoCtx ctx,\n"
                     "    ByteSlice bytes\n"
                     ");\n"
@@ -1215,7 +1215,7 @@ static int test_c(AvenArena arena) {
             },
         },
         {
-            .desc = aven_str("aven_c_ast_render function typedef"),
+            .desc = aven_str("aven_c_ast_render function pointer typedef"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("typedef size_t (*ReadFn)(char *, size_t);\n"),

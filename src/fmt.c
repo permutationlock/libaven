@@ -31,6 +31,15 @@ static AvenArg arg_data[] = {
         .optional = true,
         .type = AVEN_ARG_TYPE_STRING,
     },
+    {
+        .name =  aven_str_init("-c"),
+        .description = aven_str_init("Column width, 0 for no limit"),
+        .value = {
+            .type = AVEN_ARG_TYPE_INT,
+            .data = { .arg_int = 80 },
+        },
+        .type = AVEN_ARG_TYPE_INT,
+    },
 };
 
 // 1GB virtual memory reserve handles pathological files up to ~10MB, and
@@ -63,13 +72,18 @@ int main(int argc, char **argv) {
             return 1;
         }
     }
+    int64_t arg_cwidth = aven_arg_get_int(args, "-c");
+    if (arg_cwidth <= 0 or arg_cwidth > (int64_t)(1024L * 1024L)) {
+        arg_cwidth = (int64_t)(1024L * 1024L);
+    }
+    size_t column_width = (size_t)arg_cwidth;
     AvenIoReader reader = aven_io_stdin;
     Optional(AvenIoFd) in_fd = { 0 };
     Optional(AvenStr) in_file = { 0 };
     if (aven_arg_has_arg(args, "-i")) {
         if (aven_arg_has_arg(args, "-io")) {
             aven_io_perr(
-                "error: cannot specify both -io and -i arguments\n"
+                "error: cannot specify both -io and -i\n"
             );
         }
         in_file.valid = true;
@@ -131,7 +145,7 @@ int main(int argc, char **argv) {
     if (aven_arg_has_arg(args, "-o")) {
         if (aven_arg_has_arg(args, "-io")) {
             aven_io_perr(
-                "error: cannot specify both -io and -i arguments\n"
+                "error: cannot specify both -io and -i\n"
             );
         }
         out_file.valid = true;
@@ -155,6 +169,7 @@ int main(int argc, char **argv) {
     AvenCFmtResult fmt_res = aven_c_fmt(
         src,
         &writer,
+        column_width,
         &arena
     );
     aven_io_writer_flush(&writer);
@@ -196,7 +211,7 @@ int main(int argc, char **argv) {
             );
             if (res.error != 0) {
                 aven_io_perrf(
-                    "error: writing to '{}' failed with code {}\n",
+                    "error: writing '{}' failed with code {}\n",
                     aven_fmt_str(unwrap(out_file)),
                     aven_fmt_int(res.error)
                 );
@@ -204,7 +219,7 @@ int main(int argc, char **argv) {
             }
             if (res.payload == 0) {
                 aven_io_perrf(
-                    "error: writing to '{}' with no space remaining\n",
+                    "error: writing '{}' ran out of space\n",
                     aven_fmt_str(unwrap(out_file))
                 );
                 return 1;

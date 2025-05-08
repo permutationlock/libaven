@@ -79,6 +79,18 @@ typedef struct {
     AvenIoCtx ctx;
 } AvenIoWriter;
 
+static AvenIoResult aven_io_sink_stub(AvenIoCtx ctx, ByteSlice dest) {
+    (void)ctx;
+    (void)dest;
+    return (AvenIoResult){ .payload = dest.len };
+}
+
+static inline AvenIoWriter aven_io_writer_init_sink(void) {
+    return (AvenIoWriter){
+        .write = aven_io_sink_stub,
+    };
+}
+
 static AvenIoResult aven_io_null_stub(AvenIoCtx ctx, ByteSlice dest) {
     (void)ctx;
     (void)dest;
