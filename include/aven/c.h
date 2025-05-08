@@ -4,7 +4,6 @@
 #include "../aven.h"
 #include "arena.h"
 #include "aven/fmt.h"
-#include "aven/tmp.h"
 #include "io.h"
 #include "str.h"
 
@@ -4983,14 +4982,14 @@ static inline AvenCAstResult aven_c_ast_parse(AvenCTokenSet tset, AvenArena *are
                 token = get(ctx.tset.ppd_tokens, ppd_error.pp_token - 2);
                 token_str = aven_c_ppd_token_str(tset, ppd_error.pp_token - 2);
                 eloc = aven_c_ppd_token_loc(ctx.tset, ppd_error.pp_token - 2);
-                eloc.col += token_str.len - 1;
+                eloc.col += (uint32_t)token_str.len - 1;
                 token_index = token.index + (uint32_t)token_str.len - 1;
             }
         } else if (token.type == AVEN_C_TOKEN_TYPE_NONE) {
             token = get(ctx.tset.tokens, ctx.error.token - 1);
             token_str = aven_c_token_str(tset, ctx.error.token - 1);
             eloc = aven_c_token_loc(ctx.tset, ctx.error.token - 1);
-            eloc.col += token_str.len - 1;
+            eloc.col += (uint32_t)token_str.len - 1;
             token_index = token.index + (uint32_t)token_str.len - 1;
         }
         AvenStr exp_type = exp_token_type == AVEN_C_TOKEN_TYPE_NUM ?
