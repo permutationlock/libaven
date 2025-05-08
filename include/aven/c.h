@@ -2443,24 +2443,6 @@ static inline uint32_t aven_c_ast_parse_declaration_specifier(
     return node;
 }
 
-static inline uint32_t aven_c_ast_count_declaration_specifiers(
-    AvenCAstCtx *ctx
-) {
-    AvenCAstCtxState state = aven_c_ast_save(ctx);
-    uint32_t count = 0;
-    for (;;) {
-        uint32_t decl_spec = aven_c_ast_parse_declaration_specifier(
-            ctx
-        );
-        if (decl_spec == 0) {
-            break;
-        }
-        count += 1;
-    }
-    aven_c_ast_restore(ctx, state);
-    return count;
-}
-
 typedef struct {
     uint32_t decl_spec_list;
     bool abstract;
@@ -3363,11 +3345,12 @@ static inline uint32_t aven_c_ast_parse_postfix_op(
                 break;
             }
             uint32_t arg = aven_c_ast_parse_expr(ctx);
+            if (arg == 0) {
+                aven_c_ast_restore(ctx, state);
+                break;
+            }
             uint32_t end_token = aven_c_ast_next_index(ctx);
             if (!aven_c_ast_match_punctuator(ctx, aven_str("]"))) {
-                arg = 0;
-            }
-            if (arg == 0) {
                 aven_c_ast_restore(ctx, state);
                 break;
             }
@@ -3528,6 +3511,7 @@ static inline uint32_t aven_c_ast_parse_unary_expr(AvenCAstCtx *ctx) {
                 aven_c_ast_restore(ctx, state);
                 break;
             }
+            AvenCAstCtxState last = aven_c_ast_save(ctx);
             uint32_t child = aven_c_ast_parse_expr(ctx);
             if (child == 0) {
                 child = aven_c_ast_parse_type_name(ctx);
@@ -3538,8 +3522,17 @@ static inline uint32_t aven_c_ast_parse_unary_expr(AvenCAstCtx *ctx) {
             }
             uint32_t close_token = aven_c_ast_next_index(ctx);
             if (!aven_c_ast_match_punctuator(ctx, aven_str(")"))) {
-                aven_c_ast_restore(ctx, state);
-                break;
+                aven_c_ast_restore(ctx, last);
+                child = aven_c_ast_parse_type_name(ctx);
+                if (child == 0) {
+                    aven_c_ast_restore(ctx, state);
+                    return 0;
+                }
+                close_token = aven_c_ast_next_index(ctx);
+                if (!aven_c_ast_match_punctuator(ctx, aven_str(")"))) {
+                    aven_c_ast_restore(ctx, state);
+                    return 0;
+                }
             }
             uint32_t scratch_top = aven_c_ast_scratch_init(ctx);
             list_push(ctx->scratch) = main_token;
@@ -5218,6 +5211,20 @@ static inline uint32_t aven_c_ast_parse_preprocessor_directive(AvenCAstCtx *ctx)
         }
     }
     if (rhs == 0) {
+        rhs = aven_c_ast_parse_parameter_declaration(ctx);
+        if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_NONE) {
+            rhs = 0;
+            aven_c_ast_restore(ctx, rhs_state);
+        }
+    }
+    if (rhs == 0) {
+        rhs = aven_c_ast_parse_type_name(ctx);
+        if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_NONE) {
+            rhs = 0;
+            aven_c_ast_restore(ctx, rhs_state);
+        }
+    }
+    if (rhs == 0) {
         rhs = aven_c_ast_parse_jump_statement_unterminated(ctx);
         if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_NONE) {
             rhs = 0;
@@ -5226,6 +5233,41 @@ static inline uint32_t aven_c_ast_parse_preprocessor_directive(AvenCAstCtx *ctx)
     }
     if (rhs == 0) {
         rhs = aven_c_ast_parse_do_statement_unterminated(ctx);
+        if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_NONE) {
+            rhs = 0;
+            aven_c_ast_restore(ctx, rhs_state);
+        }
+    }
+    if (rhs == 0) {
+        rhs = aven_c_ast_parse_if_statement(ctx);
+        if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_NONE) {
+            rhs = 0;
+            aven_c_ast_restore(ctx, rhs_state);
+        }
+    }
+    if (rhs == 0) {
+        rhs = aven_c_ast_parse_while_statement(ctx);
+        if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_NONE) {
+            rhs = 0;
+            aven_c_ast_restore(ctx, rhs_state);
+        }
+    }
+    if (rhs == 0) {
+        rhs = aven_c_ast_parse_for_statement(ctx);
+        if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_NONE) {
+            rhs = 0;
+            aven_c_ast_restore(ctx, rhs_state);
+        }
+    }
+    if (rhs == 0) {
+        rhs = aven_c_ast_parse_switch_statement(ctx);
+        if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_NONE) {
+            rhs = 0;
+            aven_c_ast_restore(ctx, rhs_state);
+        }
+    }
+    if (rhs == 0) {
+        rhs = aven_c_ast_parse_compound_statement(ctx);
         if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_NONE) {
             rhs = 0;
             aven_c_ast_restore(ctx, rhs_state);

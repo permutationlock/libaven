@@ -1869,6 +1869,22 @@ static int test_c(AvenArena arena) {
                 .line_len = 36,
             },
         },
+        {
+            .desc = aven_str("aven_c_ast_render msvc warn pragma"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "void *x = RL_MALLOC(anim[a].num_frames*sizeof(Transform *));\n"
+                ),
+                .expected = aven_str(
+                    "void *x = RL_MALLOC(\n"
+                    "    anim[a].num_frames *\n"
+                    "        sizeof(Transform *)\n"
+                    ");\n"
+                ),
+                .line_len = 36,
+            },
+        },
     };
 
     AvenTestCaseSlice tcases = slice_array(tcase_data);
