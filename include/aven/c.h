@@ -1805,14 +1805,8 @@ static inline uint32_t aven_c_ast_parse_string_constant(AvenCAstCtx *ctx) {
         return 0;
     } 
     if (count == 1) {
-        aven_c_ast_restore(ctx, state);
-        uint32_t node = aven_c_ast_parse_string_literal(ctx);
-        if (node == 0) {
-            node = aven_c_ast_parse_macro_invocation(ctx);
-        }
-        if (ctx->ppd and node == 0) {
-            node = aven_c_ast_parse_preprocessor_paste(ctx);
-        }
+        uint32_t node = list_pop(ctx->scratch);
+        assert(aven_c_ast_scratch_commit(ctx, scratch_top) == 0);
         return node;
     }
     return aven_c_ast_push(
