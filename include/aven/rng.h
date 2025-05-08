@@ -3,7 +3,7 @@
 
 #include "../aven.h"
 
-typedef uint32_t (AvenRngRandFn)(void *state);
+typedef uint32_t AvenRngRandFn(void *state);
 
 typedef struct {
     AvenRngRandFn *rand;

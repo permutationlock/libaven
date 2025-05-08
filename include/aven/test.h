@@ -10,7 +10,7 @@ typedef struct {
     AvenStr message;
 } AvenTestResult;
 
-typedef AvenTestResult (*AvenTestFn)(
+typedef AvenTestResult AvenTestFn(
     AvenArena *emsg_arena,
     AvenArena arena,
     void *args
@@ -19,7 +19,7 @@ typedef AvenTestResult (*AvenTestFn)(
 typedef struct {
     AvenStr desc;
     void *args;
-    AvenTestFn fn;
+    AvenTestFn *fn;
 } AvenTestCase;
 
 typedef Slice(AvenTestCase) AvenTestCaseSlice;

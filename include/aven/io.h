@@ -63,7 +63,7 @@ typedef union {
     AvenIoFd fd;
 } AvenIoCtx;
 
-typedef AvenIoResult (AvenIoFn)(AvenIoCtx ctx, ByteSlice bytes);
+typedef AvenIoResult AvenIoFn(AvenIoCtx ctx, ByteSlice bytes);
 
 typedef struct {
     List(uint8_t) buffer;

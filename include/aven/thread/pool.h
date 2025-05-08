@@ -5,10 +5,10 @@
 #include "../arena.h"
 #include "../thread.h"
 
-typedef void (*AvenThreadPoolJobFn)(void *);
+typedef void AvenThreadPoolJobFn(void *);
 
 typedef struct {
-    AvenThreadPoolJobFn fn;
+    AvenThreadPoolJobFn *fn;
     void *args;
 } AvenThreadPoolJob;
 typedef Slice(AvenThreadPoolJob) AvenThreadPoolJobSlice;
@@ -104,7 +104,7 @@ static inline void aven_thread_pool_run(AvenThreadPool *thread_pool) {
 
 static inline void aven_thread_pool_submit(
     AvenThreadPool *thread_pool,
-    AvenThreadPoolJobFn fn,
+    AvenThreadPoolJobFn *fn,
     void *args
 ) {
     aven_thread_mtx_lock(&thread_pool->lock);

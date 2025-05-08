@@ -11,7 +11,7 @@
     #define AVEN_THREAD_USE_PTHREADS
 #endif
 
-typedef int (AvenThreadFn)(void *);
+typedef int AvenThreadFn(void *);
 
 #ifndef AVEN_THREAD_USE_PTHREADS
     #include <threads.h>
@@ -19,8 +19,6 @@ typedef int (AvenThreadFn)(void *);
     typedef thrd_t AvenThread;
     typedef cnd_t AvenThreadCnd;
     typedef mtx_t AvenThreadMtx;
-
-    typedef int (AvenThreadFn)(void *);
 
     static inline void aven_thread_create(
         AvenThread *thread,
