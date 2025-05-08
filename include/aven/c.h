@@ -4,6 +4,7 @@
 #include "../aven.h"
 #include "arena.h"
 #include "aven/fmt.h"
+#include "aven/tmp.h"
 #include "io.h"
 #include "str.h"
 
@@ -1157,6 +1158,7 @@ typedef enum {
     AVEN_C_AST_NODE_TYPE_TERMINATED_LINE,
     AVEN_C_AST_NODE_TYPE_MACRO_INVOCATION,
     AVEN_C_AST_NODE_TYPE_PREPROCESSOR_PASTE,
+    AVEN_C_AST_NODE_TYPE_PREPROCESSOR_MERGE,
     AVEN_C_AST_NODE_TYPE_PREPROCESSOR_HEADER,
     AVEN_C_AST_NODE_TYPE_PREPROCESSOR_DEFINE,
     AVEN_C_AST_NODE_TYPE_PREPROCESSOR_DEFINE_FN,
@@ -1432,23 +1434,6 @@ static inline AvenCAstDataSlice aven_c_ast_data_get(
     };
 }
 
-static inline uint32_t aven_c_ast_parse_identifier(AvenCAstCtx *ctx) {
-    if (aven_c_ast_next(ctx).type == AVEN_C_TOKEN_TYPE_ID) {
-        return aven_c_ast_push_leaf(
-            ctx,
-            AVEN_C_AST_NODE_TYPE_IDENTIFIER,
-            aven_c_ast_inc_index(ctx)
-        );
-    }
-    if (aven_c_ast_next_index(ctx) >= ctx->error.token) {
-        ctx->error = (AvenCAstError){
-            .type = AVEN_C_TOKEN_TYPE_ID,
-            .token = aven_c_ast_next_index(ctx),
-        };
-    }
-    return 0;
-}
-
 static inline uint32_t aven_c_ast_parse_string_literal(AvenCAstCtx *ctx) {
     if (aven_c_ast_next(ctx).type == AVEN_C_TOKEN_TYPE_STR) {
         return aven_c_ast_push_leaf(
@@ -1511,6 +1496,48 @@ static inline bool aven_c_ast_match_punctuator(
         };
     }
     return false;
+}
+
+static inline uint32_t aven_c_ast_parse_identifier_token(AvenCAstCtx *ctx) {
+    if (aven_c_ast_next(ctx).type == AVEN_C_TOKEN_TYPE_ID) {
+        return aven_c_ast_push_leaf(
+            ctx,
+            AVEN_C_AST_NODE_TYPE_IDENTIFIER,
+            aven_c_ast_inc_index(ctx)
+        );
+    }
+    if (aven_c_ast_next_index(ctx) >= ctx->error.token) {
+        ctx->error = (AvenCAstError){
+            .type = AVEN_C_TOKEN_TYPE_ID,
+            .token = aven_c_ast_next_index(ctx),
+        };
+    }
+    return 0;
+}
+
+static inline uint32_t aven_c_ast_parse_identifier(AvenCAstCtx *ctx) {
+    uint32_t id_node = aven_c_ast_parse_identifier_token(ctx);
+    if (id_node == 0) {
+        return 0;
+    }
+    if (ctx->ppd) {
+        AvenCAstCtxState state = aven_c_ast_save(ctx);
+        uint32_t main_token = aven_c_ast_next_index(ctx);
+        if (aven_c_ast_match_punctuator(ctx, aven_str("##"))) {
+            uint32_t rhs = aven_c_ast_parse_identifier(ctx);
+            if (rhs == 0) {
+                aven_c_ast_restore(ctx, state);
+            }
+            return aven_c_ast_push(
+                ctx,
+                AVEN_C_AST_NODE_TYPE_PREPROCESSOR_MERGE,
+                main_token,
+                id_node,
+                rhs
+            );
+        }
+    }
+    return id_node;
 }
 
 static inline bool aven_c_ast_match_keyword(
@@ -6104,6 +6131,28 @@ static inline bool aven_c_ast_render_node(
                 ctx,
                 node.type,
                 node.lhs,
+                false,
+                split,
+                state
+            );
+            break;
+        }
+        case AVEN_C_AST_NODE_TYPE_PREPROCESSOR_MERGE: {
+            aven_c_ast_render_node_try(
+                ctx,
+                node.type,
+                node.lhs,
+                false,
+                split,
+                state
+            );
+            aven_c_ast_render_space_try(ctx, false, state);
+            aven_c_ast_render_token_force_try(ctx, node.token, split, state);
+            aven_c_ast_render_space_try(ctx, false, state);
+            aven_c_ast_render_node_try(
+                ctx,
+                node.type,
+                node.rhs,
                 false,
                 split,
                 state

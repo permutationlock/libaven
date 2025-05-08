@@ -1885,6 +1885,19 @@ static int test_c(AvenArena arena) {
                 .line_len = 36,
             },
         },
+        {
+            .desc = aven_str("aven_c_ast_render ## merge operator"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "#define merge(x,y) x##y\n"
+                ),
+                .expected = aven_str(
+                    "#define merge(x, y) x ## y\n"
+                ),
+                .line_len = 36,
+            },
+        },
     };
 
     AvenTestCaseSlice tcases = slice_array(tcase_data);

@@ -122,14 +122,31 @@ line in the original source file.
 
 ### Limitations
 
-The formatter will pretty-print preprocessor directives and macros, but it
-places heavy restrictions on their use. Firstly, the '##' operator is not allowed.
+The formatter `aven-fmt` will pretty-print preprocessor directives and macros, but it
+places heavy restrictions on their use.
+
 Preprocessor directives must all be a '#' followed by an identifier
-(or an 'if' or 'else' keyword), and then either a valid expression, a
-(non-terminated) statement
-or declaration, an initializer list, a header path, or any single token. Moreover,
-the source file must be parseable C (without semantic analysis) even when all
-preprocessor directive lines removed.
+(or an 'if' or 'else' keyword), and then either a valid expression, a statement
+or declaration (omitting the termination ';' if applicable), a type-name,
+a parameter declaration, an initializer list, a header path, or any single
+token.
+
+Some special allowances are made to allow the `#` and `##` operators in preprocessor mode,
+as well as the special `#pragma warning(disable : 4427)` for MSVC.
+
+Source files must be parseable C even with all
+preprocessor directive lines removed. E.g. the following is invalid
+according to `aven-fmt`:
+
+```C
+#ifdef A
+int foo(int n) {
+#else
+int bar(int n){
+#endif
+    // body
+}
+```
 
 In practice, most C files will already follow these rules. E.g.
 if the 80 column width requirement is removed, then
