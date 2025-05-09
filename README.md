@@ -128,8 +128,9 @@ places heavy restrictions on their use.
 Preprocessor directives must all be a '#' followed by an identifier
 (or an 'if' or 'else' keyword), and then either a valid expression, a statement
 or declaration (omitting the termination ';' if applicable), a type-name,
-a parameter declaration, an initializer list, a header path, or any single
-token.
+a parameter declaration, an initializer list, a list of declaration specifiers,
+a header path, or any single token. Other possibilities may have been added, but
+in general they must be a parseable contained seciton of code.
 
 Some special allowances are made to allow the `#` and `##` operators in preprocessor mode,
 as well as the special `#pragma warning(disable : 4427)` for MSVC.
@@ -147,6 +148,9 @@ int bar(int n){
     // body
 }
 ```
+
+Declaration attributes must occur before all other declaration specifiers,
+or after the declarator.
 
 In practice, most C files will already follow these rules. E.g.
 if the 80 column width requirement is removed, then

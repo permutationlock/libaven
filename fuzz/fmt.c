@@ -22,12 +22,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     AvenArena temp_arena = arena.value;
     AvenStr src = { .ptr = (char *)data, .len = size };
     AvenIoWriter writer = aven_io_writer_init_sink();
-    AvenCFmtResult fmt_res = aven_c_fmt(
-        src,
-        &writer,
-        2048,
-        &temp_arena
-    );
+    AvenCFmtResult fmt_res = aven_c_fmt(src, &writer, 2048, &temp_arena);
     (void)fmt_res;
     // if (fmt_res.error == AVEN_C_FMT_ERROR_PARSE) {
     //     return -1;

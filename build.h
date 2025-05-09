@@ -1,216 +1,214 @@
 #ifndef LIBAVEN_BUILD_H
-#define LIBAVEN_BUILD_H
+    #define LIBAVEN_BUILD_H
 
-static AvenArg libaven_build_arg_data[] = {
-    {
-        .name = aven_str_init("-winutf8"),
-        .description = aven_str_init(
-            "Link a Windows resource to enable UTF8 mode"
-        ),
-        .type = AVEN_ARG_TYPE_BOOL,
-        .value = {
+    static AvenArg libaven_build_arg_data[] = {
+        {
+            .name = aven_str_init("-winutf8"),
+            .description = aven_str_init(
+                "Link a Windows resource to enable UTF8 mode"
+            ),
             .type = AVEN_ARG_TYPE_BOOL,
+            .value = {
+                .type = AVEN_ARG_TYPE_BOOL,
     #if defined(LIBAVEN_BUILD_DEFUALT_WINUTF8)
-            .data = { .arg_bool = LIBAVEN_BUILD_DEFUALT_WINUTF8 },
+                .data = { .arg_bool = LIBAVEN_BUILD_DEFUALT_WINUTF8 },
     #elif defined(_WIN32)
-            .data = { .arg_bool = 1 },
+                .data = { .arg_bool = 1 },
     #else
-            .data = { .arg_bool = 0 },
+                .data = { .arg_bool = 0 },
     #endif
+            },
         },
-    },
-    {
-        .name = aven_str_init("-winpthreads"),
-        .description = aven_str_init(
-            "Build and link a local Mingw-w64 winpthreads"
-        ),
-        .type = AVEN_ARG_TYPE_BOOL,
-        .value = {
+        {
+            .name = aven_str_init("-winpthreads"),
+            .description = aven_str_init(
+                "Build and link a local Mingw-w64 winpthreads"
+            ),
             .type = AVEN_ARG_TYPE_BOOL,
+            .value = {
+                .type = AVEN_ARG_TYPE_BOOL,
     #if defined(LIBAVEN_BUILD_DEFAULT_WINPTHREADS)
-            .data = { .arg_bool = LIBAVEN_BUILD_DEFAULT_WINPTHREADS },
+                .data = { .arg_bool = LIBAVEN_BUILD_DEFAULT_WINPTHREADS },
     #else
-            .data = { .arg_bool = 0 },
+                .data = { .arg_bool = 0 },
     #endif
+            },
         },
-    },
-    {
-        .name = aven_str_init("-winpthreads-ccflags"),
-        .description = aven_str_init("C compiler flags for local winpthreads"),
-        .type = AVEN_ARG_TYPE_STRING,
-#if defined(LIBAVEN_BUILD_DEFUALT_WINPTHREADS_CCFLAGS)
-        .value = {
+        {
+            .name = aven_str_init("-winpthreads-ccflags"),
+            .description = aven_str_init(
+                "C compiler flags for local winpthreads"
+            ),
             .type = AVEN_ARG_TYPE_STRING,
-            .data = aven_str_init(LIBAVEN_BUILD_DEFUALT_WINPTHREADS_CCFLAGS),
+    #if defined(LIBAVEN_BUILD_DEFUALT_WINPTHREADS_CCFLAGS)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
+                .data = aven_str_init(LIBAVEN_BUILD_DEFUALT_WINPTHREADS_CCFLAGS),
+            },
+    #endif
+            .optional = true,
         },
-#endif
-        .optional = true,
-    },
-};
-
-static AvenArgSlice libaven_build_args(void) {
-    AvenArgSlice args = slice_array(libaven_build_arg_data);
-    return args;
-}
-
-typedef struct {
-    bool local;
-    Optional(AvenStrSlice) ccflags;
-} LibAvenBuildWinpthreadsOpts;
-
-typedef struct {
-    bool winutf8;
-    LibAvenBuildWinpthreadsOpts winpthreads;
-} LibAvenBuildOpts;
-
-static inline LibAvenBuildOpts libaven_build_opts(
-    AvenArgSlice args,
-    AvenArena *arena
-) {
-    (void)arena;
-
-    LibAvenBuildOpts opts = { 0 };
-    opts.winutf8 = aven_arg_get_bool(args, "-winutf8");
-
-    opts.winpthreads.local = aven_arg_get_bool(args, "-winpthreads");
-    if (aven_arg_has_arg(args, "-winpthreads-ccflags")) {
-        opts.winpthreads.ccflags.value = aven_str_split(
-            aven_arg_get_str(args, "-winpthreads-ccflags"),
-            ' ',
-            arena
-        );
-        opts.winpthreads.ccflags.valid = true;
-    }
-
-    return opts;
-}
-
-static inline AvenStr libaven_build_include_path(
-    AvenStr root_path,
-    AvenArena *arena
-) {
-    return aven_path(arena, root_path, aven_str("include"));
-}
-
-static inline AvenStr libaven_build_include_winpthreads(
-    AvenStr root_path,
-    AvenArena *arena
-) {
-    return aven_path(
-        arena,
-        root_path,
-        aven_str("deps"),
-        aven_str("winpthreads"),
-        aven_str("include")
-    );
-}
-
-static inline AvenBuildStep libaven_build_step(
-    AvenBuildCommonOpts *opts,
-    AvenStr root_path,
-    AvenBuildStep *out_dir_step,
-    AvenArena *arena
-) {
-    AvenStr include_paths[] = { libaven_build_include_path(root_path, arena) };
-    AvenStrSlice includes = slice_array(include_paths);
-    AvenStrSlice macros = { 0 };
-
-    return aven_build_common_step_cc_ex(
-        opts,
-        includes,
-        macros,
-        aven_path(arena, root_path, aven_str("src"), aven_str("aven.c")),
-        out_dir_step,
-        arena
-    );
-}
-
-static inline AvenBuildStep libaven_build_step_windres_manifest(
-    AvenBuildCommonOpts *opts,
-    AvenStr root_path,
-    AvenBuildStep *out_dir_step,
-    AvenArena *arena
-) {
-    return aven_build_common_step_windres(
-        opts,
-        aven_path(
-            arena,
-            root_path,
-            aven_str("src"),
-            aven_str("windows"),
-            aven_str("manifest.rc")
-        ),
-        out_dir_step,
-        arena
-    );
-}
-
-static inline AvenBuildStep libaven_build_step_winpthreads(
-    AvenBuildCommonOpts *opts,
-    LibAvenBuildOpts *libaven_opts,
-    AvenStr root_path,
-    AvenBuildStep *out_dir_step,
-    AvenArena *arena
-) {
-    AvenStr include_paths[] = {
-        libaven_build_include_winpthreads(root_path, arena),
     };
-    AvenStrSlice includes = slice_array(include_paths);
-    AvenStrSlice macros = { 0 };
 
-    AvenBuildCommonOpts winpthreads_opts = *opts;
-    if (libaven_opts->winpthreads.ccflags.valid) {
-        winpthreads_opts.cc.flags =
-            libaven_opts->winpthreads.ccflags.value;
+    static AvenArgSlice libaven_build_args(void) {
+        AvenArgSlice args = slice_array(libaven_build_arg_data);
+        return args;
     }
 
-    return aven_build_common_step_cc_ex(
-        &winpthreads_opts,
-        includes,
-        macros,
-        aven_path(
+    typedef struct {
+        bool local;
+        Optional(AvenStrSlice) ccflags;
+    } LibAvenBuildWinpthreadsOpts;
+
+    typedef struct {
+        bool winutf8;
+        LibAvenBuildWinpthreadsOpts winpthreads;
+    } LibAvenBuildOpts;
+
+    static inline LibAvenBuildOpts libaven_build_opts(
+        AvenArgSlice args,
+        AvenArena *arena
+    ) {
+        (void)arena;
+
+        LibAvenBuildOpts opts = { 0 };
+        opts.winutf8 = aven_arg_get_bool(args, "-winutf8");
+
+        opts.winpthreads.local = aven_arg_get_bool(args, "-winpthreads");
+        if (aven_arg_has_arg(args, "-winpthreads-ccflags")) {
+            opts.winpthreads.ccflags.value = aven_str_split(
+                aven_arg_get_str(args, "-winpthreads-ccflags"),
+                ' ',
+                arena
+            );
+            opts.winpthreads.ccflags.valid = true;
+        }
+
+        return opts;
+    }
+
+    static inline AvenStr libaven_build_include_path(
+        AvenStr root_path,
+        AvenArena *arena
+    ) {
+        return aven_path(arena, root_path, aven_str("include"));
+    }
+
+    static inline AvenStr libaven_build_include_winpthreads(
+        AvenStr root_path,
+        AvenArena *arena
+    ) {
+        return aven_path(
             arena,
             root_path,
             aven_str("deps"),
             aven_str("winpthreads"),
-            aven_str("winpthreads.c")
-        ),
-        out_dir_step,
-        arena
-    );
-}
+            aven_str("include")
+        );
+    }
 
-static inline AvenBuildStep libaven_build_step_fmt(
-    AvenBuildCommonOpts *opts,
-    AvenStr root_path,
-    AvenBuildStep *out_dir_step,
-    AvenArena *arena
-) {
-    AvenStr include_paths[] = {
-        libaven_build_include_path(root_path, arena),
-    };
-    AvenStrSlice includes = slice_array(include_paths);
-    AvenStrSlice macros = { 0 };
-    AvenStrSlice syslibs = { 0 };
-    AvenBuildStepPtrSlice objs = { 0 };
-    bool graphical = false;
+    static inline AvenBuildStep libaven_build_step(
+        AvenBuildCommonOpts *opts,
+        AvenStr root_path,
+        AvenBuildStep *out_dir_step,
+        AvenArena *arena
+    ) {
+        AvenStr include_paths[] = {
+            libaven_build_include_path(root_path, arena),
+        };
+        AvenStrSlice includes = slice_array(include_paths);
+        AvenStrSlice macros = { 0 };
 
-    return aven_build_common_step_cc_ld_exe_ex(
-        opts,
-        includes,
-        macros,
-        syslibs,
-        objs,
-        aven_path(
-            arena,
-            root_path,
-            aven_str("src"),
-            aven_str("fmt.c")
-        ),
-        out_dir_step,
-        graphical,
-        arena
-    );
-}
+        return aven_build_common_step_cc_ex(
+            opts,
+            includes,
+            macros,
+            aven_path(arena, root_path, aven_str("src"), aven_str("aven.c")),
+            out_dir_step,
+            arena
+        );
+    }
 
-#endif // LIBAVEN_BUILD_H
+    static inline AvenBuildStep libaven_build_step_windres_manifest(
+        AvenBuildCommonOpts *opts,
+        AvenStr root_path,
+        AvenBuildStep *out_dir_step,
+        AvenArena *arena
+    ) {
+        return aven_build_common_step_windres(
+            opts,
+            aven_path(
+                arena,
+                root_path,
+                aven_str("src"),
+                aven_str("windows"),
+                aven_str("manifest.rc")
+            ),
+            out_dir_step,
+            arena
+        );
+    }
+
+    static inline AvenBuildStep libaven_build_step_winpthreads(
+        AvenBuildCommonOpts *opts,
+        LibAvenBuildOpts *libaven_opts,
+        AvenStr root_path,
+        AvenBuildStep *out_dir_step,
+        AvenArena *arena
+    ) {
+        AvenStr include_paths[] = {
+            libaven_build_include_winpthreads(root_path, arena),
+        };
+        AvenStrSlice includes = slice_array(include_paths);
+        AvenStrSlice macros = { 0 };
+
+        AvenBuildCommonOpts winpthreads_opts = *opts;
+        if (libaven_opts->winpthreads.ccflags.valid) {
+            winpthreads_opts.cc.flags = libaven_opts->winpthreads.ccflags.value;
+        }
+
+        return aven_build_common_step_cc_ex(
+            &winpthreads_opts,
+            includes,
+            macros,
+            aven_path(
+                arena,
+                root_path,
+                aven_str("deps"),
+                aven_str("winpthreads"),
+                aven_str("winpthreads.c")
+            ),
+            out_dir_step,
+            arena
+        );
+    }
+
+    static inline AvenBuildStep libaven_build_step_fmt(
+        AvenBuildCommonOpts *opts,
+        AvenStr root_path,
+        AvenBuildStep *out_dir_step,
+        AvenArena *arena
+    ) {
+        AvenStr include_paths[] = {
+            libaven_build_include_path(root_path, arena),
+        };
+        AvenStrSlice includes = slice_array(include_paths);
+        AvenStrSlice macros = { 0 };
+        AvenStrSlice syslibs = { 0 };
+        AvenBuildStepPtrSlice objs = { 0 };
+        bool graphical = false;
+
+        return aven_build_common_step_cc_ld_exe_ex(
+            opts,
+            includes,
+            macros,
+            syslibs,
+            objs,
+            aven_path(arena, root_path, aven_str("src"), aven_str("aven-fmt.c")),
+            out_dir_step,
+            graphical,
+            arena
+        );
+    }
+#endif
+// LIBAVEN_BUILD_H

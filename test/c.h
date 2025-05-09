@@ -711,11 +711,29 @@ static int test_c(AvenArena arena) {
             },
         },
         {
+            .desc = aven_str("aven_c_ast_render int declaration list"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("int x, y;"),
+                .expected = aven_str("int x, y;\n"),
+                .line_len = 16,
+            },
+        },
+        {
             .desc = aven_str("aven_c_ast_render int declaration init expr"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
                 .src = aven_str("int x = 2 + 2;\n"),
                 .expected = aven_str("int x = 2 + 2;\n"),
+                .line_len = 16,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render int declaration init expr list"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str("int x = 0, y = 0;\n"),
+                .expected = aven_str("int x = 0, y = 0;\n"),
                 .line_len = 16,
             },
         },
@@ -1177,8 +1195,8 @@ static int test_c(AvenArena arena) {
             .desc = aven_str("aven_c_ast_render compound string literal w/macro"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
-                .src = aven_str("const char *str = MY_STR \" World!\";"),
-                .expected = aven_str("const char *str = MY_STR \" World!\";\n"),
+                .src = aven_str("const char *str = \"Hello, \" MY_STR;"),
+                .expected = aven_str("const char *str = \"Hello, \" MY_STR;\n"),
                 .line_len = 36,
             },
         },
@@ -1186,8 +1204,8 @@ static int test_c(AvenArena arena) {
             .desc = aven_str("aven_c_ast_render compound string literal w/macro short"),
             .fn = test_aven_c_ast_render,
             .args = &(TestAvenCAstRenderArgs){
-                .src = aven_str("const char *str = MY_STR \" World!\";"),
-                .expected = aven_str("const char *str = MY_STR\n    \" World!\";\n"),
+                .src = aven_str("const char *str = \" World!\" MY_STR;"),
+                .expected = aven_str("const char *str = \" World!\"\n    MY_STR;\n"),
                 .line_len = 28,
             },
         },
@@ -1226,6 +1244,161 @@ static int test_c(AvenArena arena) {
                     ");\n"
                 ),
                 .line_len = 36,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render function pointer cast"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "int foo(void *fn) { (void *(*)(void *))fn; }\n"
+                ),
+                .expected = aven_str(
+                    "int foo(void *fn) {\n"
+                    "    (void *(*)(void *))fn;\n"
+                    "}\n"
+                ),
+                .line_len = 48,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render function pointer struct declaration"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "typedef struct {\n"
+                    "    const size_t (*ReadFn)(char *, size_t);\n"
+                    "    void *ctx;\n"
+                    "} Reader;\n"
+                ),
+                .expected = aven_str(
+                    "typedef struct {\n"
+                    "    const size_t (*ReadFn)(char *, size_t);\n"
+                    "    void *ctx;\n"
+                    "} Reader;\n"
+                ),
+                .line_len = 48,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render struct declaration bitfield"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "typedef struct Flags {\n"
+                    "    unsigned char a : 1;\n"
+                    "    unsigned char b : 1;\n"
+                    "    unsigned char c : 1;\n"
+                    "    unsigned char d : 1;\n"
+                    "};\n"
+                ),
+                .expected = aven_str(
+                    "typedef struct Flags {\n"
+                    "    unsigned char a : 1;\n"
+                    "    unsigned char b : 1;\n"
+                    "    unsigned char c : 1;\n"
+                    "    unsigned char d : 1;\n"
+                    "};\n"
+                ),
+                .line_len = 48,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render struct declaration list bitfields"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "typedef struct Flags {\n"
+                    "    unsigned char a : 1, b : 1, c : 1, d : 1;\n"
+                    "};\n"
+                ),
+                .expected = aven_str(
+                    "typedef struct Flags {\n"
+                    "    unsigned char a : 1, b : 1, c : 1, d : 1;\n"
+                    "};\n"
+                ),
+                .line_len = 48,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render postfix attribute"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "typedef float Vec2SIMD __attribute__((vector_size(8)));\n"
+                ),
+                .expected = aven_str(
+                    "typedef float Vec2SIMD __attribute__(\n"
+                    "    (vector_size(8))\n"
+                    ");\n"
+                ),
+                .line_len = 36,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render prefix attribute"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "__attribute__((unused))\n"
+                    "static AvenIoReader aven_io_stdin = {\n"
+                    "    .read = aven_io_fd_read_stub,\n"
+                    "    .ctx = { .fd = 0 },\n"
+                    "};\n"
+                ),
+                .expected = aven_str(
+                    "__attribute__((unused)) static AvenIoReader\n"
+                    "    aven_io_stdin = {\n"
+                    "        .read = aven_io_fd_read_stub,\n"
+                    "        .ctx = { .fd = 0 },\n"
+                    "    };\n"
+                ),
+                .line_len = 48,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render function attributes"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "#if __has_attribute(malloc)\n"
+                    "    __attribute__((malloc))\n"
+                    "#endif\n"
+                    "#if !defined(AVEN_IMPLEMENTATION)\n"
+                    "    #if __has_attribute(alloc_size)\n"
+                    "        __attribute__((alloc_size(2, 4)))\n"
+                    "    #endif\n"
+                    "    #if __has_attribute(alloc_align)\n"
+                    "        __attribute__((alloc_align(3)))\n"
+                    "    #endif\n"
+                    "#endif\n"
+                    "AVEN_FN void *aven_arena_alloc(\n"
+                    "    AvenArena *arena,\n"
+                    "    size_t count,\n"
+                    "    size_t align,\n"
+                    "    size_t size\n"
+                    ");\n"
+                ),
+                .expected = aven_str(
+                    "#if __has_attribute(malloc)\n"
+                    "    __attribute__((malloc))\n"
+                    "#endif\n"
+                    "#if !defined(AVEN_IMPLEMENTATION)\n"
+                    "    #if __has_attribute(alloc_size)\n"
+                    "        __attribute__((alloc_size(2, 4)))\n"
+                    "    #endif\n"
+                    "    #if __has_attribute(alloc_align)\n"
+                    "        __attribute__((alloc_align(3)))\n"
+                    "    #endif\n"
+                    "#endif\n"
+                    "AVEN_FN void *aven_arena_alloc(\n"
+                    "    AvenArena *arena,\n"
+                    "    size_t count,\n"
+                    "    size_t align,\n"
+                    "    size_t size\n"
+                    ");\n"
+                ),
+                .line_len = 80,
             },
         },
         {
@@ -1896,6 +2069,19 @@ static int test_c(AvenArena arena) {
                     "#define merge(x, y) x ## y\n"
                 ),
                 .line_len = 36,
+            },
+        },
+        {
+            .desc = aven_str("aven_c_ast_render macro define attribute"),
+            .fn = test_aven_c_ast_render,
+            .args = &(TestAvenCAstRenderArgs){
+                .src = aven_str(
+                    "#define API __attribute__((visibility(\"default\")))\n"
+                ),
+                .expected = aven_str(
+                    "#define API __attribute__((visibility(\"default\")))\n"
+                ),
+                .line_len = 80,
             },
         },
     };

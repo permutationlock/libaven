@@ -14,30 +14,27 @@
 
 static AvenArg arg_data[] = {
     {
-        .name =  aven_str_init("-i"),
+        .name = aven_str_init("-i"),
         .description = aven_str_init("Input source file"),
         .optional = true,
         .type = AVEN_ARG_TYPE_STRING,
     },
     {
-        .name =  aven_str_init("-o"),
+        .name = aven_str_init("-o"),
         .description = aven_str_init("Output source file"),
         .optional = true,
         .type = AVEN_ARG_TYPE_STRING,
     },
     {
-        .name =  aven_str_init("-io"),
+        .name = aven_str_init("-io"),
         .description = aven_str_init("Format source file in-place"),
         .optional = true,
         .type = AVEN_ARG_TYPE_STRING,
     },
     {
-        .name =  aven_str_init("-c"),
+        .name = aven_str_init("-c"),
         .description = aven_str_init("Column width, 0 for no limit"),
-        .value = {
-            .type = AVEN_ARG_TYPE_INT,
-            .data = { .arg_int = 80 },
-        },
+        .value = { .type = AVEN_ARG_TYPE_INT, .data = { .arg_int = 80 } },
         .type = AVEN_ARG_TYPE_INT,
     },
 };
@@ -54,7 +51,7 @@ int main(int argc, char **argv) {
     AvenArena arena = aven_arena_init(mem, ARENA_SIZE);
 
     AvenArgSlice args = slice_array(arg_data);
-    AvenArgError parse_error =  aven_arg_parse(
+    AvenArgError parse_error = aven_arg_parse(
         args,
         argv,
         argc,
@@ -82,9 +79,7 @@ int main(int argc, char **argv) {
     Optional(AvenStr) in_file = { 0 };
     if (aven_arg_has_arg(args, "-i")) {
         if (aven_arg_has_arg(args, "-io")) {
-            aven_io_perr(
-                "error: cannot specify both -io and -i\n"
-            );
+            aven_io_perr("error: cannot specify both -io and -i\n");
         }
         in_file.valid = true;
         in_file.value = aven_arg_get_str(args, "-i");
@@ -111,11 +106,7 @@ int main(int argc, char **argv) {
         reader = aven_io_reader_init_fd(in_fd.value);
     }
     size_t block_size = 8192;
-    List(char) input = aven_arena_create_list(
-        char,
-        &arena,
-        block_size
-    );
+    List(char) input = aven_arena_create_list(char, &arena, block_size);
     for (;;) {
         AvenStr rem = slice_list_free(input);
         if (rem.len == 0) {
@@ -140,13 +131,10 @@ int main(int argc, char **argv) {
     }
     AvenStr src = aven_arena_commit_list_to_slice(AvenStr, &arena, input);
 
-    AvenIoWriter writer;
     Optional(AvenStr) out_file = { 0 };
     if (aven_arg_has_arg(args, "-o")) {
         if (aven_arg_has_arg(args, "-io")) {
-            aven_io_perr(
-                "error: cannot specify both -io and -i\n"
-            );
+            aven_io_perr("error: cannot specify both -io and -i\n");
         }
         out_file.valid = true;
         out_file.value = aven_arg_get_str(args, "-o");
@@ -155,29 +143,18 @@ int main(int argc, char **argv) {
         out_file.valid = true;
         out_file.value = aven_arg_get_str(args, "-io");
     }
-    if (out_file.valid) {
-        // Max file size of 100MB for in-place formatting
-        ByteSlice bytes = aven_arena_create_slice(
-            unsigned char,
-            &arena,
-            (size_t)1024 * (size_t)1024 * (size_t)100
-        );
-        writer = aven_io_writer_init_bytes(bytes);
-    } else {
-        writer = aven_io_writer_init_stdout_buffered(block_size, &arena);
-    }
-    AvenCFmtResult fmt_res = aven_c_fmt(
-        src,
-        &writer,
-        column_width,
-        &arena
+
+    // Max render size of 100MB
+    ByteSlice bytes = aven_arena_create_slice(
+        unsigned char,
+        &arena,
+        (size_t)1024 * (size_t)1024 * (size_t)100
     );
+    AvenIoWriter writer = aven_io_writer_init_bytes(bytes);
+    AvenCFmtResult fmt_res = aven_c_fmt(src, &writer, column_width, &arena);
     aven_io_writer_flush(&writer);
     if (fmt_res.error != AVEN_C_FMT_ERROR_NONE) {
-        aven_io_perrf(
-            "error: {}\n",
-            aven_fmt_str(fmt_res.msg)
-        );
+        aven_io_perrf("error: {}\n", aven_fmt_str(fmt_res.msg));
         return 1;
     }
 
@@ -198,34 +175,37 @@ int main(int argc, char **argv) {
         out_fd.valid = true;
         out_fd.value = out_res.payload;
     }
+    AvenIoWriter file_writer;
     if (out_fd.valid) {
-        AvenIoWriter file_writer = aven_io_writer_init_fd(unwrap(out_fd));
-        ByteSlice rem = slice_head(writer.buffer, writer.index);
-        for (;;) {
-            if (rem.len == 0) {
-                break;
-            }
-            AvenIoResult res = aven_io_writer_push(
-                &file_writer,
-                slice_as_bytes(rem)
-            );
-            if (res.error != 0) {
-                aven_io_perrf(
-                    "error: writing '{}' failed with code {}\n",
-                    aven_fmt_str(unwrap(out_file)),
-                    aven_fmt_int(res.error)
-                );
-                return 1;
-            }
-            if (res.payload == 0) {
-                aven_io_perrf(
-                    "error: writing '{}' ran out of space\n",
-                    aven_fmt_str(unwrap(out_file))
-                );
-                return 1;
-            }
-            rem = (ByteSlice)slice_tail(rem, res.payload);
+        file_writer = aven_io_writer_init_fd(unwrap(out_fd));
+    } else {
+        file_writer = aven_io_stdout;
+    }
+    ByteSlice rem = slice_head(writer.buffer, writer.index);
+    for (;;) {
+        if (rem.len == 0) {
+            break;
         }
+        AvenIoResult res = aven_io_writer_push(
+            &file_writer,
+            slice_as_bytes(rem)
+        );
+        if (res.error != 0) {
+            aven_io_perrf(
+                "error: writing '{}' failed with code {}\n",
+                aven_fmt_str(unwrap(out_file)),
+                aven_fmt_int(res.error)
+            );
+            return 1;
+        }
+        if (res.payload == 0) {
+            aven_io_perrf(
+                "error: writing '{}' ran out of space\n",
+                aven_fmt_str(unwrap(out_file))
+            );
+            return 1;
+        }
+        rem = (ByteSlice)slice_tail(rem, res.payload);
     }
 
     return 0;

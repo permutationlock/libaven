@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
         list_push(arg_list) = get(libaven_args, i);
     }
     AvenArgSlice args = slice_list(arg_list);
-    
+
     AvenArgError arg_error = aven_arg_parse(
         args,
         argv,
@@ -69,14 +69,8 @@ int main(int argc, char **argv) {
 
     AvenBuildStep out_dir_step = aven_build_step_mkdir(aven_str("build_out"));
 
-    AvenBuildCommonOpts opts = aven_build_common_opts(
-        args,
-        &arena
-    );
-    LibAvenBuildOpts libaven_opts = libaven_build_opts(
-        args,
-        &arena
-    );
+    AvenBuildCommonOpts opts = aven_build_common_opts(args, &arena);
+    LibAvenBuildOpts libaven_opts = libaven_build_opts(args, &arena);
 
     AvenBuildStep libaven_step = libaven_build_step(
         &opts,
@@ -114,7 +108,7 @@ int main(int argc, char **argv) {
     }
 
     Optional(AvenBuildStep) winpthreads_obj_step = {
-        .valid = libaven_opts.winpthreads.local
+        .valid = libaven_opts.winpthreads.local,
     };
     if (winpthreads_obj_step.valid) {
         winpthreads_obj_step.value = libaven_build_step_winpthreads(
@@ -167,10 +161,7 @@ int main(int argc, char **argv) {
         }
         return 1;
     } else {
-        AvenBuildStepRunError run_error = aven_build_step_run(
-            &root_step,
-            arena
-        );
+        AvenBuildStepRunError run_error = aven_build_step_run(&root_step, arena);
         if (run_error != 0) {
             aven_io_perrf("BUILD FAILED: {}\n", aven_fmt_int(run_error));
         }
@@ -179,4 +170,3 @@ int main(int argc, char **argv) {
 
     return 0;
 }
-
