@@ -76,7 +76,7 @@
         AVEN_C_KEYWORD_14END,
     } AvenCKeyword;
 
-    static AvenCKeyword aven_c_keyword_indices_data[] = {
+    static const AvenCKeyword aven_c_keyword_indices_data[] = {
         AVEN_C_KEYWORD_1END,
         AVEN_C_KEYWORD_2END,
         AVEN_C_KEYWORD_3END,
@@ -93,8 +93,8 @@
         AVEN_C_KEYWORD_14END,
     };
 
-    static Slice(AvenCKeyword) aven_c_keyword_indices = {
-        .ptr = aven_c_keyword_indices_data,
+    static const Slice(AvenCKeyword) aven_c_keyword_indices = {
+        .ptr = (AvenCKeyword *)aven_c_keyword_indices_data,
         .len = countof(aven_c_keyword_indices_data),
     };
 
@@ -5768,7 +5768,7 @@
                     count += 1;
                 }
             }
-            for (;count < 2; count += 1) {
+            for (; count < 2; count += 1) {
                 uint32_t expr_node = aven_c_ast_parse_expr(ctx);
                 list_push(ctx->scratch) = expr_node;
                 if (!aven_c_ast_match_punctuator(ctx, aven_str(";"))) {
@@ -7902,7 +7902,10 @@
             }
             case AVEN_C_AST_NODE_TYPE_UNARY_EXPR_SIZEOF: {
                 aven_c_ast_render_token_try(ctx, node.token, split, state);
-                aven_c_ast_render_space_try(ctx, false, state);
+                AvenCAstNode child = aven_c_ast_node(ctx->ast, node.lhs);
+                if (child.type != AVEN_C_AST_NODE_TYPE_PRIMARY_EXPR) {
+                    aven_c_ast_render_space_try(ctx, false, state);
+                }
                 aven_c_ast_render_node_try(
                     ctx,
                     node.type,
