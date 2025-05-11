@@ -20,7 +20,7 @@ static AvenArg arg_data[] = {
     },
     {
         .name = aven_str_init("--out"),
-        .description = aven_str_init("Output file (otherwise write to stdout)"),
+        .description = aven_str_init("Output file"),
         .optional = true,
         .type = AVEN_ARG_TYPE_STRING,
     },
