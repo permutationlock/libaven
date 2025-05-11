@@ -304,8 +304,9 @@
         AVEN_C_LEX_STATE_PPD_CHAR_ESC,
         AVEN_C_LEX_STATE_COMMENT,
         AVEN_C_LEX_STATE_COMMENT_ESC,
-        AVEN_C_LEX_STATE_COMMENT_ESC_CR,
+        AVEN_C_LEX_STATE_COMMENT_CR,
         AVEN_C_LEX_STATE_MLCOMMENT,
+        AVEN_C_LEX_STATE_MLCOMMENT_CR,
         AVEN_C_LEX_STATE_MLCOMMENT_SKIP,
         AVEN_C_LEX_STATE_MLCOMMENT_STAR,
         AVEN_C_LEX_STATE_STR_ESC,
@@ -1178,18 +1179,13 @@
             }
             case AVEN_C_LEX_STATE_PPD_BODY_ESC_CR: {
                 switch (c) {
-                    case '\\': {
-                        ctx->index += 1;
-                        ctx->state = AVEN_C_LEX_STATE_PPD_BODY_ESC;
-                        break;
-                    }
                     case '\n': {
                         ctx->index += 1;
                         ctx->state = AVEN_C_LEX_STATE_PPD_BODY;
                         break;
                     }
                     default: {
-                        ctx->state = AVEN_C_LEX_STATE_PPD_BODY;
+                        ctx->state = AVEN_C_LEX_STATE_INV;
                         break;
                     }
                 }
@@ -1366,11 +1362,6 @@
             }
             case AVEN_C_LEX_STATE_BSLASH_CR: {
                 switch (c) {
-                    case '\\': {
-                        ctx->index += 1;
-                        ctx->state = AVEN_C_LEX_STATE_BSLASH;
-                        break;
-                    }
                     case '\n': {
                         ctx->index += 1;
                         ctx->state = AVEN_C_LEX_STATE_NONE;
@@ -1391,6 +1382,11 @@
                         ctx->state = AVEN_C_LEX_STATE_COMMENT_ESC;
                         break;
                     }
+                    case '\r': {
+                        ctx->index += 1;
+                        ctx->state = AVEN_C_LEX_STATE_COMMENT_CR;
+                        break;
+                    }
                     case 0:
                     case '\n': {
                         list_push(ctx->tokens) = (AvenCToken){
@@ -1408,43 +1404,34 @@
                 }
                 break;
             }
+            case AVEN_C_LEX_STATE_COMMENT_CR: {
+                switch (c) {
+                    case '\n': {
+                        list_push(ctx->tokens) = (AvenCToken){
+                            .index = ctx->token_start,
+                            .end = ctx->index - 1,
+                            .type = AVEN_C_TOKEN_TYPE_CMT,
+                        };
+                        ctx->state = AVEN_C_LEX_STATE_NONE;
+                        break;
+                    }
+                    default: {
+                        ctx->state = AVEN_C_LEX_STATE_INV;
+                        break;
+                    }
+                }
+                break;
+            }
             case AVEN_C_LEX_STATE_COMMENT_ESC: {
                 switch (c) {
                     case '\\': {
                         ctx->index += 1;
                         break;
                     }
-                    case '\r': {
-                        ctx->index += 1;
-                        ctx->state = AVEN_C_LEX_STATE_COMMENT_ESC_CR;
-                        break;
-                    }
                     case 0:
+                    case '\r':
                     case '\n': {
                         ctx->state = AVEN_C_LEX_STATE_INV;
-                        break;
-                    }
-                    default: {
-                        ctx->index += 1;
-                        ctx->state = AVEN_C_LEX_STATE_COMMENT;
-                        break;
-                    }
-                }
-                break;
-            }
-            case AVEN_C_LEX_STATE_COMMENT_ESC_CR: {
-                switch (c) {
-                    case '\\': {
-                        ctx->index += 1;
-                        ctx->state = AVEN_C_LEX_STATE_COMMENT_ESC;
-                        break;
-                    }
-                    case '\n': {
-                        ctx->state = AVEN_C_LEX_STATE_INV;
-                        break;
-                    }
-                    case 0: {
-                        ctx->state = AVEN_C_LEX_STATE_COMMENT;
                         break;
                     }
                     default: {
@@ -1460,6 +1447,11 @@
                     case '*': {
                         ctx->index += 1;
                         ctx->state = AVEN_C_LEX_STATE_MLCOMMENT_STAR;
+                        break;
+                    }
+                    case '\r': {
+                        ctx->index += 1;
+                        ctx->state = AVEN_C_LEX_STATE_MLCOMMENT_CR;
                         break;
                     }
                     case '\n': {
@@ -1482,6 +1474,25 @@
                 }
                 break;
             }
+            case AVEN_C_LEX_STATE_MLCOMMENT_CR: {
+                switch (c) {
+                    case '\n': {
+                        list_push(ctx->tokens) = (AvenCToken){
+                            .index = ctx->token_start,
+                            .end = ctx->index - 1,
+                            .type = AVEN_C_TOKEN_TYPE_CMT,
+                        };
+                        ctx->state = AVEN_C_LEX_STATE_MLCOMMENT_SKIP;
+                        break;
+                    }
+                    default: {
+                        ctx->state = AVEN_C_LEX_STATE_INV;
+                        break;
+                    }
+                }
+                break;
+            }
+
             case AVEN_C_LEX_STATE_MLCOMMENT_SKIP: {
                 ctx->token_start = ctx->index;
                 switch (c) {
