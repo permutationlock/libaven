@@ -1558,6 +1558,50 @@
                 },
             },
             {
+                .desc = aven_str("aven_c_ast_render for statement empty expr"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void bar(int n) {\n"
+                        "    int x = 0;\n"
+                        "    for (; x < n; x++) {\n"
+                        "        foo(x);\n"
+                        "    }\n"
+                        "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void bar(int n) {\n"
+                        "    int x = 0;\n"
+                        "    for (; x < n; x++) {\n"
+                        "        foo(x);\n"
+                        "    }\n"
+                        "}\n"
+                    ),
+                    .line_len = 80,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render for statement infinite"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void bar(int n) {\n"
+                        "    for (;;) {\n"
+                        "        foo(x);\n"
+                        "    }\n"
+                        "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void bar(int n) {\n"
+                        "    for (;;) {\n"
+                        "        foo(x);\n"
+                        "    }\n"
+                        "}\n"
+                    ),
+                    .line_len = 80,
+                },
+            },
+            {
                 .desc = aven_str("aven_c_ast_render array designators"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
@@ -2172,6 +2216,45 @@
                         "}\n"
                     ),
                     .line_len = 48,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render asm statement"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void foo(void) {\n"
+                        "    asm volatile(\"\":::\"memory\");\n"
+                        "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void foo(void) {\n"
+                        "    asm volatile (\"\" ::: \"memory\");\n"
+                        "}\n"
+                    ),
+                    .line_len = 48,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render __asm__ statement"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void foo(void) {\n"
+                        "    __asm__ volatile(\"\":\"\":\"\":\"memory\");\n"
+                        "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void foo(void) {\n"
+                        "    __asm__ volatile (\n"
+                        "        \"\":\n"
+                        "        \"\":\n"
+                        "        \"\":\n"
+                        "        \"memory\"\n"
+                        "    );\n"
+                        "}\n"
+                    ),
+                    .line_len = 32,
                 },
             },
         };
