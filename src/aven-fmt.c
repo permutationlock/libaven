@@ -14,20 +14,20 @@
 
 static AvenArg arg_data[] = {
     {
-        .name = aven_str_init("-i"),
+        .name = aven_str_init(""),
         .description = aven_str_init("Input source file"),
         .optional = true,
         .type = AVEN_ARG_TYPE_STRING,
     },
     {
         .name = aven_str_init("-o"),
-        .description = aven_str_init("Output source file"),
+        .description = aven_str_init("Specify a separate output file"),
         .optional = true,
         .type = AVEN_ARG_TYPE_STRING,
     },
     {
-        .name = aven_str_init("-io"),
-        .description = aven_str_init("Format source file in-place"),
+        .name = aven_str_init("-stdout"),
+        .description = aven_str_init("Read from stdin, write to stdout"),
         .optional = true,
         .type = AVEN_ARG_TYPE_STRING,
     },
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
         argv,
         argc,
         aven_str("Aven C Formatter"),
-        aven_str("fmt [-i input] [-o output] [-io in_place]")
+        aven_str("aven-fmt [src_file]")
     );
     switch (parse_error) {
         case AVEN_ARG_ERROR_NONE: {
@@ -77,16 +77,12 @@ int main(int argc, char **argv) {
     AvenIoReader reader = aven_io_stdin;
     Optional(AvenIoFd) in_fd = { 0 };
     Optional(AvenStr) in_file = { 0 };
-    if (aven_arg_has_arg(args, "-i")) {
-        if (aven_arg_has_arg(args, "-io")) {
-            aven_io_perr("error: cannot specify both -io and -i\n");
+    if (aven_arg_has_arg(args, "")) {
+        if (aven_arg_has_arg(args, "-stdin")) {
+            aven_io_perr("error: cannot specify both -stdin and source file\n");
         }
         in_file.valid = true;
-        in_file.value = aven_arg_get_str(args, "-i");
-    }
-    if (!in_file.valid and aven_arg_has_arg(args, "-io")) {
-        in_file.valid = true;
-        in_file.value = aven_arg_get_str(args, "-io");
+        in_file.value = aven_arg_get_str(args, "");
     }
     if (in_file.valid) {
         AvenIoOpenResult in_res = aven_io_open(
@@ -129,19 +125,17 @@ int main(int argc, char **argv) {
     if (in_fd.valid) {
         aven_io_close(in_fd.value);
     }
+    list_push(input) = 0;
     AvenStr src = aven_arena_commit_list_to_slice(AvenStr, &arena, input);
 
     Optional(AvenStr) out_file = { 0 };
     if (aven_arg_has_arg(args, "-o")) {
-        if (aven_arg_has_arg(args, "-io")) {
-            aven_io_perr("error: cannot specify both -io and -i\n");
-        }
         out_file.valid = true;
         out_file.value = aven_arg_get_str(args, "-o");
     }
-    if (!out_file.valid and aven_arg_has_arg(args, "-io")) {
+    if (!out_file.valid and aven_arg_has_arg(args, "")) {
         out_file.valid = true;
-        out_file.value = aven_arg_get_str(args, "-io");
+        out_file.value = aven_arg_get_str(args, "");
     }
 
     // Max render size of 100MB

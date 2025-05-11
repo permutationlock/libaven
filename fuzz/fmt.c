@@ -20,7 +20,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         arena.value = aven_arena_init(mem, ARENA_SIZE);
     }
     AvenArena temp_arena = arena.value;
-    AvenStr src = { .ptr = (char *)data, .len = size };
+    AvenStr src = aven_arena_create_slice(char, &temp_arena, size + 1);
+    memcpy(src.ptr, data, size);
+    get(src, size) = 0;
     AvenIoWriter writer = aven_io_writer_init_sink();
     AvenCFmtResult fmt_res = aven_c_fmt(src, &writer, 2048, &temp_arena);
     (void)fmt_res;

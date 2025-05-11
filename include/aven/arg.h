@@ -42,11 +42,11 @@
     static void aven_arg_print_type(AvenArgType arg_type) {
         switch (arg_type) {
             case AVEN_ARG_TYPE_INT: {
-                aven_io_print(" n");
+                aven_io_perr(" n");
                 break;
             }
             case AVEN_ARG_TYPE_STRING: {
-                aven_io_print(" \"str\"");
+                aven_io_perr(" \"str\"");
                 break;
             }
             case AVEN_ARG_TYPE_BOOL:
@@ -60,18 +60,18 @@
         switch (value.type) {
             case AVEN_ARG_TYPE_BOOL: {
                 if (value.data.arg_bool) {
-                    aven_io_print("true");
+                    aven_io_perr("true");
                 } else {
-                    aven_io_print("false");
+                    aven_io_perr("false");
                 }
                 break;
             }
             case AVEN_ARG_TYPE_INT: {
-                aven_io_printf("{}", aven_fmt_int(value.data.arg_int));
+                aven_io_perrf("{}", aven_fmt_int(value.data.arg_int));
                 break;
             }
             case AVEN_ARG_TYPE_STRING: {
-                aven_io_printf("\"{}\"", aven_fmt_str(value.data.arg_str));
+                aven_io_perrf("\"{}\"", aven_fmt_str(value.data.arg_str));
                 break;
             }
             default: {
@@ -81,23 +81,23 @@
     }
 
     static void aven_arg_print(AvenArg arg) {
-        aven_io_printf("    {}", aven_fmt_str(arg.name));
+        aven_io_perrf("    {}", aven_fmt_str(arg.name));
 
         aven_arg_print_type(arg.type);
 
-        aven_io_printf("  --  {}", aven_fmt_str(arg.description));
+        aven_io_perrf("  --  {}", aven_fmt_str(arg.description));
 
         if (arg.type == arg.value.type) {
             if (arg.type != AVEN_ARG_TYPE_BOOL or arg.value.data.arg_bool) {
-                aven_io_print(" (default=");
+                aven_io_perr(" (default=");
                 aven_arg_print_value(arg.value);
-                aven_io_print(")");
+                aven_io_perr(")");
             }
         } else if (arg.optional) {
-            aven_io_print(" (optional)");
+            aven_io_perr(" (optional)");
         }
 
-        aven_io_print("\n");
+        aven_io_perr("\n");
     }
 
     static void aven_arg_help(
@@ -105,10 +105,10 @@
         AvenStr overview,
         AvenStr usage
     ) {
-        aven_io_printf("overview: {}\n\n", aven_fmt_str(overview));
-        aven_io_printf("usage: {}\n\n", aven_fmt_str(usage));
-        aven_io_print("options:\n");
-        aven_io_print("    help, -h, -help, --help -- Show this message\n");
+        aven_io_perrf("overview: {}\n\n", aven_fmt_str(overview));
+        aven_io_perrf("usage: {}\n\n", aven_fmt_str(usage));
+        aven_io_perr("options:\n");
+        aven_io_perr("    help, -h, -help, --help -- Show this message\n");
         for (size_t i = 0; i < args.len; i += 1) {
             aven_arg_print(get(args, i));
         }
@@ -167,7 +167,7 @@
                     }
                     case AVEN_ARG_TYPE_INT: {
                         if (i + 1 >= argc) {
-                            aven_io_print("missing expected argument value:\n");
+                            aven_io_perr("missing expected argument value:\n");
                             aven_arg_print(*arg);
                             return AVEN_ARG_ERROR_VALUE;
                         }
@@ -175,7 +175,7 @@
                         AvenFmtParseIntResult pr_res =
                             aven_fmt_parse_int_decimal(next_arg);
                         if (pr_res.error != 0) {
-                            aven_io_printf(
+                            aven_io_perrf(
                                 "expected integer argument, found \"{}\"",
                                 aven_fmt_str(next_arg)
                             );
@@ -189,7 +189,7 @@
                     }
                     case AVEN_ARG_TYPE_STRING: {
                         if (i + 1 >= argc) {
-                            aven_io_print("missing expected argument value:\n");
+                            aven_io_perr("missing expected argument value:\n");
                             aven_arg_print(*arg);
                             return AVEN_ARG_ERROR_VALUE;
                         }
@@ -208,7 +208,61 @@
             }
 
             if (!found) {
-                aven_io_printf("unknown option: {}\n", aven_fmt_str(arg_str));
+                for (size_t j = 0; j < args.len; j += 1) {
+                    AvenArg *arg = &get(args, j);
+                    if (!aven_str_equals(arg->name, aven_str(""))) {
+                        continue;
+                    }
+                    switch (arg->type) {
+                        case AVEN_ARG_TYPE_BOOL: {
+                            if (aven_str_equals(arg_str, aven_str("false"))) {
+                                arg->value.data.arg_bool = false;
+                                arg->value.type = AVEN_ARG_TYPE_BOOL;
+                            } else if (
+                                aven_str_equals(arg_str, aven_str("true"))
+                            ) {
+                                arg->value.data.arg_bool = true;
+                                arg->value.type = AVEN_ARG_TYPE_BOOL;
+                            } else {
+                                aven_io_perrf(
+                                    "expected boolean argument, found \"{}\"",
+                                    aven_fmt_str(arg_str)
+                                );
+                                return AVEN_ARG_ERROR_VALUE;
+                            }
+                            found = true;
+                            break;
+                        }
+                        case AVEN_ARG_TYPE_INT: {
+                            AvenFmtParseIntResult pr_res =
+                                aven_fmt_parse_int_decimal(arg_str);
+                            if (pr_res.error != 0) {
+                                aven_io_perrf(
+                                    "expected integer argument, found \"{}\"",
+                                    aven_fmt_str(arg_str)
+                                );
+                                return AVEN_ARG_ERROR_VALUE;
+                            }
+                            arg->value.data.arg_int = pr_res.payload;
+                            arg->value.type = AVEN_ARG_TYPE_INT;
+                            found = true;
+                            break;
+                        }
+                        case AVEN_ARG_TYPE_STRING: {
+                            arg->value.data.arg_str = arg_str;
+                            arg->value.type = AVEN_ARG_TYPE_STRING;
+                            found = true;
+                            break;
+                        }
+                        default: {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (!found) {
+                aven_io_perrf("unknown option: {}\n", aven_fmt_str(arg_str));
                 aven_arg_help(args, overview, usage);
                 return AVEN_ARG_ERROR_UNKNOWN;
             }
@@ -218,7 +272,7 @@
         for (size_t j = 0; j < args.len; j += 1) {
             AvenArg arg = get(args, j);
             if (!arg.optional and arg.value.type != arg.type) {
-                aven_io_print("missing required argument:\n");
+                aven_io_perr("missing required argument:\n");
                 aven_arg_print(arg);
                 error = AVEN_ARG_ERROR_MISSING;
             }
