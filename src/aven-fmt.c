@@ -15,24 +15,29 @@
 static AvenArg arg_data[] = {
     {
         .name = aven_str_init(""),
-        .description = aven_str_init("Input source file"),
         .optional = true,
         .type = AVEN_ARG_TYPE_STRING,
     },
     {
-        .name = aven_str_init("-o"),
-        .description = aven_str_init("Specify a separate output file"),
+        .name = aven_str_init("--out"),
+        .description = aven_str_init("Output file (otherwise write to stdout)"),
         .optional = true,
         .type = AVEN_ARG_TYPE_STRING,
     },
     {
-        .name = aven_str_init("-stdout"),
-        .description = aven_str_init("Read from stdin, write to stdout"),
-        .optional = true,
-        .type = AVEN_ARG_TYPE_STRING,
+        .name = aven_str_init("--stdin"),
+        .description = aven_str_init("Read from stdin"),
+        .type = AVEN_ARG_TYPE_BOOL,
+        .value = { .type = AVEN_ARG_TYPE_BOOL, .data = { .arg_bool = false } },
     },
     {
-        .name = aven_str_init("-c"),
+        .name = aven_str_init("--in-place"),
+        .description = aven_str_init("Format src_file in-place"),
+        .type = AVEN_ARG_TYPE_BOOL,
+        .value = { .type = AVEN_ARG_TYPE_BOOL, .data = { .arg_bool = false } },
+    },
+    {
+        .name = aven_str_init("--columns"),
         .description = aven_str_init("Column width, 0 for no limit"),
         .value = { .type = AVEN_ARG_TYPE_INT, .data = { .arg_int = 80 } },
         .type = AVEN_ARG_TYPE_INT,
@@ -42,6 +47,7 @@ static AvenArg arg_data[] = {
 // 1GB virtual memory reserve handles pathological files up to ~10MB, and
 // for normal looking source files this limit should never be exceeded
 #define ARENA_SIZE (4096 * 250000)
+#define MAX_RENDER_SIZE ((size_t)1024 * (size_t)1024 * (size_t)100)
 
 int main(int argc, char **argv) {
     void *mem = malloc(ARENA_SIZE);
@@ -50,14 +56,10 @@ int main(int argc, char **argv) {
     }
     AvenArena arena = aven_arena_init(mem, ARENA_SIZE);
 
+    AvenStr overview = aven_str("Aven C Formatter");
+    AvenStr usage = aven_str("aven-fmt [src_file]");
     AvenArgSlice args = slice_array(arg_data);
-    AvenArgError parse_error = aven_arg_parse(
-        args,
-        argv,
-        argc,
-        aven_str("Aven C Formatter"),
-        aven_str("aven-fmt [src_file]")
-    );
+    AvenArgError parse_error = aven_arg_parse(args, argv, argc, overview, usage);
     switch (parse_error) {
         case AVEN_ARG_ERROR_NONE: {
             break;
@@ -69,21 +71,49 @@ int main(int argc, char **argv) {
             return 1;
         }
     }
-    int64_t arg_cwidth = aven_arg_get_int(args, "-c");
+    int64_t arg_cwidth = aven_arg_get_int(args, "--columns");
     if (arg_cwidth <= 0 or arg_cwidth > (int64_t)(1024L * 1024L)) {
-        arg_cwidth = (int64_t)(1024L * 1024L);
+        arg_cwidth = (int64_t)MAX_RENDER_SIZE;
     }
     size_t column_width = (size_t)arg_cwidth;
     AvenIoReader reader = aven_io_stdin;
     Optional(AvenIoFd) in_fd = { 0 };
     Optional(AvenStr) in_file = { 0 };
     if (aven_arg_has_arg(args, "")) {
-        if (aven_arg_has_arg(args, "-stdin")) {
-            aven_io_perr("error: cannot specify both -stdin and source file\n");
+        if (aven_arg_get_bool(args, "--stdin")) {
+            aven_io_perr("error: cannot specify --stdin with src_file\n");
+            return 1;
         }
         in_file.valid = true;
         in_file.value = aven_arg_get_str(args, "");
+    } else if (!aven_arg_get_bool(args, "--stdin")) {
+        aven_io_perr("error: specify src_file to format or use --stdin\n");
+        aven_arg_help(args, overview, usage);
+        return 1;
     }
+
+    Optional(AvenStr) out_file = { 0 };
+    bool in_place = aven_arg_get_bool(args, "--in-place");
+    if (aven_arg_has_arg(args, "--out")) {
+        if (in_place) {
+            aven_io_perr("error: can't specify both --out and --in-place\n");
+            aven_arg_help(args, overview, usage);
+            return 1;
+        }
+        out_file.valid = true;
+        out_file.value = aven_arg_get_str(args, "--out");
+    }
+    if (in_place) {
+        if (!in_file.valid) {
+            aven_io_perr("error: specify src_file to use --in-place\n");
+            aven_arg_help(args, overview, usage);
+            return 1;
+        }
+        assert(out_file.valid == false);
+        out_file.valid = true;
+        out_file.value = in_file.value;
+    }
+
     if (in_file.valid) {
         AvenIoOpenResult in_res = aven_io_open(
             in_file.value,
@@ -128,21 +158,11 @@ int main(int argc, char **argv) {
     list_push(input) = 0;
     AvenStr src = aven_arena_commit_list_to_slice(AvenStr, &arena, input);
 
-    Optional(AvenStr) out_file = { 0 };
-    if (aven_arg_has_arg(args, "-o")) {
-        out_file.valid = true;
-        out_file.value = aven_arg_get_str(args, "-o");
-    }
-    if (!out_file.valid and aven_arg_has_arg(args, "")) {
-        out_file.valid = true;
-        out_file.value = aven_arg_get_str(args, "");
-    }
-
     // Max render size of 100MB
     ByteSlice bytes = aven_arena_create_slice(
         unsigned char,
         &arena,
-        (size_t)1024 * (size_t)1024 * (size_t)100
+        MAX_RENDER_SIZE
     );
     AvenIoWriter writer = aven_io_writer_init_bytes(bytes);
     AvenCFmtResult fmt_res = aven_c_fmt(src, &writer, column_width, &arena);

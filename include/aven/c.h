@@ -4526,12 +4526,8 @@
                     break;
                 }
                 uint32_t open_token = aven_c_ast_next_index(ctx);
-                if (!aven_c_ast_match_punctuator(ctx, aven_str("("))) {
-                    uint32_t child = aven_c_ast_parse_unary_expr(ctx);
-                    if (child == 0) {
-                        aven_c_ast_restore(ctx, state);
-                        break;
-                    }
+                uint32_t child = aven_c_ast_parse_unary_expr(ctx);
+                if (child != 0) {
                     node = aven_c_ast_push(
                         ctx,
                         AVEN_C_AST_NODE_TYPE_UNARY_EXPR_SIZEOF,
@@ -4541,28 +4537,19 @@
                     );
                     break;
                 }
-                AvenCAstCtxState last = aven_c_ast_save(ctx);
-                uint32_t child = aven_c_ast_parse_expr(ctx);
-                if (child == 0) {
-                    child = aven_c_ast_parse_type_name(ctx);
+                if (!aven_c_ast_match_punctuator(ctx, aven_str("("))) {
+                    aven_c_ast_restore(ctx, state);
+                    break;
                 }
+                child = aven_c_ast_parse_type_name(ctx);
                 if (child == 0) {
                     aven_c_ast_restore(ctx, state);
                     break;
                 }
                 uint32_t close_token = aven_c_ast_next_index(ctx);
                 if (!aven_c_ast_match_punctuator(ctx, aven_str(")"))) {
-                    aven_c_ast_restore(ctx, last);
-                    child = aven_c_ast_parse_type_name(ctx);
-                    if (child == 0) {
-                        aven_c_ast_restore(ctx, state);
-                        return 0;
-                    }
-                    close_token = aven_c_ast_next_index(ctx);
-                    if (!aven_c_ast_match_punctuator(ctx, aven_str(")"))) {
-                        aven_c_ast_restore(ctx, state);
-                        return 0;
-                    }
+                    aven_c_ast_restore(ctx, state);
+                    break;
                 }
                 uint32_t scratch_top = aven_c_ast_scratch_init(ctx);
                 list_push(ctx->scratch) = main_token;

@@ -81,6 +81,9 @@
     }
 
     static void aven_arg_print(AvenArg arg) {
+        if (arg.name.len == 0) {
+            return;
+        }
         aven_io_perrf("    {}", aven_fmt_str(arg.name));
 
         aven_arg_print_type(arg.type);
@@ -105,8 +108,8 @@
         AvenStr overview,
         AvenStr usage
     ) {
-        aven_io_perrf("overview: {}\n\n", aven_fmt_str(overview));
-        aven_io_perrf("usage: {}\n\n", aven_fmt_str(usage));
+        aven_io_perrf("overview: {}\n", aven_fmt_str(overview));
+        aven_io_perrf("usage: {}\n", aven_fmt_str(usage));
         aven_io_perr("options:\n");
         aven_io_perr("    help, -h, -help, --help -- Show this message\n");
         for (size_t i = 0; i < args.len; i += 1) {
@@ -121,6 +124,7 @@
         AvenStr overview,
         AvenStr usage
     ) {
+        bool found_generic = false;
         for (int i = 1; i < argc; i += 1) {
             AvenStr arg_str = aven_str_cstr(argv[i]);
             if (
@@ -207,7 +211,7 @@
                 break;
             }
 
-            if (!found) {
+            if (!found and !found_generic) {
                 for (size_t j = 0; j < args.len; j += 1) {
                     AvenArg *arg = &get(args, j);
                     if (!aven_str_equals(arg->name, aven_str(""))) {
@@ -259,6 +263,7 @@
                         }
                     }
                 }
+                found_generic = found;
             }
 
             if (!found) {

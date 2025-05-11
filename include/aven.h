@@ -316,8 +316,8 @@
                     (s).ptr, \
                     ( \
                         assert( \
-                            (s).len * sizeof(*(s).ptr) <= \
-                                (d).len * sizeof(*(d).ptr) \
+                            (s).len * sizeof(*(s).ptr) <= (d).len * \
+                                sizeof(*(d).ptr) \
                         ), \
                         (s).len * sizeof(*(s).ptr) \
                     ) \
