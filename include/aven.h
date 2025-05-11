@@ -361,7 +361,7 @@
         "\n"
     #define aven_panic_internal_ex(msg) aven_panic_internal_fn( \
             msg, \
-            sizeof(msg) - 1 \
+            sizeof((msg)) - 1 \
         )
     #define aven_panic(msg) aven_panic_internal_ex( \
             aven_panic_internal_fmt(msg) \

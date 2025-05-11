@@ -464,7 +464,7 @@
             .len = (size_t)(g).slice.len, \
         }
     #define aven_io_slice_size(s) ( \
-            sizeof(AvenIoSliceHeader) + (s).len * sizeof(*(s).ptr) \
+            sizeof (AvenIoSliceHeader)+(s).len * sizeof(*(s).ptr) \
         )
     #define AVEN_IO_SLICE_FINGERPRINT ((uint64_t)0x571ce04eade2)
 
@@ -572,7 +572,7 @@
             .len = (size_t)(g).list.len, \
         }
     #define aven_io_list_size(s) ( \
-            sizeof(AvenIoListHeader) + (s).len * sizeof(*(s).ptr) \
+            sizeof (AvenIoListHeader)+(s).len * sizeof(*(s).ptr) \
         )
     #define AVEN_IO_LIST_FINGERPRINT ((uint64_t)0x715704eade2)
 
@@ -695,7 +695,7 @@
             .used = (size_t)(g).queue.used, \
         }
     #define aven_io_queue_size(s) ( \
-            sizeof(AvenIoQueueHeader) + (s).used * sizeof(*(s).ptr) \
+            sizeof (AvenIoQueueHeader)+(s).used * sizeof(*(s).ptr) \
         )
     #define AVEN_IO_QUEUE_FINGERPRINT ((uint64_t)0x98e8e04eade2)
 
@@ -829,7 +829,7 @@
             .cap = (size_t)(g).pool.cap, \
         }
     #define aven_io_pool_size(s) ( \
-            sizeof(AvenIoPoolHeader) + (s).len * sizeof(*(s).ptr) \
+            sizeof (AvenIoPoolHeader)+(s).len * sizeof(*(s).ptr) \
         )
     #define AVEN_IO_POOL_FINGERPRINT ((uint64_t)0x700704eade2)
 

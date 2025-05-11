@@ -17,20 +17,13 @@
         Slice(TestAvenCToken) expected;
     } TestAvenCLexPpArgs;
 
-    static AvenTestResult test_aven_c_lex(
-        AvenArena *emsg_arena,
-        AvenArena arena,
-        void *args
-    ) {
+    static AvenTestResult test_aven_c_lex(AvenArena *emsg_arena, AvenArena arena, void *args) {
         TestAvenCLexPpArgs *pp_args = args;
 
         AvenCTokenSet tset = aven_c_lex(pp_args->src, &arena);
         AvenCTokenSlice actual = tset.tokens;
         if (get(actual, 0).type != AVEN_C_TOKEN_TYPE_NONE) {
-            return (AvenTestResult){
-                .error = 1,
-                .message = aven_str("no initial NONE token"),
-            };
+            return (AvenTestResult){ .error = 1, .message = aven_str("no initial NONE token") };
         }
         if (actual.len != pp_args->expected.len + 2) {
             return (AvenTestResult){
@@ -64,10 +57,7 @@
             }
         }
         if (get(actual, actual.len - 1).type != AVEN_C_TOKEN_TYPE_NONE) {
-            return (AvenTestResult){
-                .error = 1,
-                .message = aven_str("no terminating NONE token"),
-            };
+            return (AvenTestResult){ .error = 1, .message = aven_str("no terminating NONE token") };
         }
 
         return (AvenTestResult){ 0 };
@@ -83,11 +73,7 @@
         Slice(TestAvenCTokenLoc) expected;
     } TestAvenCTokenLocArgs;
 
-    static AvenTestResult test_aven_c_token_loc(
-        AvenArena *emsg_arena,
-        AvenArena arena,
-        void *args
-    ) {
+    static AvenTestResult test_aven_c_token_loc(AvenArena *emsg_arena, AvenArena arena, void *args) {
         TestAvenCTokenLocArgs *pp_args = args;
 
         AvenCTokenSet tset = aven_c_lex(pp_args->src, &arena);
@@ -104,10 +90,7 @@
             };
         }
         if (get(actual, 0).type != AVEN_C_TOKEN_TYPE_NONE) {
-            return (AvenTestResult){
-                .error = 1,
-                .message = aven_str("no initial NONE token"),
-            };
+            return (AvenTestResult){ .error = 1, .message = aven_str("no initial NONE token") };
         }
         for (uint32_t i = 0; i < pp_args->expected.len; i += 1) {
             AvenCToken at = get(actual, i + 1);
@@ -145,10 +128,7 @@
             }
         }
         if (get(actual, actual.len - 1).type != AVEN_C_TOKEN_TYPE_NONE) {
-            return (AvenTestResult){
-                .error = 1,
-                .message = aven_str("no terminating NONE token"),
-            };
+            return (AvenTestResult){ .error = 1, .message = aven_str("no terminating NONE token") };
         }
 
         return (AvenTestResult){ 0 };
@@ -160,11 +140,7 @@
         size_t line_len;
     } TestAvenCAstRenderArgs;
 
-    static AvenTestResult test_aven_c_ast_render(
-        AvenArena *emsg_arena,
-        AvenArena arena,
-        void *args
-    ) {
+    static AvenTestResult test_aven_c_ast_render(AvenArena *emsg_arena, AvenArena arena, void *args) {
         TestAvenCAstRenderArgs *fmt_args = args;
 
         AvenCTokenSet tset = aven_c_lex(fmt_args->src, &arena);
@@ -197,11 +173,7 @@
         if (ren_res.error != AVEN_C_AST_RENDER_ERROR_NONE) {
             return (AvenTestResult){
                 .error = 1,
-                .message = aven_fmt(
-                    emsg_arena,
-                    "rendering error: {}",
-                    aven_fmt_str(ren_res.msg)
-                ),
+                .message = aven_fmt(emsg_arena, "rendering error: {}", aven_fmt_str(ren_res.msg)),
             };
         }
         ByteSlice written = slice_head(writer.buffer, writer.index);
@@ -225,10 +197,7 @@
             {
                 .desc = aven_str("aven_c_lex empty file"),
                 .fn = test_aven_c_lex,
-                .args = &(TestAvenCLexPpArgs){
-                    .src = slice_array(""),
-                    .expected = { 0 },
-                },
+                .args = &(TestAvenCLexPpArgs){ .src = slice_array(""), .expected = { 0 } },
             },
             {
                 .desc = aven_str("aven_c_lex single declaration"),
@@ -237,18 +206,9 @@
                     .src = slice_array("int x;"),
                     .expected = slice_array(
                         (TestAvenCToken[]){
-                            {
-                                .val = aven_str("int"),
-                                .type = AVEN_C_TOKEN_TYPE_KEY,
-                            },
-                            {
-                                .val = aven_str("x"),
-                                .type = AVEN_C_TOKEN_TYPE_ID,
-                            },
-                            {
-                                .val = aven_str(";"),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
+                            { .val = aven_str("int"), .type = AVEN_C_TOKEN_TYPE_KEY },
+                            { .val = aven_str("x"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str(";"), .type = AVEN_C_TOKEN_TYPE_PNC },
                         }
                     ),
                 },
@@ -260,42 +220,15 @@
                     .src = slice_array("#include <stdio.h>"),
                     .expected = slice_array(
                         (TestAvenCToken[]){
-                            {
-                                .val = aven_str("#include <stdio.h>"),
-                                .type = AVEN_C_TOKEN_TYPE_PPD,
-                            },
-                            {
-                                .val = aven_str(""),
-                                .type = AVEN_C_TOKEN_TYPE_NONE,
-                            },
-                            {
-                                .val = aven_str("#"),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
-                            {
-                                .val = aven_str("include"),
-                                .type = AVEN_C_TOKEN_TYPE_ID,
-                            },
-                            {
-                                .val = aven_str("<"),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
-                            {
-                                .val = aven_str("stdio"),
-                                .type = AVEN_C_TOKEN_TYPE_ID,
-                            },
-                            {
-                                .val = aven_str("."),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
-                            {
-                                .val = aven_str("h"),
-                                .type = AVEN_C_TOKEN_TYPE_ID,
-                            },
-                            {
-                                .val = aven_str(">"),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
+                            { .val = aven_str("#include <stdio.h>"), .type = AVEN_C_TOKEN_TYPE_PPD },
+                            { .val = aven_str(""), .type = AVEN_C_TOKEN_TYPE_NONE },
+                            { .val = aven_str("#"), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("include"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str("<"), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("stdio"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str("."), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("h"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str(">"), .type = AVEN_C_TOKEN_TYPE_PNC },
                         }
                     ),
                 },
@@ -307,26 +240,11 @@
                     .src = slice_array("int x = 0xE+12;\n"),
                     .expected = slice_array(
                         (TestAvenCToken[]){
-                            {
-                                .val = aven_str("int"),
-                                .type = AVEN_C_TOKEN_TYPE_KEY,
-                            },
-                            {
-                                .val = aven_str("x"),
-                                .type = AVEN_C_TOKEN_TYPE_ID,
-                            },
-                            {
-                                .val = aven_str("="),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
-                            {
-                                .val = aven_str("0xE+12"),
-                                .type = AVEN_C_TOKEN_TYPE_NUM,
-                            },
-                            {
-                                .val = aven_str(";"),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
+                            { .val = aven_str("int"), .type = AVEN_C_TOKEN_TYPE_KEY },
+                            { .val = aven_str("x"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str("="), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("0xE+12"), .type = AVEN_C_TOKEN_TYPE_NUM },
+                            { .val = aven_str(";"), .type = AVEN_C_TOKEN_TYPE_PNC },
                         }
                     ),
                 },
@@ -338,34 +256,13 @@
                     .src = slice_array("int x = 0xE +12;\n"),
                     .expected = slice_array(
                         (TestAvenCToken[]){
-                            {
-                                .val = aven_str("int"),
-                                .type = AVEN_C_TOKEN_TYPE_KEY,
-                            },
-                            {
-                                .val = aven_str("x"),
-                                .type = AVEN_C_TOKEN_TYPE_ID,
-                            },
-                            {
-                                .val = aven_str("="),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
-                            {
-                                .val = aven_str("0xE"),
-                                .type = AVEN_C_TOKEN_TYPE_NUM,
-                            },
-                            {
-                                .val = aven_str("+"),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
-                            {
-                                .val = aven_str("12"),
-                                .type = AVEN_C_TOKEN_TYPE_NUM,
-                            },
-                            {
-                                .val = aven_str(";"),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
+                            { .val = aven_str("int"), .type = AVEN_C_TOKEN_TYPE_KEY },
+                            { .val = aven_str("x"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str("="), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("0xE"), .type = AVEN_C_TOKEN_TYPE_NUM },
+                            { .val = aven_str("+"), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("12"), .type = AVEN_C_TOKEN_TYPE_NUM },
+                            { .val = aven_str(";"), .type = AVEN_C_TOKEN_TYPE_PNC },
                         }
                     ),
                 },
@@ -377,10 +274,7 @@
                     .src = slice_array("\"Hello, World!\\n\""),
                     .expected = slice_array(
                         (TestAvenCToken[]){
-                            {
-                                .val = aven_str("\"Hello, World!\\n\""),
-                                .type = AVEN_C_TOKEN_TYPE_STR,
-                            },
+                            { .val = aven_str("\"Hello, World!\\n\""), .type = AVEN_C_TOKEN_TYPE_STR },
                         }
                     ),
                 },
@@ -392,10 +286,7 @@
                     .src = slice_array("\"\\17\""),
                     .expected = slice_array(
                         (TestAvenCToken[]){
-                            {
-                                .val = aven_str("\"\\17\""),
-                                .type = AVEN_C_TOKEN_TYPE_STR,
-                            },
+                            { .val = aven_str("\"\\17\""), .type = AVEN_C_TOKEN_TYPE_STR },
                         }
                     ),
                 },
@@ -422,10 +313,7 @@
                     .src = slice_array("\"\\9\""),
                     .expected = slice_array(
                         (TestAvenCToken[]){
-                            {
-                                .val = aven_str("\"\\9\""),
-                                .type = AVEN_C_TOKEN_TYPE_STR,
-                            },
+                            { .val = aven_str("\"\\9\""), .type = AVEN_C_TOKEN_TYPE_STR },
                         }
                     ),
                 },
@@ -445,92 +333,30 @@
                     ),
                     .expected = slice_array(
                         (TestAvenCToken[]){
+                            { .val = aven_str("int"), .type = AVEN_C_TOKEN_TYPE_KEY },
+                            { .val = aven_str("x"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str("="), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("0"), .type = AVEN_C_TOKEN_TYPE_NUM },
+                            { .val = aven_str(";"), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("// a comment with #"), .type = AVEN_C_TOKEN_TYPE_CMT },
+                            { .val = aven_str("while"), .type = AVEN_C_TOKEN_TYPE_KEY },
+                            { .val = aven_str("("), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("x"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str("<"), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("2"), .type = AVEN_C_TOKEN_TYPE_NUM },
+                            { .val = aven_str(")"), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("{"), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("/*"), .type = AVEN_C_TOKEN_TYPE_CMT },
                             {
-                                .val = aven_str("int"),
-                                .type = AVEN_C_TOKEN_TYPE_KEY,
-                            },
-                            {
-                                .val = aven_str("x"),
-                                .type = AVEN_C_TOKEN_TYPE_ID,
-                            },
-                            {
-                                .val = aven_str("="),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
-                            {
-                                .val = aven_str("0"),
-                                .type = AVEN_C_TOKEN_TYPE_NUM,
-                            },
-                            {
-                                .val = aven_str(";"),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
-                            {
-                                .val = aven_str("// a comment with #"),
+                                .val = aven_str("** here we are computing x + 1"),
                                 .type = AVEN_C_TOKEN_TYPE_CMT,
                             },
-                            {
-                                .val = aven_str("while"),
-                                .type = AVEN_C_TOKEN_TYPE_KEY,
-                            },
-                            {
-                                .val = aven_str("("),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
-                            {
-                                .val = aven_str("x"),
-                                .type = AVEN_C_TOKEN_TYPE_ID,
-                            },
-                            {
-                                .val = aven_str("<"),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
-                            {
-                                .val = aven_str("2"),
-                                .type = AVEN_C_TOKEN_TYPE_NUM,
-                            },
-                            {
-                                .val = aven_str(")"),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
-                            {
-                                .val = aven_str("{"),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
-                            {
-                                .val = aven_str("/*"),
-                                .type = AVEN_C_TOKEN_TYPE_CMT,
-                            },
-                            {
-                                .val = aven_str(
-                                    "** here we are computing x + 1"
-                                ),
-                                .type = AVEN_C_TOKEN_TYPE_CMT,
-                            },
-                            {
-                                .val = aven_str("**/"),
-                                .type = AVEN_C_TOKEN_TYPE_CMT,
-                            },
-                            {
-                                .val = aven_str("x"),
-                                .type = AVEN_C_TOKEN_TYPE_ID,
-                            },
-                            {
-                                .val = aven_str("+="),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
-                            {
-                                .val = aven_str("1"),
-                                .type = AVEN_C_TOKEN_TYPE_NUM,
-                            },
-                            {
-                                .val = aven_str(";"),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
-                            {
-                                .val = aven_str("}"),
-                                .type = AVEN_C_TOKEN_TYPE_PNC,
-                            },
+                            { .val = aven_str("**/"), .type = AVEN_C_TOKEN_TYPE_CMT },
+                            { .val = aven_str("x"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str("+="), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("1"), .type = AVEN_C_TOKEN_TYPE_NUM },
+                            { .val = aven_str(";"), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("}"), .type = AVEN_C_TOKEN_TYPE_PNC },
                         }
                     ),
                 },
@@ -543,24 +369,15 @@
                     .expected = slice_array(
                         (TestAvenCTokenLoc[]){
                             {
-                                .token = {
-                                    .val = aven_str("int"),
-                                    .type = AVEN_C_TOKEN_TYPE_KEY,
-                                },
+                                .token = { .val = aven_str("int"), .type = AVEN_C_TOKEN_TYPE_KEY },
                                 .loc = { .line = 1, .col = 1 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str("x"),
-                                    .type = AVEN_C_TOKEN_TYPE_ID,
-                                },
+                                .token = { .val = aven_str("x"), .type = AVEN_C_TOKEN_TYPE_ID },
                                 .loc = { .line = 1, .col = 5 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str(";"),
-                                    .type = AVEN_C_TOKEN_TYPE_PNC,
-                                },
+                                .token = { .val = aven_str(";"), .type = AVEN_C_TOKEN_TYPE_PNC },
                                 .loc = { .line = 1, .col = 6 },
                             },
                         }
@@ -575,10 +392,7 @@
                     .expected = slice_array(
                         (TestAvenCTokenLoc[]){
                             {
-                                .token = {
-                                    .val = aven_str("\"Hello,"),
-                                    .type = AVEN_C_TOKEN_TYPE_INV,
-                                },
+                                .token = { .val = aven_str("\"Hello,"), .type = AVEN_C_TOKEN_TYPE_INV },
                                 .loc = { .line = 1, .col = 1 },
                             },
                         }
@@ -614,115 +428,67 @@
                                 .loc = { .line = 5, .col = 1 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str("#"),
-                                    .type = AVEN_C_TOKEN_TYPE_PNC,
-                                },
+                                .token = { .val = aven_str("#"), .type = AVEN_C_TOKEN_TYPE_PNC },
                                 .loc = { .line = 1, .col = 1 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str("define"),
-                                    .type = AVEN_C_TOKEN_TYPE_ID,
-                                },
+                                .token = { .val = aven_str("define"), .type = AVEN_C_TOKEN_TYPE_ID },
                                 .loc = { .line = 1, .col = 2 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str("Slice"),
-                                    .type = AVEN_C_TOKEN_TYPE_ID,
-                                },
+                                .token = { .val = aven_str("Slice"), .type = AVEN_C_TOKEN_TYPE_ID },
                                 .loc = { .line = 1, .col = 9 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str("("),
-                                    .type = AVEN_C_TOKEN_TYPE_PNC,
-                                },
+                                .token = { .val = aven_str("("), .type = AVEN_C_TOKEN_TYPE_PNC },
                                 .loc = { .line = 1, .col = 14 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str("T"),
-                                    .type = AVEN_C_TOKEN_TYPE_ID,
-                                },
+                                .token = { .val = aven_str("T"), .type = AVEN_C_TOKEN_TYPE_ID },
                                 .loc = { .line = 1, .col = 15 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str(")"),
-                                    .type = AVEN_C_TOKEN_TYPE_PNC,
-                                },
+                                .token = { .val = aven_str(")"), .type = AVEN_C_TOKEN_TYPE_PNC },
                                 .loc = { .line = 1, .col = 16 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str("struct"),
-                                    .type = AVEN_C_TOKEN_TYPE_KEY,
-                                },
+                                .token = { .val = aven_str("struct"), .type = AVEN_C_TOKEN_TYPE_KEY },
                                 .loc = { .line = 1, .col = 18 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str("{"),
-                                    .type = AVEN_C_TOKEN_TYPE_PNC,
-                                },
+                                .token = { .val = aven_str("{"), .type = AVEN_C_TOKEN_TYPE_PNC },
                                 .loc = { .line = 1, .col = 25 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str("size_t"),
-                                    .type = AVEN_C_TOKEN_TYPE_ID,
-                                },
+                                .token = { .val = aven_str("size_t"), .type = AVEN_C_TOKEN_TYPE_ID },
                                 .loc = { .line = 2, .col = 9 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str("len"),
-                                    .type = AVEN_C_TOKEN_TYPE_ID,
-                                },
+                                .token = { .val = aven_str("len"), .type = AVEN_C_TOKEN_TYPE_ID },
                                 .loc = { .line = 2, .col = 16 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str(";"),
-                                    .type = AVEN_C_TOKEN_TYPE_PNC,
-                                },
+                                .token = { .val = aven_str(";"), .type = AVEN_C_TOKEN_TYPE_PNC },
                                 .loc = { .line = 2, .col = 19 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str("T"),
-                                    .type = AVEN_C_TOKEN_TYPE_ID,
-                                },
+                                .token = { .val = aven_str("T"), .type = AVEN_C_TOKEN_TYPE_ID },
                                 .loc = { .line = 3, .col = 9 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str("*"),
-                                    .type = AVEN_C_TOKEN_TYPE_PNC,
-                                },
+                                .token = { .val = aven_str("*"), .type = AVEN_C_TOKEN_TYPE_PNC },
                                 .loc = { .line = 3, .col = 11 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str("ptr"),
-                                    .type = AVEN_C_TOKEN_TYPE_ID,
-                                },
+                                .token = { .val = aven_str("ptr"), .type = AVEN_C_TOKEN_TYPE_ID },
                                 .loc = { .line = 3, .col = 12 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str(";"),
-                                    .type = AVEN_C_TOKEN_TYPE_PNC,
-                                },
+                                .token = { .val = aven_str(";"), .type = AVEN_C_TOKEN_TYPE_PNC },
                                 .loc = { .line = 3, .col = 15 },
                             },
                             {
-                                .token = {
-                                    .val = aven_str("}"),
-                                    .type = AVEN_C_TOKEN_TYPE_PNC,
-                                },
+                                .token = { .val = aven_str("}"), .type = AVEN_C_TOKEN_TYPE_PNC },
                                 .loc = { .line = 4, .col = 5 },
                             },
                         }
@@ -779,11 +545,7 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("long x = 2 + 2 * 4 - 7;"),
-                    .expected = aven_str(
-                        "long x = 2 +\n"
-                        "    2 * 4 -\n"
-                        "    7;\n"
-                    ),
+                    .expected = aven_str("long x = 2 +\n" "    2 * 4 -\n" "    7;\n"),
                     .line_len = 16,
                 },
             },
@@ -792,11 +554,7 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("int x = 10 - 2 * 2 * 4 - 7;\n"),
-                    .expected = aven_str(
-                        "int x = 10 -\n"
-                        "    2 * 2 * 4 -\n"
-                        "    7;\n"
-                    ),
+                    .expected = aven_str("int x = 10 -\n" "    2 * 2 * 4 -\n" "    7;\n"),
                     .line_len = 16,
                 },
             },
@@ -805,11 +563,7 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("int x = 10 - 2 * 2 * 4 - 7;\n"),
-                    .expected = aven_str(
-                        "int x = 10 -\n"
-                        "    2 * 2 * 4 -\n"
-                        "    7;\n"
-                    ),
+                    .expected = aven_str("int x = 10 -\n" "    2 * 2 * 4 -\n" "    7;\n"),
                     .line_len = 16,
                 },
             },
@@ -819,11 +573,7 @@
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("int x = 10 - 2 * 2 * 4 - 7 = 32 + 7 + 14;\n"),
                     .expected = aven_str(
-                        "int x = 10 -\n"
-                        "    2 * 2 * 4 -\n"
-                        "    7 = 32 +\n"
-                        "    7 +\n"
-                        "    14;\n"
+                        "int x = 10 -\n" "    2 * 2 * 4 -\n" "    7 = 32 +\n" "    7 +\n" "    14;\n"
                     ),
                     .line_len = 16,
                 },
@@ -833,9 +583,7 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("bool x = true ? 1 : 0;\n"),
-                    .expected = aven_str(
-                        "bool x = true ? 1 : 0;\n"
-                    ),
+                    .expected = aven_str("bool x = true ? 1 : 0;\n"),
                     .line_len = 24,
                 },
             },
@@ -844,11 +592,7 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("bool x = true ? 1 : 0;\n"),
-                    .expected = aven_str(
-                        "bool x = true ?\n"
-                        "    1 :\n"
-                        "    0;\n"
-                    ),
+                    .expected = aven_str("bool x = true ?\n" "    1 :\n" "    0;\n"),
                     .line_len = 16,
                 },
             },
@@ -908,7 +652,9 @@
                 .desc = aven_str("aven_c_ast_render complex paren assign expression split"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array("int x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14) = 1 + 2 + 3 + 4 + 5;\n"),
+                    .src = slice_array(
+                        "int x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14) = 1 + 2 + 3 + 4 + 5;\n"
+                    ),
                     .expected = aven_str(
                         "int x = (\n"
                         "    10 -\n"
@@ -925,29 +671,47 @@
                 },
             },
             {
-                .desc = aven_str("aven_c_ast_render sizeof operator expr"),
+                .desc = aven_str("aven_c_ast_render sizeof operator postfix expr"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "const size_t x = 2 + sizeof foo(x);\n"
-                    ),
-                    .expected = aven_str(
-                        "const size_t x = 2 +\n"
-                        "    sizeof foo(x);\n"
-                    ),
+                    .src = slice_array("const size_t x = 2 + sizeof foo(x);\n"),
+                    .expected = aven_str("const size_t x = 2 +\n" "    sizeof foo(x);\n"),
                     .line_len = 32,
                 },
             },
             {
-                .desc = aven_str("aven_c_ast_render sizeof operator paren"),
+                .desc = aven_str("aven_c_ast_render sizeof operator postfix expr"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "const size_t x = 2 + sizeof(int);\n"
-                    ),
-                    .expected = aven_str(
-                        "const size_t x = 2 + sizeof(int);\n"
-                    ),
+                    .src = slice_array("const size_t x = 2 + sizeof foo(x);\n"),
+                    .expected = aven_str("const size_t x = 2 +\n" "    sizeof foo(x);\n"),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render sizeof operator paren expr"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("const size_t x = 2 + sizeof(*x);\n"),
+                    .expected = aven_str("const size_t x = 2 + sizeof(*x);\n"),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render sizeof operator paren postfix expr"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("const size_t x = 2 + sizeof(*x)++;\n"),
+                    .expected = aven_str("const size_t x = 2 + sizeof (*x)++;\n"),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render sizeof operator typename"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("const size_t x = 2 + sizeof(int);\n"),
+                    .expected = aven_str("const size_t x = 2 + sizeof(int);\n"),
                     .line_len = 32,
                 },
             },
@@ -955,13 +719,8 @@
                 .desc = aven_str("aven_c_ast_render sizeof operator"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "const size_t x = 2 + _Alignof(int);\n"
-                    ),
-                    .expected = aven_str(
-                        "const size_t x = 2 +\n"
-                        "    _Alignof(int);\n"
-                    ),
+                    .src = slice_array("const size_t x = 2 + _Alignof(int);\n"),
+                    .expected = aven_str("const size_t x = 2 +\n" "    _Alignof(int);\n"),
                     .line_len = 32,
                 },
             },
@@ -969,12 +728,8 @@
                 .desc = aven_str("aven_c_ast_render _Atomic specifier"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "_Atomic(size_t) x;\n"
-                    ),
-                    .expected = aven_str(
-                        "_Atomic(size_t) x;\n"
-                    ),
+                    .src = slice_array("_Atomic(size_t) x;\n"),
+                    .expected = aven_str("_Atomic(size_t) x;\n"),
                     .line_len = 32,
                 },
             },
@@ -982,12 +737,8 @@
                 .desc = aven_str("aven_c_ast_render _Alignas specifier"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "_Alignas(1) uint64_t x;\n"
-                    ),
-                    .expected = aven_str(
-                        "_Alignas(1) uint64_t x;\n"
-                    ),
+                    .src = slice_array("_Alignas(1) uint64_t x;\n"),
+                    .expected = aven_str("_Alignas(1) uint64_t x;\n"),
                     .line_len = 32,
                 },
             },
@@ -995,12 +746,8 @@
                 .desc = aven_str("aven_c_ast_render static assert"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "_Static_assert(x == 2, \"OHNO\");\n"
-                    ),
-                    .expected = aven_str(
-                        "_Static_assert(x == 2, \"OHNO\");\n"
-                    ),
+                    .src = slice_array("_Static_assert(x == 2, \"OHNO\");\n"),
+                    .expected = aven_str("_Static_assert(x == 2, \"OHNO\");\n"),
                     .line_len = 32,
                 },
             },
@@ -1018,11 +765,7 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("int x = (struct T){ .x = 7 };\n"),
-                    .expected = aven_str(
-                        "int x = (struct T){\n"
-                        "    .x = 7,\n"
-                        "};\n"
-                    ),
+                    .expected = aven_str("int x = (struct T){\n" "    .x = 7,\n" "};\n"),
                     .line_len = 24,
                 },
             },
@@ -1030,14 +773,8 @@
                 .desc = aven_str("aven_c_ast_render leading comment"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "// Hello World!\n"
-                        "int x = 2 + 2;\n"
-                    ),
-                    .expected = aven_str(
-                        "// Hello World!\n"
-                        "int x = 2 + 2;\n"
-                    ),
+                    .src = slice_array("// Hello World!\n" "int x = 2 + 2;\n"),
+                    .expected = aven_str("// Hello World!\n" "int x = 2 + 2;\n"),
                     .line_len = 16,
                 },
             },
@@ -1046,10 +783,7 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("int x = 2 + 2; // Hello World!\n"),
-                    .expected = aven_str(
-                        "int x = 2 + 2;\n"
-                        "// Hello World!\n"
-                    ),
+                    .expected = aven_str("int x = 2 + 2;\n" "// Hello World!\n"),
                     .line_len = 16,
                 },
             },
@@ -1058,11 +792,7 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("int x = 2 + /* add */ 2;\n"),
-                    .expected = aven_str(
-                        "int x = 2 +\n"
-                        "    /* add */\n"
-                        "    2;\n"
-                    ),
+                    .expected = aven_str("int x = 2 +\n" "    /* add */\n" "    2;\n"),
                     .line_len = 16,
                 },
             },
@@ -1070,14 +800,8 @@
                 .desc = aven_str("aven_c_ast_render empty line after comment"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "// Hello World!\n\n"
-                        "int x = 2 + 2;\n"
-                    ),
-                    .expected = aven_str(
-                        "// Hello World!\n\n"
-                        "int x = 2 + 2;\n"
-                    ),
+                    .src = slice_array("// Hello World!\n\n" "int x = 2 + 2;\n"),
+                    .expected = aven_str("// Hello World!\n\n" "int x = 2 + 2;\n"),
                     .line_len = 16,
                 },
             },
@@ -1085,16 +809,8 @@
                 .desc = aven_str("aven_c_ast_render empty line before comment"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "int x = 2 + 2;\n\n"
-                        "// Hello World!\n"
-                        "int y = x;\n"
-                    ),
-                    .expected = aven_str(
-                        "int x = 2 + 2;\n\n"
-                        "// Hello World!\n"
-                        "int y = x;\n"
-                    ),
+                    .src = slice_array("int x = 2 + 2;\n\n" "// Hello World!\n" "int y = x;\n"),
+                    .expected = aven_str("int x = 2 + 2;\n\n" "// Hello World!\n" "int y = x;\n"),
                     .line_len = 16,
                 },
             },
@@ -1102,18 +818,9 @@
                 .desc = aven_str("aven_c_ast_render empty line within multi-line comment"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "int x = 2 + 2;\n"
-                        "/* Hello World!\n"
-                        "\n"
-                        "*/ int y = x;\n"
-                    ),
+                    .src = slice_array("int x = 2 + 2;\n" "/* Hello World!\n" "\n" "*/ int y = x;\n"),
                     .expected = aven_str(
-                        "int x = 2 + 2;\n"
-                        "/* Hello World!\n"
-                        "\n"
-                        "*/\n"
-                        "int y = x;\n"
+                        "int x = 2 + 2;\n" "/* Hello World!\n" "\n" "*/\n" "int y = x;\n"
                     ),
                     .line_len = 16,
                 },
@@ -1167,15 +874,8 @@
                 .desc = aven_str("aven_c_ast_render multi-line comment in pp directive"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "#define NUM 1 /* number of\n"
-                        "              ** entries */\n"
-                    ),
-                    .expected = aven_str(
-                        "#define NUM 1\n"
-                        "/* number of\n"
-                        "** entries */\n"
-                    ),
+                    .src = slice_array("#define NUM 1 /* number of\n" "              ** entries */\n"),
+                    .expected = aven_str("#define NUM 1\n" "/* number of\n" "** entries */\n"),
                     .line_len = 16,
                 },
             },
@@ -1239,10 +939,7 @@
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("void *p = make(\"Hello,\" \" World!\");\n"),
                     .expected = aven_str(
-                        "void *p = make(\n"
-                        "    \"Hello,\"\n"
-                        "    \" World!\"\n"
-                        ");\n"
+                        "void *p = make(\n" "    \"Hello,\"\n" "    \" World!\"\n" ");\n"
                     ),
                     .line_len = 20,
                 },
@@ -1278,7 +975,9 @@
                 .desc = aven_str("aven_c_ast_render function typedef"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array("typedef AvenIoResult AvenIoFn(AvenIoCtx ctx, ByteSlice bytes);\n"),
+                    .src = slice_array(
+                        "typedef AvenIoResult AvenIoFn(AvenIoCtx ctx, ByteSlice bytes);\n"
+                    ),
                     .expected = aven_str(
                         "typedef AvenIoResult AvenIoFn(\n"
                         "    AvenIoCtx ctx,\n"
@@ -1294,10 +993,7 @@
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("typedef size_t (*ReadFn)(char *, size_t);\n"),
                     .expected = aven_str(
-                        "typedef size_t (*ReadFn)(\n"
-                        "    char *,\n"
-                        "    size_t\n"
-                        ");\n"
+                        "typedef size_t (*ReadFn)(\n" "    char *,\n" "    size_t\n" ");\n"
                     ),
                     .line_len = 36,
                 },
@@ -1306,14 +1002,8 @@
                 .desc = aven_str("aven_c_ast_render function pointer cast"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "int foo(void *fn) { (void *(*)(void *))fn; }\n"
-                    ),
-                    .expected = aven_str(
-                        "int foo(void *fn) {\n"
-                        "    (void *(*)(void *))fn;\n"
-                        "}\n"
-                    ),
+                    .src = slice_array("int foo(void *fn) { (void *(*)(void *))fn; }\n"),
+                    .expected = aven_str("int foo(void *fn) {\n" "    (void *(*)(void *))fn;\n" "}\n"),
                     .line_len = 48,
                 },
             },
@@ -1380,13 +1070,9 @@
                 .desc = aven_str("aven_c_ast_render postfix attribute"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "typedef float Vec2SIMD __attribute__((vector_size(8)));\n"
-                    ),
+                    .src = slice_array("typedef float Vec2SIMD __attribute__((vector_size(8)));\n"),
                     .expected = aven_str(
-                        "typedef float Vec2SIMD __attribute__(\n"
-                        "    (vector_size(8))\n"
-                        ");\n"
+                        "typedef float Vec2SIMD __attribute__(\n" "    (vector_size(8))\n" ");\n"
                     ),
                     .line_len = 36,
                 },
@@ -1585,18 +1271,10 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array(
-                        "void bar(int n) {\n"
-                        "    for (;;) {\n"
-                        "        foo(x);\n"
-                        "    }\n"
-                        "}\n"
+                        "void bar(int n) {\n" "    for (;;) {\n" "        foo(x);\n" "    }\n" "}\n"
                     ),
                     .expected = aven_str(
-                        "void bar(int n) {\n"
-                        "    for (;;) {\n"
-                        "        foo(x);\n"
-                        "    }\n"
-                        "}\n"
+                        "void bar(int n) {\n" "    for (;;) {\n" "        foo(x);\n" "    }\n" "}\n"
                     ),
                     .line_len = 80,
                 },
@@ -1631,14 +1309,10 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array(
-                        "#define loop(f, a) do {\\\n"
-                        "        a = f;\\\n"
-                        "    } while (a == 0)\n"
+                        "#define loop(f, a) do {\\\n" "        a = f;\\\n" "    } while (a == 0)\n"
                     ),
                     .expected = aven_str(
-                        "#define loop(f, a) do { \\\n"
-                        "        a = f; \\\n"
-                        "    } while (a == 0)\n"
+                        "#define loop(f, a) do { \\\n" "        a = f; \\\n" "    } while (a == 0)\n"
                     ),
                     .line_len = 28,
                 },
@@ -1667,10 +1341,14 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array(
-                        "#define assert(c) ((!(c)) ? aven_panic(\"assert(\" #c \") failed\") : (void)0)\n"
+                        "#define assert(c) ((!(c)) ? "
+                        "aven_panic(\"assert(\" #c \") failed\") : "
+                        "(void)0)\n"
                     ),
                     .expected = aven_str(
-                        "#define assert(c) ((!(c)) ? aven_panic(\"assert(\" #c \") failed\") : (void)0)\n"
+                        "#define assert(c) ((!(c)) ? "
+                        "aven_panic(\"assert(\" #c \") failed\") : "
+                        "(void)0)\n"
                     ),
                     .line_len = 80,
                 },
@@ -1702,14 +1380,8 @@
                 .desc = aven_str("aven_c_ast_render function definition"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "void main(void) { printf(\"Hello, World!\"); }\n"
-                    ),
-                    .expected = aven_str(
-                        "void main(void) {\n"
-                        "    printf(\"Hello, World!\");\n"
-                        "}\n"
-                    ),
+                    .src = slice_array("void main(void) { printf(\"Hello, World!\"); }\n"),
+                    .expected = aven_str("void main(void) {\n" "    printf(\"Hello, World!\");\n" "}\n"),
                     .line_len = 40,
                 },
             },
@@ -1949,12 +1621,8 @@
                 .desc = aven_str("aven_c_ast_render local include directive"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "#include \"aven.h\"\n"
-                    ),
-                    .expected = aven_str(
-                        "#include \"aven.h\"\n"
-                    ),
+                    .src = slice_array("#include \"aven.h\"\n"),
+                    .expected = aven_str("#include \"aven.h\"\n"),
                     .line_len = 36,
                 },
             },
@@ -1962,12 +1630,8 @@
                 .desc = aven_str("aven_c_ast_render system include directive"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "#include <aven.h>\n"
-                    ),
-                    .expected = aven_str(
-                        "#include <aven.h>\n"
-                    ),
+                    .src = slice_array("#include <aven.h>\n"),
+                    .expected = aven_str("#include <aven.h>\n"),
                     .line_len = 36,
                 },
             },
@@ -2044,7 +1708,7 @@
                         "\n"
                         "#include <stdlib.h>\n"
                         "\n"
-                        "// Enough to handle pathological files up to ~10MB, and much larger real files\n"
+                        "// Enough to handle pathological files up to ~10MB\n"
                         "#define ARENA_SIZE (4096 * 250000)\n"
                         "\n"
                         "int main(void) {\n"
@@ -2086,7 +1750,7 @@
                         "\n"
                         "#include <stdlib.h>\n"
                         "\n"
-                        "// Enough to handle pathological files up to ~10MB, and much larger real files\n"
+                        "// Enough to handle pathological files up to ~10MB\n"
                         "#define ARENA_SIZE (4096 * 250000)\n"
                         "\n"
                         "int main(void) {\n"
@@ -2120,12 +1784,8 @@
                 .desc = aven_str("aven_c_ast_render gcc warn pragma"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "#pragma GCC diagnostic ignored \"-Wunused-function\"\n"
-                    ),
-                    .expected = aven_str(
-                        "#pragma GCC diagnostic ignored \"-Wunused-function\"\n"
-                    ),
+                    .src = slice_array("#pragma GCC diagnostic ignored \"-Wunused-function\"\n"),
+                    .expected = aven_str("#pragma GCC diagnostic ignored \"-Wunused-function\"\n"),
                     .line_len = 80,
                 },
             },
@@ -2133,12 +1793,8 @@
                 .desc = aven_str("aven_c_ast_render msvc warn pragma"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "#pragma warning(disable : 4267)\n"
-                    ),
-                    .expected = aven_str(
-                        "#pragma warning(disable : 4267)\n"
-                    ),
+                    .src = slice_array("#pragma warning(disable : 4267)\n"),
+                    .expected = aven_str("#pragma warning(disable : 4267)\n"),
                     .line_len = 36,
                 },
             },
@@ -2146,9 +1802,7 @@
                 .desc = aven_str("aven_c_ast_render msvc warn pragma"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "void *x = RL_MALLOC(anim[a].num_frames*sizeof(Transform *));\n"
-                    ),
+                    .src = slice_array("void *x = RL_MALLOC(anim[a].num_frames*sizeof(Transform *));\n"),
                     .expected = aven_str(
                         "void *x = RL_MALLOC(\n"
                         "    anim[a].num_frames *\n"
@@ -2162,12 +1816,8 @@
                 .desc = aven_str("aven_c_ast_render ## merge operator"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "#define merge(x,y) x##y\n"
-                    ),
-                    .expected = aven_str(
-                        "#define merge(x, y) x ## y\n"
-                    ),
+                    .src = slice_array("#define merge(x,y) x##y\n"),
+                    .expected = aven_str("#define merge(x, y) x ## y\n"),
                     .line_len = 36,
                 },
             },
@@ -2175,12 +1825,8 @@
                 .desc = aven_str("aven_c_ast_render macro define attribute"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array(
-                        "#define API __attribute__((visibility(\"default\")))\n"
-                    ),
-                    .expected = aven_str(
-                        "#define API __attribute__((visibility(\"default\")))\n"
-                    ),
+                    .src = slice_array("#define API __attribute__((visibility(\"default\")))\n"),
+                    .expected = aven_str("#define API __attribute__((visibility(\"default\")))\n"),
                     .line_len = 80,
                 },
             },
@@ -2223,14 +1869,10 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array(
-                        "void foo(void) {\n"
-                        "    asm volatile(\"\":::\"memory\");\n"
-                        "}\n"
+                        "void foo(void) {\n" "    asm volatile(\"\":::\"memory\");\n" "}\n"
                     ),
                     .expected = aven_str(
-                        "void foo(void) {\n"
-                        "    asm volatile (\"\" ::: \"memory\");\n"
-                        "}\n"
+                        "void foo(void) {\n" "    asm volatile (\"\" ::: \"memory\");\n" "}\n"
                     ),
                     .line_len = 48,
                 },
@@ -2240,9 +1882,7 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array(
-                        "void foo(void) {\n"
-                        "    __asm__ volatile(\"\":\"\":\"\":\"memory\");\n"
-                        "}\n"
+                        "void foo(void) {\n" "    __asm__ volatile(\"\":\"\":\"\":\"memory\");\n" "}\n"
                     ),
                     .expected = aven_str(
                         "void foo(void) {\n"
