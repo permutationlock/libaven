@@ -65,8 +65,12 @@
         uint64_t digits = 1;
         uint64_t coeff = 10;
         while (coeff <= num) {
-            coeff *= 10;
+            uint64_t next_coeff = coeff * 10;
             digits += 1;
+            if (next_coeff < coeff) {
+                break;
+            }
+            coeff = next_coeff;
         }
         return (size_t)digits;
     }

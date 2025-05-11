@@ -6231,6 +6231,7 @@
             uint32_t token_index = token.index;
             AvenCTokenType exp_token_type = ctx.error.type;
             AvenStr exp_token_str = ctx.error.exp;
+            AvenStr act_type = aven_c_token_type_str(token.type);
             if (
                 !normal_error or
                     (
@@ -6243,32 +6244,13 @@
                 token_str = aven_c_token_str(tset, ppd_error.pp_token - 1);
                 token = get(ctx.tset.tokens, ppd_error.pp_token - 1);
                 token_index = token.index;
-                if (token.type == AVEN_C_TOKEN_TYPE_NONE) {
-                    token = get(ctx.tset.tokens, ppd_error.pp_token - 2);
-                    token_str = aven_c_token_str(tset, ppd_error.pp_token - 2);
-                    eloc = aven_c_token_loc(ctx.tset, ppd_error.pp_token - 2);
-                    eloc.col += (uint32_t)token_str.len - 1;
-                    token_index = token.index + (uint32_t)token_str.len - 1;
-                }
+                act_type = aven_c_token_type_str(token.type);
                 exp_token_type = ppd_error.type;
                 exp_token_str = ppd_error.exp;
-            } else if (token.type == AVEN_C_TOKEN_TYPE_NONE) {
-                do {
-                    ctx.error.token -= 1;
-                    token = get(ctx.tset.tokens, ctx.error.token - 1);
-                } while (
-                    token.type == AVEN_C_TOKEN_TYPE_CMT or
-                        token.type == AVEN_C_TOKEN_TYPE_PPD
-                );
-                token_str = aven_c_token_str(tset, ctx.error.token);
-                eloc = aven_c_token_loc(ctx.tset, ctx.error.token);
-                eloc.col += (uint32_t)token_str.len - 1;
-                token_index = token.index + (uint32_t)token_str.len - 1;
             }
             AvenStr exp_type = exp_token_type == AVEN_C_TOKEN_TYPE_NUM ?
                 aven_str("constant") :
                 aven_c_token_type_str(exp_token_type);
-            AvenStr act_type = aven_c_token_type_str(token.type);
             Optional(AvenStr) exp_str = { 0 };
             if (
                 exp_token_type == AVEN_C_TOKEN_TYPE_PNC or
@@ -6294,11 +6276,13 @@
                 }
             }
             AvenStr line = aven_str_range(ctx.tset.bytes, start, end);
-            char arrow_buffer[132];
+            char arrow_buffer[165];
             AvenStr arrow_str = slice_array(arrow_buffer);
             size_t arrow_len = 0;
+            size_t start_col = eloc.col - (token_index - start);
             size_t ln_digits = aven_fmt_uint_decimal_digits(eloc.line);
-            assert(ln_digits < 32);
+            ln_digits += aven_fmt_uint_decimal_digits(start_col);
+            assert(ln_digits < 64);
             for (size_t i = 0; i < ln_digits + 1; i += 1) {
                 get(arrow_str, arrow_len) = ' ';
                 arrow_len += 1;
@@ -6314,7 +6298,7 @@
                 aven_fmt(
                     arena,
                     "error at {}:{}: expected {} '{}', found {} '{}'\n"
-                    "{}:    {}\n    {}"
+                    "{}:{}: {}\n  {}"
                     ,
                     aven_fmt_uint(eloc.line),
                     aven_fmt_uint(eloc.col),
@@ -6323,13 +6307,14 @@
                     aven_fmt_str(act_type),
                     aven_fmt_str(token_str),
                     aven_fmt_uint(eloc.line),
+                    aven_fmt_uint(start_col),
                     aven_fmt_str(line),
                     aven_fmt_str(arrow_str)
                 ) :
                 aven_fmt(
                     arena,
                     "error at {}:{}: expected {}, found {} '{}'\n"
-                    "{}:    {}\n    {}"
+                    "{}:{}: {}\n  {}"
                     ,
                     aven_fmt_uint(eloc.line),
                     aven_fmt_uint(eloc.col),
@@ -6337,6 +6322,7 @@
                     aven_fmt_str(act_type),
                     aven_fmt_str(token_str),
                     aven_fmt_uint(eloc.line),
+                    aven_fmt_uint(start_col),
                     aven_fmt_str(line),
                     aven_fmt_str(arrow_str)
                 );
