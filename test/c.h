@@ -925,7 +925,21 @@
                 },
             },
             {
-                .desc = aven_str("aven_c_ast_render sizeof operator"),
+                .desc = aven_str("aven_c_ast_render sizeof operator expr"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "const size_t x = 2 + sizeof foo(x);\n"
+                    ),
+                    .expected = aven_str(
+                        "const size_t x = 2 +\n"
+                        "    sizeof foo(x);\n"
+                    ),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render sizeof operator paren"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array(
@@ -933,6 +947,20 @@
                     ),
                     .expected = aven_str(
                         "const size_t x = 2 + sizeof(int);\n"
+                    ),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render sizeof operator"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "const size_t x = 2 + _Alignof(int);\n"
+                    ),
+                    .expected = aven_str(
+                        "const size_t x = 2 +\n"
+                        "    _Alignof(int);\n"
                     ),
                     .line_len = 32,
                 },
@@ -2117,7 +2145,7 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array(
-                        "void foo(void){\n"
+                        "void foo(void) {\n"
                         "if (\n"
                         "    node == 0 or\n"
                         "        get(\n"
@@ -2131,7 +2159,7 @@
                         "}\n"
                     ),
                     .expected = aven_str(
-                        "void foo(void){\n"
+                        "void foo(void) {\n"
                         "    if (\n"
                         "        node == 0 or\n"
                         "            get(\n"
