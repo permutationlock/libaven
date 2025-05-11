@@ -1065,8 +1065,10 @@
             ByteSlice dest_rem = dest;
             while (dest_rem.len > 0) {
                 int result = _read(fd, dest_rem.ptr, (unsigned int)dest_rem.len);
-                if (result >= 0) {
+                if (result > 0) {
                     dest_rem = (ByteSlice)slice_tail(dest_rem, (size_t)result);
+                } else if (result == 0) {
+                    break;
                 } else {
                     switch (errno) {
                         case EBADF: return (AvenIoReadResult){
@@ -1113,8 +1115,10 @@
             ByteSlice src_rem = src;
             while (src_rem.len > 0) {
                 int result = _write(fd, src_rem.ptr, (unsigned int)src_rem.len);
-                if (result >= 0) {
+                if (result > 0) {
                     src_rem = (ByteSlice)slice_tail(src_rem, (size_t)result);
+                } else if (result == 0) {
+                    break;
                 } else {
                     switch (errno) {
                         case EBADF: return (AvenIoWriteResult){
