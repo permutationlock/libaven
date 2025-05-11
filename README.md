@@ -102,38 +102,43 @@ very accommodating.
 
 A recent addition to the library is the C source code lexer, parser, and AST
 renderer in `aven/c.h`. All three are combined into a source code formating
-application in `src/fmt.c`. Personally, I am not a fan of any of the
+application in `src/aven-fmt.c`. Personally, I am not a fan of any of the
 possible configurations of `clang-format` (believe me, I tried).
 
 I did not optimize the code very much or
 make any use of SIMD, but benchmarks show that it formats at ~30MB/sec
 for small files, easily fast enough for my use cases.
 Benchmarking a few 10,000 line source files using [`poop`][9] showed that
-my `fmt` ran over 20 times faster than `clang-format`, around the
-speed of `zig fmt` for similar size source files.
+on my machine `aven-fmt` ran over 25 times faster than `clang-format`,
+around speed of `zig fmt` for similar size source files.
 
 The formatter has rudimentary error reporting. It will report the first parse error
-it encounters along with the exact location of the error in the source file. The
-formatter requires that lines be rendered within 80 columns, with an allowance for
-one or two characters over to make the rendering logic easier. If a line cannot fit
-within 80 columns due to a long identifier or excessive indent depth,
+it encounters along with the exact location of the error in the source file. By
+default the formatter requires that lines render within 80 columns, with an allowance for
+one or two characters over to make the rendering logic easier. If a line cannot be
+broken to fit within 80 columns, e.g. due to a long identifier or excessive indent depth,
 then the formatter will error and report the offending
 line in the original source file.
 
 ### Limitations
 
-The formatter `aven-fmt` will pretty-print preprocessor directives and macros, but it
-places heavy restrictions on their use.
+The formatter is designed to parse code that follows the C99 and C11 standards
+with some GNU extensions. E.g. it will parse GNU attribute specifiers and inline
+assembly statements. Declaration attributes must occur before all other
+declaration specifiers, or after the declarator.
 
-Preprocessor directives must all be a '#' followed by an identifier
-(or an 'if' or 'else' keyword), and then either a valid expression, a statement
-or declaration (omitting the termination ';' if applicable), a type-name,
-a parameter declaration, an initializer list, a list of declaration specifiers,
-a header path, or any single token. Other possibilities may have been added, but
-in general they must be a parseable contained seciton of code.
+Preprocessor directives and macros will be parsed and pretty printed, but some
+heavy restrictions are placed on their use.
 
-Some special allowances are made to allow the `#` and `##` operators in preprocessor mode,
-as well as the special `#pragma warning(disable : 4427)` for MSVC.
+A preprocessrod directive is a '#' punctuator followed by an identifier
+(or 'if'/'else' keyword), and then an expression, a statement
+or declaration without the terminating ';', a type-name,
+an initializer list, a list of declaration specifiers,
+a header path, or any single token.
+
+The `#` and `##` operators are allowed while in preprocessor mode.
+The `#error`, `#warning`, and `#pragma` directives are not parsed and
+simply rendered unmodified.
 
 Source files must be parseable C even with all
 preprocessor directive lines removed. E.g. the following is invalid
@@ -149,9 +154,6 @@ int bar(int n){
 }
 ```
 
-Declaration attributes must occur before all other declaration specifiers,
-or after the declarator.
-
 In practice, most C files will already follow these rules. E.g.
 if the 80 column width requirement is removed, then
 formatter can format the Raylib source code. I prefer these
@@ -162,25 +164,30 @@ changes required to comply were clear improvements.
 
 ### Usage
 
-The default behavior is to read from `stdin` and write to `stdout`.
+The default behavior is to read from the specified src_file and write to `stdout`.
 
 ```Shell
-cat unformatted.c | fmt > formatted.c
+aven-fmt unformatted.c > formatted.c
 ```
 
-Input and output files can be specified with `-i` and `-o` respectively.
+An output file can be specified with `--out`.
 ```Shell
-fmt -i unformatted.c -o formatted.c
+aven-fmt unformatted.c --out formatted.c
 ```
 
-Files can be formatted in-place (with no changes on parse or render error) using `-io`.
+Files can be formatted in-place (with no changes on parse or render error) using `--in-place`.
 ```Shell
-fmt -io myfile.c
+aven-fmt --in-place myfile.c
 ```
 
-## Building the formatter and library
+The formatter will read from stdin if the `--stdin` flag is specified.
+```Shell
+cat unformatted.c | aven-fmt --stdin > formatted.c
+```
 
-The `fmt` binary and a linkable static `aven.o` object file can built using the
+## Building the library and code formatter
+
+The `aven-fmt` binary and a linkable static `aven.o` object file can built using the
 contained build system. 
 
 ### Building the build system
