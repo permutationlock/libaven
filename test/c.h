@@ -362,6 +362,107 @@
                 },
             },
             {
+                .desc = aven_str("aven_c_lex carriage return in whitespace"),
+                .fn = test_aven_c_lex,
+                .args = &(TestAvenCLexPpArgs){
+                    .src = slice_array("\r\"Hello, World!\\n\""),
+                    .expected = slice_array(
+                        (TestAvenCToken[]){
+                            { .val = aven_str("\"Hello, World!\\n\""), .type = AVEN_C_TOKEN_TYPE_STR },
+                        }
+                    ),
+                },
+            },
+            {
+                .desc = aven_str("aven_c_lex carriage return to end comment"),
+                .fn = test_aven_c_lex,
+                .args = &(TestAvenCLexPpArgs){
+                    .src = slice_array("// a comment\r\n"),
+                    .expected = slice_array(
+                        (TestAvenCToken[]){
+                            { .val = aven_str("// a comment"), .type = AVEN_C_TOKEN_TYPE_CMT },
+                        }
+                    ),
+                },
+            },
+            {
+                .desc = aven_str("aven_c_lex carriage return invalid within comment"),
+                .fn = test_aven_c_lex,
+                .args = &(TestAvenCLexPpArgs){
+                    .src = slice_array("// a\rcomment\n"),
+                    .expected = slice_array(
+                        (TestAvenCToken[]){
+                            { .val = aven_str("// a"), .type = AVEN_C_TOKEN_TYPE_CMT },
+                            { .val = aven_str("\r"), .type = AVEN_C_TOKEN_TYPE_INV },
+                        }
+                    ),
+                },
+            },
+            {
+                .desc = aven_str("aven_c_lex carriage return invalid within ml comment"),
+                .fn = test_aven_c_lex,
+                .args = &(TestAvenCLexPpArgs){
+                    .src = slice_array("/* a\rcomment */"),
+                    .expected = slice_array(
+                        (TestAvenCToken[]){
+                            { .val = aven_str("/* a"), .type = AVEN_C_TOKEN_TYPE_CMT },
+                            { .val = aven_str("\r"), .type = AVEN_C_TOKEN_TYPE_INV },
+                        }
+                    ),
+                },
+            },
+            {
+                .desc = aven_str("aven_c_lex carriage return at end of ppd"),
+                .fn = test_aven_c_lex,
+                .args = &(TestAvenCLexPpArgs){
+                    .src = slice_array("#define A 10\r\n"),
+                    .expected = slice_array(
+                        (TestAvenCToken[]){
+                            { .val = aven_str("#define A 10\r"), .type = AVEN_C_TOKEN_TYPE_PPD },
+                            { .type = AVEN_C_TOKEN_TYPE_NONE },
+                            { .val = aven_str("#"), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("define"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str("A"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str("10"), .type = AVEN_C_TOKEN_TYPE_NUM },
+                        }
+                    ),
+                },
+            },
+            {
+                .desc = aven_str("aven_c_lex carriage return newline escaped in ppd"),
+                .fn = test_aven_c_lex,
+                .args = &(TestAvenCLexPpArgs){
+                    .src = slice_array("#define A\\\r\n10\r\n"),
+                    .expected = slice_array(
+                        (TestAvenCToken[]){
+                            { .val = aven_str("#define A\\\r\n10\r"), .type = AVEN_C_TOKEN_TYPE_PPD },
+                            { .type = AVEN_C_TOKEN_TYPE_NONE },
+                            { .val = aven_str("#"), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("define"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str("A"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str("10"), .type = AVEN_C_TOKEN_TYPE_NUM },
+                        }
+                    ),
+                },
+            },
+            {
+                .desc = aven_str("aven_c_lex carriage return within ppd"),
+                .fn = test_aven_c_lex,
+                .args = &(TestAvenCLexPpArgs){
+                    .src = slice_array("#define A\r10\n"),
+                    .expected = slice_array(
+                        (TestAvenCToken[]){
+                            { .val = aven_str("#define A\r10"), .type = AVEN_C_TOKEN_TYPE_PPD },
+                            { .type = AVEN_C_TOKEN_TYPE_NONE },
+                            { .val = aven_str("#"), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("define"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str("A"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str("10"), .type = AVEN_C_TOKEN_TYPE_NUM },
+                        }
+                    ),
+                },
+            },
+            {
                 .desc = aven_str("aven_c_token_loc single declaration"),
                 .fn = test_aven_c_token_loc,
                 .args = &(TestAvenCTokenLocArgs){
@@ -394,6 +495,25 @@
                             {
                                 .token = { .val = aven_str("\"Hello,"), .type = AVEN_C_TOKEN_TYPE_INV },
                                 .loc = { .line = 1, .col = 1 },
+                            },
+                        }
+                    ),
+                },
+            },
+            {
+                .desc = aven_str("aven_c_lex invalid carriage return in comment"),
+                .fn = test_aven_c_token_loc,
+                .args = &(TestAvenCTokenLocArgs){
+                    .src = slice_array("// a\r comment"),
+                    .expected = slice_array(
+                        (TestAvenCTokenLoc[]){
+                            {
+                                .token = { .val = aven_str("// a"), .type = AVEN_C_TOKEN_TYPE_CMT },
+                                .loc = { .line = 1, .col = 1 },
+                            },
+                            {
+                                .token = { .val = aven_str("\r"), .type = AVEN_C_TOKEN_TYPE_INV },
+                                .loc = { .line = 1, .col = 5 },
                             },
                         }
                     ),

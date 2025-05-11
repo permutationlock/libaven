@@ -1185,7 +1185,7 @@
                         break;
                     }
                     default: {
-                        ctx->state = AVEN_C_LEX_STATE_INV;
+                        ctx->state = AVEN_C_LEX_STATE_PPD_BODY;
                         break;
                     }
                 }
@@ -1369,6 +1369,12 @@
                         break;
                     }
                     default: {
+                        list_push(ctx->tokens) = (AvenCToken){
+                            .index = ctx->token_start,
+                            .end = ctx->index - 1,
+                            .type = AVEN_C_TOKEN_TYPE_CMT,
+                        };
+                        ctx->token_start = ctx->index - 1;
                         ctx->state = AVEN_C_LEX_STATE_INV;
                         break;
                     }
@@ -1416,6 +1422,12 @@
                         break;
                     }
                     default: {
+                        list_push(ctx->tokens) = (AvenCToken){
+                            .index = ctx->token_start,
+                            .end = ctx->index - 1,
+                            .type = AVEN_C_TOKEN_TYPE_CMT,
+                        };
+                        ctx->token_start = ctx->index - 1;
                         ctx->state = AVEN_C_LEX_STATE_INV;
                         break;
                     }
@@ -1486,6 +1498,12 @@
                         break;
                     }
                     default: {
+                        list_push(ctx->tokens) = (AvenCToken){
+                            .index = ctx->token_start,
+                            .end = ctx->index - 1,
+                            .type = AVEN_C_TOKEN_TYPE_CMT,
+                        };
+                        ctx->token_start = ctx->index - 1;
                         ctx->state = AVEN_C_LEX_STATE_INV;
                         break;
                     }
