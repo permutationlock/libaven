@@ -1188,15 +1188,6 @@
                         ctx->state = AVEN_C_LEX_STATE_PPD_BODY;
                         break;
                     }
-                    case 0: {
-                        list_push(ctx->tokens) = (AvenCToken){
-                            .index = ctx->token_start,
-                            .end = ctx->index + 1,
-                            .type = AVEN_C_TOKEN_TYPE_PPD,
-                        };
-                        ctx->state = AVEN_C_LEX_STATE_DONE;
-                        break;
-                    }
                     default: {
                         ctx->state = AVEN_C_LEX_STATE_PPD_BODY;
                         break;
@@ -1386,10 +1377,6 @@
                         list_back(ctx->tokens).trailing_lines += 1;
                         break;
                     }
-                    case 0: {
-                        ctx->state = AVEN_C_LEX_STATE_INV;
-                        break;
-                    }
                     default: {
                         ctx->state = AVEN_C_LEX_STATE_INV;
                         break;
@@ -1462,6 +1449,7 @@
                     }
                     default: {
                         ctx->index += 1;
+                        ctx->state = AVEN_C_LEX_STATE_COMMENT;
                         break;
                     }
                 }
@@ -8855,7 +8843,7 @@
             };
         }
         AvenCAst ast = ast_res.data.ast;
-        AvenStr newline = aven_c_detect_line_ending(src);
+        AvenStr newline = aven_str("\n");
         AvenCAstRenderResult ren_res = aven_c_ast_render(
             &ast,
             writer,
