@@ -2310,11 +2310,16 @@
         AvenStr exp;
     } AvenCAstError;
 
+    #ifndef AVEN_C_MAX_UNARY_EXPR_DEPTH
+        #define AVEN_C_MAX_UNARY_EXPR_DEPTH 10
+    #endif
+
     typedef struct {
         AvenCTokenSet tset;
         List(AvenCAstNode) nodes;
         List(uint32_t) data;
         List(uint32_t) scratch;
+        uint32_t unary_expr_depth;
         AvenCAstDataSlice pp_nodes;
         bool ppd;
         uint32_t token_index;
@@ -4602,10 +4607,21 @@
     }
 
     static inline uint32_t aven_c_ast_parse_unary_expr(AvenCAstCtx *ctx) {
+        if (ctx->unary_expr_depth > AVEN_C_MAX_UNARY_EXPR_DEPTH) {
+            if (aven_c_ast_next_index(ctx) >= ctx->error.token) {
+                ctx->error = (AvenCAstError){
+                    .type = AVEN_C_TOKEN_TYPE_PNC,
+                    .token = aven_c_ast_next_index(ctx),
+                    .exp = aven_str("non-unary-op"),
+                };
+            }
+            return 0;
+        }
         AvenCAstCtxState state = aven_c_ast_save(ctx);
         uint32_t node = 0;
         uint32_t main_token = aven_c_ast_next_index(ctx);
         AvenCTokenType token_type = aven_c_ast_next(ctx).type;
+        ctx->unary_expr_depth += 1;
         switch (token_type) {
             case AVEN_C_TOKEN_TYPE_KEY: {
                 bool sizeof_op = aven_c_ast_match_keyword(
@@ -4712,6 +4728,7 @@
                 break;
             }
         }
+        ctx->unary_expr_depth -= 1;
         if (node == 0) {
             node = aven_c_ast_parse_postfix_expr(ctx);
         }
@@ -6386,7 +6403,6 @@
                 list_push(ctx->scratch) = end_token;
                 break;
             }
-            ;
             if (aven_c_ast_next(ctx).type == AVEN_C_TOKEN_TYPE_NONE) {
                 aven_c_ast_restore(ctx, state);
                 return false;
