@@ -78,8 +78,8 @@
                 assert(handles.len < AVEN_WATCH_MAX_HANDLES);
                 uint32_t win_timeout = (uint32_t)timeout;
                 if (timeout < 0) {
-                    win_timeout = 0xffffffff;
                     /* INFINITE */
+                    win_timeout = 0xffffffff;
                 }
                 uint32_t signaled = 0;
                 do {
@@ -90,8 +90,8 @@
                         win_timeout
                     );
                     if (
-                        result == 0x00000102
                         /* TIMEOUT */
+                        result == 0x00000102
                     ) {
                         return (AvenWatchResult){ .payload = signaled };
                     } else if (result >= handles.len) {
@@ -262,7 +262,5 @@
         #endif
 
     #endif
-    // AVEN_IMPLEMENTATION
-
 #endif
 // AVEN_WATCH_H

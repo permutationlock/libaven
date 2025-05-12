@@ -137,7 +137,7 @@
 
         size_t len = min(path1_parts.len, path2_parts.len);
         size_t same_index = 0;
-        for (;same_index < len; same_index += 1) {
+        for (; same_index < len; same_index += 1) {
             bool match = aven_str_equals(
                 get(path1_parts, same_index),
                 get(path2_parts, same_index)
@@ -207,7 +207,7 @@
 
         size_t len = min(path1_parts.len, path2_parts.len);
         size_t same_index = 0;
-        for (;same_index < len; same_index += 1) {
+        for (; same_index < len; same_index += 1) {
             bool match = aven_str_equals(
                 get(path1_parts, same_index),
                 get(path2_parts, same_index)

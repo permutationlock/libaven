@@ -31,7 +31,7 @@
                 }
 
                 int dot_index = (int)fname.len - 1;
-                for (;dot_index > 0; dot_index -= 1) {
+                for (; dot_index > 0; dot_index -= 1) {
                     if (get(fname, (size_t)dot_index) == '.') {
                         break;
                     }
@@ -44,7 +44,7 @@
                 char aven_dl_suffix[] = "_aven_dl_loaded.dll";
                 char *temp_buffer = aven_arena_alloc(
                     &temp_arena,
-                    dot_index + sizeof (aven_dl_suffix),
+                    dot_index + sizeof(aven_dl_suffix),
                     1,
                     1
                 );
@@ -52,7 +52,7 @@
                 memcpy(
                     &temp_buffer[dot_index],
                     aven_dl_suffix,
-                    sizeof (aven_dl_suffix)
+                    sizeof(aven_dl_suffix)
                 );
 
                 int success = CopyFileA(

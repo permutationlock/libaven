@@ -471,8 +471,7 @@ uint64_t hash=wyhash(s.c_str(), s.size(), 0, aven_wyhash_wyp_internal);
                 secret[i] = 0;
                 for (size_t j = 0; j < 64; j += 8) secret[i] |= (
                     (uint64_t)c[aven_wyhahs_rand(&seed) % sizeof(c)]
-                ) <<
-                    j;
+                ) << j;
                 if (secret[i] % 2 == 0) {
                     ok = 0;
                     continue;

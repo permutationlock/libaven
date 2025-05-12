@@ -319,8 +319,8 @@
 
             _setmode(0, _O_BINARY);
             _setmode(1, _O_BINARY);
+            /* 65001: CP_UTF8 */
             SetConsoleOutputCP(65001);
-            /* CP_UTF8 */
         #else
         #endif
         }
@@ -329,7 +329,5 @@
         #endif
 
     #endif
-    // AVEN_IMPLEMENTATION
-
 #endif
 // AVEN_FS_H

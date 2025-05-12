@@ -65,7 +65,6 @@
                 Sleep(wait_ms);
             }
         #else
-            // !defined(_WIN32)
             #include <errno.h>
 
             #if !defined(_POSIX_C_SOURCE) or _POSIX_C_SOURCE < 199309L
@@ -86,7 +85,6 @@
                     emscripten_sleep((unsigned int)wait_ms);
                 }
             #else
-                // !defined(__EMSCRIPTEN__)
                 AVEN_FN void aven_time_sleep_ms(uint32_t wait_ms) {
                     time_t wait_sec = 0;
                     if (wait_ms > AVEN_TIME_MSEC_PER_SEC) {
@@ -107,13 +105,7 @@
                     assert(error == 0);
                 }
             #endif
-            // !defined(__EMSCRIPTEN__)
-
         #endif
-        // !defined(_WIN32)
-
     #endif
-    // AVEN_IMPLEMENTATION
-
 #endif
 // AVEN_TIME_H

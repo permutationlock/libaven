@@ -88,7 +88,6 @@
             assert(error == thrd_success);
         }
     #else
-        // defined(AVEN_THREAD_USE_PTHREADS)
         #ifdef _MSC_VER
             #error "pthreads not supported in MSVC"
         #endif
@@ -167,7 +166,5 @@
             assert(error == 0);
         }
     #endif
-    // defined(AVEN_THREAD_USE_PTHREADS)
-
 #endif
 // AVEN_THREAD_H
