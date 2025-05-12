@@ -72,9 +72,6 @@ int main(int argc, char **argv) {
         }
     }
     int64_t arg_cwidth = aven_arg_get_int(args, "--columns");
-    if (arg_cwidth <= 0 or arg_cwidth > (int64_t)(1024L * 1024L)) {
-        arg_cwidth = (int64_t)MAX_RENDER_SIZE;
-    }
     size_t column_width = (size_t)arg_cwidth;
     AvenIoReader reader = aven_io_stdin;
     Optional(AvenIoFd) in_fd = { 0 };
