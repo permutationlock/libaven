@@ -1,3 +1,4 @@
+// aven fmt columns: 100
 #ifndef TEST_C_H
     #define TEST_C_H
 
@@ -274,7 +275,10 @@
                     .src = slice_array("\"Hello, World!\\n\""),
                     .expected = slice_array(
                         (TestAvenCToken[]){
-                            { .val = aven_str("\"Hello, World!\\n\""), .type = AVEN_C_TOKEN_TYPE_STR },
+                            {
+                                .val = aven_str("\"Hello, World!\\n\""),
+                                .type = AVEN_C_TOKEN_TYPE_STR,
+                            },
                         }
                     ),
                 },
@@ -338,7 +342,10 @@
                             { .val = aven_str("="), .type = AVEN_C_TOKEN_TYPE_PNC },
                             { .val = aven_str("0"), .type = AVEN_C_TOKEN_TYPE_NUM },
                             { .val = aven_str(";"), .type = AVEN_C_TOKEN_TYPE_PNC },
-                            { .val = aven_str("// a comment with #"), .type = AVEN_C_TOKEN_TYPE_CMT },
+                            {
+                                .val = aven_str("// a comment with #"),
+                                .type = AVEN_C_TOKEN_TYPE_CMT,
+                            },
                             { .val = aven_str("while"), .type = AVEN_C_TOKEN_TYPE_KEY },
                             { .val = aven_str("("), .type = AVEN_C_TOKEN_TYPE_PNC },
                             { .val = aven_str("x"), .type = AVEN_C_TOKEN_TYPE_ID },
@@ -368,7 +375,10 @@
                     .src = slice_array("\r\"Hello, World!\\n\""),
                     .expected = slice_array(
                         (TestAvenCToken[]){
-                            { .val = aven_str("\"Hello, World!\\n\""), .type = AVEN_C_TOKEN_TYPE_STR },
+                            {
+                                .val = aven_str("\"Hello, World!\\n\""),
+                                .type = AVEN_C_TOKEN_TYPE_STR,
+                            },
                         }
                     ),
                 },
@@ -435,7 +445,10 @@
                     .src = slice_array("#define A\\\r\n10\r\n"),
                     .expected = slice_array(
                         (TestAvenCToken[]){
-                            { .val = aven_str("#define A\\\r\n10\r"), .type = AVEN_C_TOKEN_TYPE_PPD },
+                            {
+                                .val = aven_str("#define A\\\r\n10\r"),
+                                .type = AVEN_C_TOKEN_TYPE_PPD,
+                            },
                             { .type = AVEN_C_TOKEN_TYPE_NONE },
                             { .val = aven_str("#"), .type = AVEN_C_TOKEN_TYPE_PNC },
                             { .val = aven_str("define"), .type = AVEN_C_TOKEN_TYPE_ID },
@@ -493,7 +506,10 @@
                     .expected = slice_array(
                         (TestAvenCTokenLoc[]){
                             {
-                                .token = { .val = aven_str("\"Hello,"), .type = AVEN_C_TOKEN_TYPE_INV },
+                                .token = {
+                                    .val = aven_str("\"Hello,"),
+                                    .type = AVEN_C_TOKEN_TYPE_INV,
+                                },
                                 .loc = { .line = 1, .col = 1 },
                             },
                         }
@@ -572,7 +588,10 @@
                                 .loc = { .line = 1, .col = 16 },
                             },
                             {
-                                .token = { .val = aven_str("struct"), .type = AVEN_C_TOKEN_TYPE_KEY },
+                                .token = {
+                                    .val = aven_str("struct"),
+                                    .type = AVEN_C_TOKEN_TYPE_KEY,
+                                },
                                 .loc = { .line = 1, .col = 18 },
                             },
                             {
@@ -693,7 +712,11 @@
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("int x = 10 - 2 * 2 * 4 - 7 = 32 + 7 + 14;\n"),
                     .expected = aven_str(
-                        "int x = 10 -\n" "    2 * 2 * 4 -\n" "    7 = 32 +\n" "    7 +\n" "    14;\n"
+                        "int x = 10 -\n"
+                        "    2 * 2 * 4 -\n"
+                        "    7 = 32 +\n"
+                        "    7 +\n"
+                        "    14;\n"
                     ),
                     .line_len = 16,
                 },
@@ -938,7 +961,9 @@
                 .desc = aven_str("aven_c_ast_render empty line within multi-line comment"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array("int x = 2 + 2;\n" "/* Hello World!\n" "\n" "*/ int y = x;\n"),
+                    .src = slice_array(
+                        "int x = 2 + 2;\n" "/* Hello World!\n" "\n" "*/ int y = x;\n"
+                    ),
                     .expected = aven_str(
                         "int x = 2 + 2;\n" "/* Hello World!\n" "\n" "*/\n" "int y = x;\n"
                     ),
@@ -994,7 +1019,9 @@
                 .desc = aven_str("aven_c_ast_render multi-line comment in pp directive"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array("#define NUM 1 /* number of\n" "              ** entries */\n"),
+                    .src = slice_array(
+                        "#define NUM 1 /* number of\n" "              ** entries */\n"
+                    ),
                     .expected = aven_str("#define NUM 1\n" "/* number of\n" "** entries */\n"),
                     .line_len = 16,
                 },
@@ -1123,7 +1150,9 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("int foo(void *fn) { (void *(*)(void *))fn; }\n"),
-                    .expected = aven_str("int foo(void *fn) {\n" "    (void *(*)(void *))fn;\n" "}\n"),
+                    .expected = aven_str(
+                        "int foo(void *fn) {\n" "    (void *(*)(void *))fn;\n" "}\n"
+                    ),
                     .line_len = 48,
                 },
             },
@@ -1432,7 +1461,9 @@
                         "#define loop(f, a) do {\\\n" "        a = f;\\\n" "    } while (a == 0)\n"
                     ),
                     .expected = aven_str(
-                        "#define loop(f, a) do { \\\n" "        a = f; \\\n" "    } while (a == 0)\n"
+                        "#define loop(f, a) do { \\\n"
+                        "        a = f; \\\n"
+                        "    } while (a == 0)\n"
                     ),
                     .line_len = 28,
                 },
@@ -1501,7 +1532,9 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("void main(void) { printf(\"Hello, World!\"); }\n"),
-                    .expected = aven_str("void main(void) {\n" "    printf(\"Hello, World!\");\n" "}\n"),
+                    .expected = aven_str(
+                        "void main(void) {\n" "    printf(\"Hello, World!\");\n" "}\n"
+                    ),
                     .line_len = 40,
                 },
             },
@@ -1557,19 +1590,19 @@
                         "\n"
                         "    assert((align & (align - 1)) == 0);\n"
                         "\n"
-                        "    ptrdiff_t padding = (ptrdiff_t)(-(uintptr_t)arena->base & (align - 1));\n"
-                        "    ptrdiff_t available = arena->top - arena->base - padding;\n"
+                        "    ptrdiff_t pad = (ptrdiff_t)(-(uintptr_t)arena->base & (align - 1));\n"
+                        "    ptrdiff_t rem = arena->top - arena->base - pad;\n"
                         "\n"
                         "\n"
                         "\n"
-                        "    if (available < 0 || count > ((size_t)available / size)) {\n"
+                        "    if (rem < 0 || count > ((size_t)rem / size)) {\n"
                         "            // OOM unrecoverable, panic\n"
                         "            aven_panic(\"arena out of memory\");\n"
                         "    }\n"
                         "\n"
                         "\n"
-                        "    void *ptr = arena->base + padding;\n"
-                        "    arena->base += (size_t)padding + size * count;\n\n"
+                        "    void *ptr = arena->base + pad;\n"
+                        "    arena->base += (size_t)pad + size * count;\n\n"
                         "    return ptr;\n\n"
                         "}\n"
                     ),
@@ -1582,16 +1615,16 @@
                         ") {\n"
                         "    assert((align & (align - 1)) == 0);\n"
                         "\n"
-                        "    ptrdiff_t padding = (ptrdiff_t)(-(uintptr_t)arena->base & (align - 1));\n"
-                        "    ptrdiff_t available = arena->top - arena->base - padding;\n"
+                        "    ptrdiff_t pad = (ptrdiff_t)(-(uintptr_t)arena->base & (align - 1));\n"
+                        "    ptrdiff_t rem = arena->top - arena->base - pad;\n"
                         "\n"
-                        "    if (available < 0 || count > ((size_t)available / size)) {\n"
+                        "    if (rem < 0 || count > ((size_t)rem / size)) {\n"
                         "        // OOM unrecoverable, panic\n"
                         "        aven_panic(\"arena out of memory\");\n"
                         "    }\n"
                         "\n"
-                        "    void *ptr = arena->base + padding;\n"
-                        "    arena->base += (size_t)padding + size * count;\n\n"
+                        "    void *ptr = arena->base + pad;\n"
+                        "    arena->base += (size_t)pad + size * count;\n\n"
                         "    return ptr;\n"
                         "}\n"
                     ),
@@ -1794,19 +1827,19 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array(
-                        "static inline AvenStr aven_c_token_str(AvenCTokenSet tset, uint32_t index) {\n"
+                        "static inline Str token_str(TokenSet tset, uint32_t index) {\n"
                         "    // Grab entire text chunk for all tokens within directive\n"
-                        "    AvenCToken t1 = get(tset.ppd_tokens, token.index);\n"
-                        "    AvenCToken tn = get(tset.ppd_tokens, token.index + (token.len - 1));\n"
-                        "    return aven_str_range(tset.bytes, t1.index, tn.index + tn.len);\n"
+                        "    Token t1 = get(tset.ppd_tokens, token.index);\n"
+                        "    Token tn = get(tset.ppd_tokens, token.index + (token.len - 1));\n"
+                        "    return str_range(tset.bytes, t1.index, tn.index + tn.len);\n"
                         "}\n"
                     ),
                     .expected = aven_str(
-                        "static inline AvenStr aven_c_token_str(AvenCTokenSet tset, uint32_t index) {\n"
+                        "static inline Str token_str(TokenSet tset, uint32_t index) {\n"
                         "    // Grab entire text chunk for all tokens within directive\n"
-                        "    AvenCToken t1 = get(tset.ppd_tokens, token.index);\n"
-                        "    AvenCToken tn = get(tset.ppd_tokens, token.index + (token.len - 1));\n"
-                        "    return aven_str_range(tset.bytes, t1.index, tn.index + tn.len);\n"
+                        "    Token t1 = get(tset.ppd_tokens, token.index);\n"
+                        "    Token tn = get(tset.ppd_tokens, token.index + (token.len - 1));\n"
+                        "    return str_range(tset.bytes, t1.index, tn.index + tn.len);\n"
                         "}\n"
                     ),
                     .line_len = 80,
@@ -1837,17 +1870,17 @@
                         "        aven_panic(\"malloc failed\\n\");\n"
                         "    }\n"
                         "    AvenArena arena = aven_arena_init(mem, ARENA_SIZE);\n"
-                        "    AvenIoWriter stdout = aven_io_writer_init_stdout_buffered(8192, &arena);\n"
+                        "    AvenIoWriter w = aven_io_writer_init_stdout_buffered(8192, &arena);\n"
                         "    AvenCFmtResult fmt_res = aven_c_fmt(\n"
                         "            &aven_io_stdin,\n"
-                        "            &stdout,\n"
+                        "            &w,\n"
                         "#ifdef A\n"
                         "            &arena,\n"
                         "#else\n"
                         "            &arena\n"
                         "#endif\n"
                         "        );\n"
-                        "    aven_io_writer_flush(&stdout);\n"
+                        "    aven_io_writer_flush(&w);\n"
                         "    if (fmt_res.error != AVEN_C_FMT_ERROR_NONE) {\n"
                         "        aven_io_perrf(\n"
                         "                \"error: {}\\n\",\n"
@@ -1879,17 +1912,17 @@
                         "        aven_panic(\"malloc failed\\n\");\n"
                         "    }\n"
                         "    AvenArena arena = aven_arena_init(mem, ARENA_SIZE);\n"
-                        "    AvenIoWriter stdout = aven_io_writer_init_stdout_buffered(8192, &arena);\n"
+                        "    AvenIoWriter w = aven_io_writer_init_stdout_buffered(8192, &arena);\n"
                         "    AvenCFmtResult fmt_res = aven_c_fmt(\n"
                         "        &aven_io_stdin,\n"
-                        "        &stdout,\n"
+                        "        &w,\n"
                         "#ifdef A\n"
                         "        &arena,\n"
                         "#else\n"
                         "        &arena\n"
                         "#endif\n"
                         "    );\n"
-                        "    aven_io_writer_flush(&stdout);\n"
+                        "    aven_io_writer_flush(&w);\n"
                         "    if (fmt_res.error != AVEN_C_FMT_ERROR_NONE) {\n"
                         "        aven_io_perrf(\"error: {}\\n\", aven_fmt_str(fmt_res.msg));\n"
                         "        return 1;\n"
@@ -1922,7 +1955,9 @@
                 .desc = aven_str("aven_c_ast_render msvc warn pragma"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array("void *x = RL_MALLOC(anim[a].num_frames*sizeof(Transform *));\n"),
+                    .src = slice_array(
+                        "void *x = RL_MALLOC(anim[a].num_frames*sizeof(Transform *));\n"
+                    ),
                     .expected = aven_str(
                         "void *x = RL_MALLOC(\n"
                         "    anim[a].num_frames *\n"
@@ -2002,7 +2037,9 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array(
-                        "void foo(void) {\n" "    __asm__ volatile(\"\":\"\":\"\":\"memory\");\n" "}\n"
+                        "void foo(void) {\n"
+                        "    __asm__ volatile(\"\":\"\":\"\":\"memory\");\n"
+                        "}\n"
                     ),
                     .expected = aven_str(
                         "void foo(void) {\n"
@@ -2015,6 +2052,30 @@
                         "}\n"
                     ),
                     .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render newlines between struct members"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "struct Gap{\n" "    int member1;\n" "\n" "    int member2;\n" "\n" "};\n"
+                    ),
+                    .expected = aven_str(
+                        "struct Gap {\n" "    int member1;\n" "\n" "    int member2;\n" "};\n"
+                    ),
+                    .line_len = 24,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render don't space one-liner struct members"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "struct Gap{\n" "    int member1;\n" "\n" "    int member2;\n" "\n" "};\n"
+                    ),
+                    .expected = aven_str("struct Gap { int member1; int member2; };\n"),
+                    .line_len = 80,
                 },
             },
         };
