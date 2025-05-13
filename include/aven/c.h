@@ -222,10 +222,7 @@
     typedef Slice(AvenCToken) AvenCTokenSlice;
     typedef List(AvenCToken) AvenCTokenList;
 
-    typedef struct {
-        AvenStr bytes;
-        AvenCTokenSlice tokens;
-    } AvenCTokenSet;
+    typedef struct { AvenStr bytes; AvenCTokenSlice tokens; } AvenCTokenSet;
 
     static inline AvenStr aven_c_token_str(AvenCTokenSet tset, uint32_t index) {
         AvenCToken token = get(tset.tokens, index);
@@ -247,10 +244,7 @@
         return aven_str_range(tset.bytes, token.index, token.end);
     }
 
-    typedef struct {
-        uint32_t line;
-        uint32_t col;
-    } AvenCTokenLoc;
+    typedef struct { uint32_t line; uint32_t col; } AvenCTokenLoc;
 
     static inline AvenCTokenLoc aven_c_token_loc(
         AvenCTokenSet tset,
@@ -2242,14 +2236,9 @@
         AVEN_C_AST_RESULT_TYPE_AST = 0,
         AVEN_C_AST_RESULT_TYPE_ERROR = 1,
     } AvenCAstResultType;
-    typedef union {
-        AvenStr error;
-        AvenCAst ast;
-    } AvenCAstResultData;
-    typedef struct {
-        AvenCAstResultType type;
-        AvenCAstResultData data;
-    } AvenCAstResult;
+    typedef union { AvenStr error; AvenCAst ast; } AvenCAstResultData;
+    typedef struct { AvenCAstResultType type; AvenCAstResultData data; }
+        AvenCAstResult;
 
     static inline AvenCAstNode aven_c_ast_node(AvenCAst *ast, uint32_t index) {
         return get(ast->nodes, index - 1);
@@ -2283,6 +2272,8 @@
         bool depth_exceeded;
         uint32_t max_depth;
         uint32_t depth;
+        uint32_t spec_depth;
+        uint32_t unary_expr_depth;
         uint32_t token_index;
         AvenCAstError error;
         Optional(AvenCAstError) ppd_error;
@@ -2725,10 +2716,7 @@
         );
     }
 
-    typedef struct {
-        uint32_t decl_spec_list;
-        bool abstract;
-    } AvenCAstDsl;
+    typedef struct { uint32_t decl_spec_list; bool abstract; } AvenCAstDsl;
 
     static inline uint32_t aven_c_ast_parse_type_name(AvenCAstCtx *ctx);
     static inline uint32_t aven_c_ast_parse_type_specifier(AvenCAstCtx *ctx);
@@ -3572,9 +3560,8 @@
             list_push(ctx->scratch) = decl_spec;
             last = cur;
             cur = aven_c_ast_save(ctx);
-            decl_spec_count += 1;
         }
-        for (;;) {
+        for (; decl_spec_count < ctx->max_depth; decl_spec_count += 1) {
             uint32_t decl_spec = aven_c_ast_parse_declaration_specifier(ctx);
             if (decl_spec == 0) {
                 break;
@@ -3582,10 +3569,13 @@
             list_push(ctx->scratch) = decl_spec;
             last = cur;
             cur = aven_c_ast_save(ctx);
-            decl_spec_count += 1;
         }
         if (decl_spec_count == 0) {
             aven_c_ast_restore_trap(ctx, state);
+            return (AvenCAstDsl){ 0 };
+        }
+        if (decl_spec_count == ctx->max_depth) {
+            aven_c_ast_error(ctx, state);
             return (AvenCAstDsl){ 0 };
         }
         if (abstract) {
@@ -4722,9 +4712,14 @@
 
     static inline uint32_t aven_c_ast_parse_unary_expr(AvenCAstCtx *ctx) {
         AvenCAstCtxState state = aven_c_ast_save(ctx);
+        if (ctx->unary_expr_depth > ctx->max_depth) {
+            aven_c_ast_error(ctx, state);
+            return 0;
+        }
         uint32_t node = 0;
         uint32_t main_token = aven_c_ast_next_index(ctx);
         AvenCTokenType token_type = aven_c_ast_next(ctx).type;
+        ctx->unary_expr_depth += 1;
         switch (token_type) {
             case AVEN_C_TOKEN_TYPE_KEY: {
                 bool sizeof_op = aven_c_ast_match_keyword(
@@ -4836,6 +4831,7 @@
         if (node == 0) {
             aven_c_ast_restore_trap(ctx, state);
         }
+        ctx->unary_expr_depth -= 1;
         return node;
     }
 
@@ -6835,11 +6831,8 @@
         AVEN_C_AST_RENDER_ERROR_FMT = 1,
         AVEN_C_AST_RENDER_ERROR_IO = 1,
     } AvenCAstRenderError;
-    typedef struct {
-        AvenCAstRenderError error;
-        int io_error;
-        AvenStr msg;
-    } AvenCAstRenderResult;
+    typedef struct { AvenCAstRenderError error; int io_error; AvenStr msg; }
+        AvenCAstRenderResult;
 
     typedef struct {
         AvenCAst *ast;
@@ -6858,11 +6851,8 @@
         bool ppd;
     } AvenCAstRenderCtx;
 
-    typedef struct {
-        uint32_t cursor;
-        uint32_t indent;
-        bool ppd;
-    } AvenCAstRenderCtxState;
+    typedef struct { uint32_t cursor; uint32_t indent; bool ppd; }
+        AvenCAstRenderCtxState;
 
     static inline AvenCAstRenderCtxState aven_c_ast_render_save(
         AvenCAstRenderCtx *ctx
@@ -7948,7 +7938,8 @@
                     parent_type == AVEN_C_AST_NODE_TYPE_ASSIGN_EXPR or
                         parent_type == AVEN_C_AST_NODE_TYPE_INIT_DECLARATOR or
                         parent_type == AVEN_C_AST_NODE_TYPE_DESIGNATION or
-                        parent_type == AVEN_C_AST_NODE_TYPE_ENUMERATOR
+                        parent_type == AVEN_C_AST_NODE_TYPE_ENUMERATOR or
+                        parent_type == AVEN_C_AST_NODE_TYPE_RETURN_STATEMENT
                 );
                 if (split and indent) {
                     ctx->indent += 1;
@@ -9140,11 +9131,8 @@
         AVEN_C_FMT_ERROR_PARSE,
         AVEN_C_FMT_ERROR_RENDER,
     } AvenCFmtError;
-    typedef struct {
-        AvenCFmtError error;
-        int io_error;
-        AvenStr msg;
-    } AvenCFmtResult;
+    typedef struct { AvenCFmtError error; int io_error; AvenStr msg; }
+        AvenCFmtResult;
 
     static inline AvenCFmtResult aven_c_fmt(
         AvenStr src,

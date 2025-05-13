@@ -8,15 +8,9 @@
     #include <aven/str.h>
     #include <aven/test.h>
 
-    typedef struct {
-        AvenStr val;
-        AvenCTokenType type;
-    } TestAvenCToken;
+    typedef struct { AvenStr val; AvenCTokenType type; } TestAvenCToken;
 
-    typedef struct {
-        AvenStr src;
-        Slice(TestAvenCToken) expected;
-    } TestAvenCLexPpArgs;
+    typedef struct { AvenStr src; Slice(TestAvenCToken) expected; } TestAvenCLexPpArgs;
 
     static AvenTestResult test_aven_c_lex(AvenArena *emsg_arena, AvenArena arena, void *args) {
         TestAvenCLexPpArgs *pp_args = args;
@@ -64,15 +58,9 @@
         return (AvenTestResult){ 0 };
     }
 
-    typedef struct {
-        TestAvenCToken token;
-        AvenCTokenLoc loc;
-    } TestAvenCTokenLoc;
+    typedef struct { TestAvenCToken token; AvenCTokenLoc loc; } TestAvenCTokenLoc;
 
-    typedef struct {
-        AvenStr src;
-        Slice(TestAvenCTokenLoc) expected;
-    } TestAvenCTokenLocArgs;
+    typedef struct { AvenStr src; Slice(TestAvenCTokenLoc) expected; } TestAvenCTokenLocArgs;
 
     static AvenTestResult test_aven_c_token_loc(AvenArena *emsg_arena, AvenArena arena, void *args) {
         TestAvenCTokenLocArgs *pp_args = args;
@@ -135,11 +123,7 @@
         return (AvenTestResult){ 0 };
     }
 
-    typedef struct {
-        AvenStr src;
-        AvenStr expected;
-        size_t line_len;
-    } TestAvenCAstRenderArgs;
+    typedef struct { AvenStr src; AvenStr expected; size_t line_len; } TestAvenCAstRenderArgs;
 
     static AvenTestResult test_aven_c_ast_render(AvenArena *emsg_arena, AvenArena arena, void *args) {
         TestAvenCAstRenderArgs *fmt_args = args;
@@ -1107,6 +1091,35 @@
                     .src = slice_array("const char *str = \" World!\" MY_STR;"),
                     .expected = aven_str("const char *str = \" World!\"\n    MY_STR;\n"),
                     .line_len = 28,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render compound string literal return"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void foo(void) {\n" "    return \"Hello, \" \"World!\";\n" "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void foo(void) {\n" "    return \"Hello, \" \"World!\";\n" "}\n"
+                    ),
+                    .line_len = 36,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render compound string literal return short"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void foo(void) {\n" "    return \"Hello, \" \"World!\";\n" "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void foo(void) {\n"
+                        "    return \"Hello, \"\n"
+                        "        \"World!\";\n"
+                        "}\n"
+                    ),
+                    .line_len = 24,
                 },
             },
             {
