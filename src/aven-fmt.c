@@ -133,6 +133,7 @@ int main(int argc, char **argv) {
                 aven_fmt_str(in_file.value),
                 aven_fmt_int((int)in_res.error)
             );
+            return 1;
         }
         in_fd.valid = true;
         in_fd.value = in_res.payload;
@@ -198,6 +199,7 @@ int main(int argc, char **argv) {
                 aven_fmt_str(out_file.value),
                 aven_fmt_int((int)out_res.error)
             );
+            return 1;
         }
         out_fd.valid = true;
         out_fd.value = out_res.payload;
