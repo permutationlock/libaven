@@ -39,15 +39,9 @@
         AVEN_FMT_ARG_TYPE_STR,
     } AvenFmtArgType;
 
-    typedef struct {
-        uint64_t val;
-        size_t digits;
-    } AvenFmtArgUInt;
+    typedef struct { uint64_t val; size_t digits; } AvenFmtArgUInt;
 
-    typedef struct {
-        int64_t val;
-        size_t digits;
-    } AvenFmtArgInt;
+    typedef struct { int64_t val; size_t digits; } AvenFmtArgInt;
 
     typedef union {
         AvenFmtArgUInt arg_uint;
@@ -55,10 +49,7 @@
         AvenStr arg_str;
     } AvenFmtArgData;
 
-    typedef struct {
-        AvenFmtArgType type;
-        AvenFmtArgData data;
-    } AvenFmtArg;
+    typedef struct { AvenFmtArgType type; AvenFmtArgData data; } AvenFmtArg;
     typedef Slice(AvenFmtArg) AvenFmtArgSlice;
 
     static inline size_t aven_fmt_uint_decimal_digits(uint64_t num) {

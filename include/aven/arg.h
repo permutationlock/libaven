@@ -13,11 +13,7 @@
 
     typedef struct {
         AvenArgType type;
-        union {
-            bool arg_bool;
-            int64_t arg_int;
-            AvenStr arg_str;
-        } data;
+        union { bool arg_bool; int64_t arg_int; AvenStr arg_str; } data;
     } AvenArgValue;
 
     typedef struct {

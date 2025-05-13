@@ -28,12 +28,8 @@
         AVEN_BUILD_STEP_TYPE_COPY,
     } AvenBuildStepType;
 
-    typedef union {
-        AvenStrSlice cmd;
-        AvenStr rm;
-        AvenStr rmdir;
-        AvenStr copy;
-    } AvenBuildStepData;
+    typedef union { AvenStrSlice cmd; AvenStr rm; AvenStr rmdir; AvenStr copy; }
+        AvenBuildStepData;
 
     typedef Optional(AvenStr) AvenBuildOptionalPath;
     typedef struct AvenBuildStepNode AvenBuildStepNode;
@@ -47,10 +43,7 @@
         AvenBuildOptionalPath out_path;
     } AvenBuildStep;
 
-    struct AvenBuildStepNode {
-        AvenBuildStepNode *next;
-        AvenBuildStep *step;
-    };
+    struct AvenBuildStepNode { AvenBuildStepNode *next; AvenBuildStep *step; };
 
     typedef Slice(AvenBuildStep) AvenBuildStepSlice;
     typedef Slice(AvenBuildStep *) AvenBuildStepPtrSlice;

@@ -5,10 +5,7 @@
     #include "arena.h"
     #include "io.h"
 
-    typedef struct {
-        int error;
-        AvenStr message;
-    } AvenTestResult;
+    typedef struct { int error; AvenStr message; } AvenTestResult;
 
     typedef AvenTestResult AvenTestFn(
         AvenArena *emsg_arena,
@@ -16,11 +13,7 @@
         void *args
     );
 
-    typedef struct {
-        AvenStr desc;
-        void *args;
-        AvenTestFn *fn;
-    } AvenTestCase;
+    typedef struct { AvenStr desc; void *args; AvenTestFn *fn; } AvenTestCase;
 
     typedef Slice(AvenTestCase) AvenTestCaseSlice;
 

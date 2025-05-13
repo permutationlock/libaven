@@ -5,10 +5,7 @@
 
     typedef uint32_t AvenRngRandFn(void *state);
 
-    typedef struct {
-        AvenRngRandFn *rand;
-        void *state;
-    } AvenRng;
+    typedef struct { AvenRngRandFn *rand; void *state; } AvenRng;
 
     static inline uint32_t aven_rng_rand(AvenRng rng) {
         return rng.rand(rng.state);

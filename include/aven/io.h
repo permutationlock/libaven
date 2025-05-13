@@ -58,10 +58,7 @@
 
     AVEN_FN void aven_io_close(AvenIoFd fd);
 
-    typedef union {
-        void *ptr;
-        AvenIoFd fd;
-    } AvenIoCtx;
+    typedef union { void *ptr; AvenIoFd fd; } AvenIoCtx;
 
     typedef AvenIoResult AvenIoFn(AvenIoCtx ctx, ByteSlice bytes);
 
@@ -468,20 +465,11 @@
         )
     #define AVEN_IO_SLICE_FINGERPRINT ((uint64_t)0x571ce04eade2)
 
-    typedef struct {
-        uint64_t size;
-        uint64_t len;
-    } AvenIoSlice;
+    typedef struct { uint64_t size; uint64_t len; } AvenIoSlice;
 
-    typedef struct {
-        void *ptr;
-        AvenIoSlice slice;
-    } AvenIoSliceGeneric;
+    typedef struct { void *ptr; AvenIoSlice slice; } AvenIoSliceGeneric;
 
-    typedef struct {
-        uint64_t fp;
-        AvenIoSlice slice;
-    } AvenIoSliceHeader;
+    typedef struct { uint64_t fp; AvenIoSlice slice; } AvenIoSliceHeader;
 
     typedef Result(AvenIoSliceGeneric, int) AvenIoSliceResult;
 
@@ -576,21 +564,11 @@
         )
     #define AVEN_IO_LIST_FINGERPRINT ((uint64_t)0x715704eade2)
 
-    typedef struct {
-        uint64_t size;
-        uint64_t len;
-        uint64_t cap;
-    } AvenIoList;
+    typedef struct { uint64_t size; uint64_t len; uint64_t cap; } AvenIoList;
 
-    typedef struct {
-        void *ptr;
-        AvenIoList list;
-    } AvenIoListGeneric;
+    typedef struct { void *ptr; AvenIoList list; } AvenIoListGeneric;
 
-    typedef struct {
-        uint64_t fp;
-        AvenIoList list;
-    } AvenIoListHeader;
+    typedef struct { uint64_t fp; AvenIoList list; } AvenIoListHeader;
 
     typedef Result(AvenIoListGeneric, int) AvenIoListResult;
 
@@ -699,21 +677,11 @@
         )
     #define AVEN_IO_QUEUE_FINGERPRINT ((uint64_t)0x98e8e04eade2)
 
-    typedef struct {
-        uint64_t size;
-        uint64_t used;
-        uint64_t cap;
-    } AvenIoQueue;
+    typedef struct { uint64_t size; uint64_t used; uint64_t cap; } AvenIoQueue;
 
-    typedef struct {
-        void *ptr;
-        AvenIoQueue queue;
-    } AvenIoQueueGeneric;
+    typedef struct { void *ptr; AvenIoQueue queue; } AvenIoQueueGeneric;
 
-    typedef struct {
-        uint64_t fp;
-        AvenIoQueue queue;
-    } AvenIoQueueHeader;
+    typedef struct { uint64_t fp; AvenIoQueue queue; } AvenIoQueueHeader;
 
     typedef Result(AvenIoQueueGeneric, int) AvenIoQueueResult;
 
@@ -841,15 +809,9 @@
         uint64_t cap;
     } AvenIoPool;
 
-    typedef struct {
-        void *ptr;
-        AvenIoPool pool;
-    } AvenIoPoolGeneric;
+    typedef struct { void *ptr; AvenIoPool pool; } AvenIoPoolGeneric;
 
-    typedef struct {
-        uint64_t fp;
-        AvenIoPool pool;
-    } AvenIoPoolHeader;
+    typedef struct { uint64_t fp; AvenIoPool pool; } AvenIoPoolHeader;
 
     typedef Result(AvenIoPoolGeneric, int) AvenIoPoolResult;
 

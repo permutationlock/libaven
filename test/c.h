@@ -2091,6 +2091,19 @@
                     .line_len = 80,
                 },
             },
+            {
+                .desc = aven_str("aven_c_ast_render pp def parenthesised expresson"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "#define AVEN_ARENA_BIGGEST_ALIGNMENT (alignof(max_align_t))\n"
+                    ),
+                    .expected = aven_str(
+                        "#define AVEN_ARENA_BIGGEST_ALIGNMENT (alignof(max_align_t))\n"
+                    ),
+                    .line_len = 80,
+                },
+            },
         };
 
         AvenTestCaseSlice tcases = slice_array(tcase_data);
