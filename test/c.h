@@ -145,7 +145,7 @@
         TestAvenCAstRenderArgs *fmt_args = args;
 
         AvenCTokenSet tset = aven_c_lex(fmt_args->src, &arena);
-        AvenCAstResult ast_res = aven_c_ast_parse(tset, &arena);
+        AvenCAstResult ast_res = aven_c_ast_parse(tset, 12, &arena);
         if (ast_res.type == AVEN_C_AST_RESULT_TYPE_ERROR) {
             return (AvenTestResult){
                 .error = 1,
@@ -1149,9 +1149,9 @@
                 .desc = aven_str("aven_c_ast_render function pointer cast"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array("int foo(void *fn) { (void *(*)(void *))fn; }\n"),
+                    .src = slice_array("int foo(void *fn) { (void *(*)(void *))fn(); }\n"),
                     .expected = aven_str(
-                        "int foo(void *fn) {\n" "    (void *(*)(void *))fn;\n" "}\n"
+                        "int foo(void *fn) {\n" "    (void *(*)(void *))fn();\n" "}\n"
                     ),
                     .line_len = 48,
                 },
