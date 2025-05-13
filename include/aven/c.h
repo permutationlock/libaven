@@ -9071,37 +9071,6 @@
         return (AvenCAstRenderResult){ 0 };
     }
 
-    static inline AvenStr aven_c_detect_line_ending(AvenStr src) {
-        size_t n_newlines = 0;
-        size_t rn_newlines = 0;
-        bool last_r = false;
-        for (size_t i = 0; i < src.len; i += 1) {
-            char c = get(src, i);
-            switch (c) {
-                case '\n': {
-                    if (last_r) {
-                        rn_newlines += 1;
-                    } else {
-                        n_newlines += 1;
-                    }
-                    break;
-                }
-                case '\r': {
-                    last_r = true;
-                    break;
-                }
-                default: {
-                    last_r = false;
-                    break;
-                }
-            }
-        }
-        if (rn_newlines > n_newlines) {
-            return aven_str("\r\n");
-        }
-        return aven_str("\n");
-    }
-
     typedef Optional(uint32_t) AvenCConfigOpt;
 
     static inline AvenCConfigOpt aven_c_parse_config_comment(
