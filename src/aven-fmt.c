@@ -47,7 +47,7 @@ static AvenArg arg_data[] = {
         .description = aven_str_init(
             "Parse recursive depth limit, 0 for infinite"
         ),
-        .value = { .type = AVEN_ARG_TYPE_INT, .data = { .arg_int = 12 } },
+        .value = { .type = AVEN_ARG_TYPE_INT, .data = { .arg_int = 10 } },
         .type = AVEN_ARG_TYPE_INT,
     },
 };
