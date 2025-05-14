@@ -406,6 +406,39 @@
         return aven_io_writer_push_fmt_args_ex(writer, fmt, args, arena);
     }
 
+    typedef Result(ByteSlice, int) AvenIoPopAllResult;
+
+    static inline AvenIoPopAllResult aven_io_reader_pop_all(
+        AvenIoReader *reader,
+        size_t block_size,
+        AvenArena *arena
+    ) {
+        List(unsigned char) input = aven_arena_create_list(
+            unsigned char,
+            arena,
+            block_size
+        );
+        for (;;) {
+            ByteSlice rem = slice_list_free(input);
+            if (rem.len == 0) {
+                aven_arena_resize_list(arena, input, input.len + block_size);
+                continue;
+            }
+            AvenIoResult res = aven_io_reader_pop(reader, rem);
+            if (res.error != 0) {
+                return (AvenIoPopAllResult){ .error = res.error };
+            }
+            if (res.payload == 0) {
+                break;
+            }
+            input.len += res.payload;
+        }
+        list_push(input) = 0;
+        return (AvenIoPopAllResult){
+            .payload = aven_arena_commit_list_to_slice(ByteSlice, arena, input),
+        };
+    }
+
     #define aven_io_writer_push_struct(w, s) \
             aven_io_writer_push_struct_internal(w, as_bytes(s))
     #define aven_io_reader_pop_struct(w, s) aven_io_reader_pop_struct_internal( \

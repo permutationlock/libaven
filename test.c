@@ -16,9 +16,10 @@
 #include "test/path.h"
 #include "test/io.h"
 #include "test/c.h"
+#include "test/c_files.h"
 #include "test/hash_map.h"
 
-#define ARENA_SIZE (4096 * 64)
+#define ARENA_SIZE (4096 * 20000)
 
 int main(void) {
     aven_fs_utf8_mode();
@@ -27,8 +28,9 @@ int main(void) {
 
     test_path(test_arena);
     test_io(test_arena);
-    test_c(test_arena);
     test_hash_map(test_arena);
+    test_c(test_arena);
+    test_c_files(test_arena);
 
     free(mem);
 
