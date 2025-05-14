@@ -42,6 +42,12 @@ static AvenArg arg_data[] = {
         .value = { .type = AVEN_ARG_TYPE_UINT, .data = { .arg_int = 80 } },
         .type = AVEN_ARG_TYPE_UINT,
     },
+    {
+        .name = aven_str_init("--parse-depth"),
+        .description = aven_str_init("Parse depth limit, 0 for no limit"),
+        .value = { .type = AVEN_ARG_TYPE_UINT, .data = { .arg_int = 12 } },
+        .type = AVEN_ARG_TYPE_UINT,
+    },
 };
 
 // 1GB virtual memory reserve handles pathological files up to ~10MB, and
@@ -72,7 +78,9 @@ int main(int argc, char **argv) {
         }
     }
     uint64_t arg_cwidth = aven_arg_get_uint(args, "--columns");
+    uint64_t arg_depth = aven_arg_get_uint(args, "--parse-depth");
     size_t column_width = (size_t)arg_cwidth;
+    size_t parse_depth = (size_t)arg_depth;
     AvenIoReader reader = aven_io_stdin;
     Optional(AvenIoFd) in_fd = { 0 };
     Optional(AvenStr) in_file = { 0 };
@@ -154,7 +162,13 @@ int main(int argc, char **argv) {
         MAX_RENDER_SIZE
     );
     AvenIoWriter writer = aven_io_writer_init_bytes(bytes);
-    AvenCFmtResult fmt_res = aven_c_fmt(src, &writer, column_width, &arena);
+    AvenCFmtResult fmt_res = aven_c_fmt(
+        src,
+        &writer,
+        column_width,
+        parse_depth,
+        &arena
+    );
     aven_io_writer_flush(&writer);
     if (fmt_res.error != AVEN_C_FMT_ERROR_NONE) {
         aven_io_perrf("error: {}\n", aven_fmt_str(fmt_res.msg));

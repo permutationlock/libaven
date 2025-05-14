@@ -129,7 +129,7 @@
         TestAvenCAstRenderArgs *fmt_args = args;
 
         AvenCTokenSet tset = aven_c_lex(fmt_args->src, &arena);
-        AvenCAstResult ast_res = aven_c_ast_parse(tset, &arena);
+        AvenCAstResult ast_res = aven_c_ast_parse(tset, 12, &arena);
         if (ast_res.type == AVEN_C_AST_RESULT_TYPE_ERROR) {
             return (AvenTestResult){
                 .error = 1,
