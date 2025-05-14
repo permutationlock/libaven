@@ -43,7 +43,7 @@
     } AvenArgError;
 
     static const AvenStr aven_arg_type_data[] = {
-        [AVEN_ARG_TYPE_BOOL] = aven_str_init(" [true|false]"),
+        [AVEN_ARG_TYPE_BOOL] = aven_str_init(" [false]"),
         [AVEN_ARG_TYPE_UINT] = aven_str_init(" N"),
         [AVEN_ARG_TYPE_INT] = aven_str_init(" [+|-]N"),
         [AVEN_ARG_TYPE_STRING] = aven_str_init(" \"str\""),

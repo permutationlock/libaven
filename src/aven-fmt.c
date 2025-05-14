@@ -50,8 +50,8 @@ static AvenArg arg_data[] = {
     },
 };
 
-// 1GB virtual memory reserve handles pathological files up to ~10MB, and
-// for normal looking source files this limit should never be exceeded
+// 1GB virtual memory reserve handles pathological files up to ~10MB, for
+// normal source files this limit should never be exceeded
 #define ARENA_SIZE (4096 * 250000)
 #define MAX_RENDER_SIZE ((size_t)1024 * (size_t)1024 * (size_t)100)
 
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
     AvenArena arena = aven_arena_init(mem, ARENA_SIZE);
 
     AvenStr overview = aven_str("Aven C Formatter");
-    AvenStr usage = aven_str("aven-fmt [src_file]");
+    AvenStr usage = aven_str("aven-fmt [src_file] [options]");
     AvenArgSlice args = slice_array(arg_data);
     size_t arg_cols = aven_arg_col_len(args);
     AvenArgError parse_error = aven_arg_parse(args, argv, argc, overview, usage);
@@ -87,13 +87,13 @@ int main(int argc, char **argv) {
     Optional(AvenStr) in_file = { 0 };
     if (aven_arg_has_arg(args, "")) {
         if (aven_arg_get_bool(args, "--stdin")) {
-            aven_io_perr("error: cannot specify --stdin with src_file\n");
+            aven_io_perr("error: cannot specify both --stdin and src_file\n");
             return 1;
         }
         in_file.valid = true;
         in_file.value = aven_arg_get_str(args, "");
     } else if (!aven_arg_get_bool(args, "--stdin")) {
-        aven_io_perr("error: specify src_file to format or use --stdin\n");
+        aven_io_perr("error: specify a src_file to format or --stdin\n");
         aven_arg_help(args, overview, usage, arg_cols);
         return 1;
     }
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
     bool in_place = aven_arg_get_bool(args, "--in-place");
     if (aven_arg_has_arg(args, "--out")) {
         if (in_place) {
-            aven_io_perr("error: can't specify both --out and --in-place\n");
+            aven_io_perr("error: cannot specify both --out and --in-place\n");
             aven_arg_help(args, overview, usage, arg_cols);
             return 1;
         }
@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
     }
     if (in_place) {
         if (!in_file.valid) {
-            aven_io_perr("error: specify src_file to use --in-place\n");
+            aven_io_perr("error: must specify a src_file to use --in-place\n");
             aven_arg_help(args, overview, usage, arg_cols);
             return 1;
         }
@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
         );
         if (in_res.error != AVEN_IO_OPEN_ERROR_NONE) {
             aven_io_perrf(
-                "error: opening \"{}\" failed with code {}\n",
+                "error: opening '{}' failed with code {}\n",
                 aven_fmt_str(in_file.value),
                 aven_fmt_int((int)in_res.error)
             );
@@ -185,7 +185,7 @@ int main(int argc, char **argv) {
         );
         if (out_res.error != AVEN_IO_OPEN_ERROR_NONE) {
             aven_io_perrf(
-                "error: opening \"{}\" failed with code {}\n",
+                "error: opening '{}' failed with code {}\n",
                 aven_fmt_str(out_file.value),
                 aven_fmt_int((int)out_res.error)
             );

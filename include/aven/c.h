@@ -2776,9 +2776,7 @@
                     aven_c_ast_inc_index(ctx)
                 );
             }
-            default: {
-                break;
-            }
+            default: break;
         }
         if (aven_c_ast_next_index(ctx) >= ctx->error.token) {
             ctx->error = (AvenCAstError){
@@ -4196,9 +4194,7 @@
                 );
                 break;
             }
-            default: {
-                break;
-            }
+            default: break;
         }
         return node;
     }
@@ -4229,9 +4225,7 @@
                 );
                 break;
             }
-            default: {
-                break;
-            }
+            default: break;
         }
         return node;
     }
@@ -4449,9 +4443,7 @@
                 );
                 break;
             }
-            default: {
-                break;
-            }
+            default: break;
         }
         return node;
     }
@@ -4831,9 +4823,7 @@
                 );
                 break;
             }
-            default: {
-                break;
-            }
+            default: break;
         }
 
         return node;
@@ -4920,61 +4910,51 @@
                 break;
             }
             case AVEN_C_TOKEN_TYPE_PNC: {
-                AvenStr token_str = aven_c_token_str(ctx->tset, main_token);
-                if (token_str.len != 1) {
-                    if (
-                        !(
-                            aven_c_ast_match_punctuator(ctx, AVEN_C_PNC_PLS2) or
-                                aven_c_ast_match_punctuator(
-                                    ctx,
-                                    AVEN_C_PNC_MIN2
-                                )
-                        )
-                    ) {
-                        break;
-                    }
-                    uint32_t child = aven_c_ast_parse_unary_expr(ctx);
-                    if (child == 0) {
-                        aven_c_ast_error(ctx, state);
-                        break;
-                    }
-                    node = aven_c_ast_push(
-                        ctx,
-                        AVEN_C_AST_NODE_TYPE_UNARY_EXPR,
-                        main_token,
-                        child,
-                        0
-                    );
-                } else {
-                    switch (get(token_str, 0)) {
-                        case '&':
-                        case '*':
-                        case '+':
-                        case '-':
-                        case '~':
-                        case '!': {
-                            aven_c_ast_inc_index(ctx);
-                            uint32_t child = aven_c_ast_parse_cast_expr(ctx);
-                            if (child == 0) {
-                                aven_c_ast_restore_trap(ctx, state);
-                                break;
-                            }
-                            node = aven_c_ast_push(
-                                ctx,
-                                AVEN_C_AST_NODE_TYPE_UNARY_EXPR,
-                                main_token,
-                                child,
-                                0
-                            );
+                AvenCPnc pnc = (AvenCPnc)aven_c_ast_next(ctx).end;
+                switch (pnc) {
+                    case AVEN_C_PNC_PLS2:
+                    case AVEN_C_PNC_MIN2: {
+                        aven_c_ast_inc_index(ctx);
+                        uint32_t child = aven_c_ast_parse_unary_expr(ctx);
+                        if (child == 0) {
+                            aven_c_ast_error(ctx, state);
                             break;
                         }
+                        node = aven_c_ast_push(
+                            ctx,
+                            AVEN_C_AST_NODE_TYPE_UNARY_EXPR,
+                            main_token,
+                            child,
+                            0
+                        );
+                        break;
                     }
+                    case AVEN_C_PNC_AMP:
+                    case AVEN_C_PNC_STR:
+                    case AVEN_C_PNC_PLS:
+                    case AVEN_C_PNC_MIN:
+                    case AVEN_C_PNC_TLD:
+                    case AVEN_C_PNC_EXC: {
+                        aven_c_ast_inc_index(ctx);
+                        uint32_t child = aven_c_ast_parse_cast_expr(ctx);
+                        if (child == 0) {
+                            aven_c_ast_restore_trap(ctx, state);
+                            break;
+                        }
+                        node = aven_c_ast_push(
+                            ctx,
+                            AVEN_C_AST_NODE_TYPE_UNARY_EXPR,
+                            main_token,
+                            child,
+                            0
+                        );
+                        break;
+                    }
+                    default: break;
                 }
                 break;
             }
-            default: {
-                break;
-            }
+            default: break;
         }
         if (node == 0) {
             node = aven_c_ast_parse_postfix_expr(ctx);
@@ -5041,9 +5021,7 @@
                 }
                 break;
             }
-            default: {
-                break;
-            }
+            default: break;
         }
         if (rhs == 0) {
             return 0;
@@ -5094,9 +5072,7 @@
                 }
                 break;
             }
-            default: {
-                break;
-            }
+            default: break;
         }
         if (rhs == 0) {
             return 0;
@@ -5146,9 +5122,7 @@
                 }
                 break;
             }
-            default: {
-                break;
-            }
+            default: break;
         }
         if (rhs == 0) {
             return 0;
@@ -5200,9 +5174,7 @@
                 }
                 break;
             }
-            default: {
-                break;
-            }
+            default: break;
         }
         if (rhs == 0) {
             return 0;
@@ -5252,9 +5224,7 @@
                 }
                 break;
             }
-            default: {
-                break;
-            }
+            default: break;
         }
         if (rhs == 0) {
             return 0;
@@ -5572,9 +5542,7 @@
                 }
                 break;
             }
-            default: {
-                break;
-            }
+            default: break;
         }
         if (rhs == 0) {
             return 0;
@@ -9141,7 +9109,7 @@
         ) {
             column_width = (int64_t)AVEN_C_MAX_COLUMN_WIDTH;
         }
-        size_t min_column_width = 32;
+        size_t min_column_width = 24;
         if (column_width < min_column_width) {
             return (AvenCFmtResult){
                 .error = AVEN_C_FMT_ERROR_RENDER,
