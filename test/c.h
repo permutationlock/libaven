@@ -2102,6 +2102,15 @@
                     .line_len = 80,
                 },
             },
+            {
+                .desc = aven_str("aven_c_ast_render pp def parenthesised expresson"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("#warning \"a long str warning!\"\n"),
+                    .expected = aven_str("#warning \\\n        \"a long str warning!\"\n"),
+                    .line_len = 31,
+                },
+            },
         };
 
         AvenTestCaseSlice tcases = slice_array(tcase_data);

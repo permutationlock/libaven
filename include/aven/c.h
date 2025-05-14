@@ -1400,11 +1400,7 @@
                             ctx->state = AVEN_C_LEX_STATE_NONE;
                         } else if (aven_str_equals(str, aven_str("include"))) {
                             ctx->state = AVEN_C_LEX_STATE_INCLUDE;
-                        } else if (
-                            aven_str_equals(str, aven_str("pragma")) or
-                                aven_str_equals(str, aven_str("error")) or
-                                aven_str_equals(str, aven_str("warning"))
-                        ) {
+                        } else if (aven_str_equals(str, aven_str("pragma"))) {
                             ctx->state = AVEN_C_LEX_STATE_COMMENT;
                         } else {
                             ctx->state = AVEN_C_LEX_STATE_PPD_BODY;
@@ -7621,8 +7617,10 @@
             if (!may_split) {
                 return false;
             }
-            ctx->pp_cursor = token_index;
-            aven_c_ast_render_flush_line(ctx);
+            ctx->pp_cursor = i;
+            if (!aven_c_ast_render_flush_line(ctx)) {
+                return false;
+            }
             if (
                 !aven_c_ast_render_node(
                     ctx,
@@ -7631,6 +7629,7 @@
                     true
                 )
             ) {
+                ctx->io_error = -1;
                 return false;
             }
             ctx->trailing_lines = token.trailing_lines;
@@ -9329,7 +9328,7 @@
         AvenArena *arena
     ) {
         AvenCTokenLoc loc = aven_c_token_loc(ctx->ast->tset, ctx->pp_cursor);
-        if (ctx->io_error == 0) {
+        if (ctx->io_error <= 0) {
             return (AvenCAstRenderResult){
                 .error = AVEN_C_AST_RENDER_ERROR_FMT,
                 .io_error = 0,

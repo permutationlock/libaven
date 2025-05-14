@@ -128,7 +128,7 @@ uint64_t hash=wyhash(s.c_str(), s.size(), 0, aven_wyhash_wyp_internal);
                 )
             #define AVEN_WYHASH_LITTLE_ENDIAN 0
         #else
-            #warning could not determine endianness! Falling back to little endian.
+            #warning "can't determine endianness, fall back to little endian"
             #define AVEN_WYHASH_LITTLE_ENDIAN 1
         #endif
     #endif
