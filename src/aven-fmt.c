@@ -39,16 +39,14 @@ static AvenArg arg_data[] = {
     {
         .name = aven_str_init("--columns"),
         .description = aven_str_init("Column width, 0 for no limit"),
-        .value = { .type = AVEN_ARG_TYPE_INT, .data = { .arg_int = 80 } },
-        .type = AVEN_ARG_TYPE_INT,
+        .value = { .type = AVEN_ARG_TYPE_UINT, .data = { .arg_int = 80 } },
+        .type = AVEN_ARG_TYPE_UINT,
     },
     {
         .name = aven_str_init("--parse-depth"),
-        .description = aven_str_init(
-            "Parse recursive depth limit, 0 for infinite"
-        ),
-        .value = { .type = AVEN_ARG_TYPE_INT, .data = { .arg_int = 10 } },
-        .type = AVEN_ARG_TYPE_INT,
+        .description = aven_str_init("Parse depth limit, 0 for no limit"),
+        .value = { .type = AVEN_ARG_TYPE_UINT, .data = { .arg_int = 10 } },
+        .type = AVEN_ARG_TYPE_UINT,
     },
 };
 
@@ -79,8 +77,8 @@ int main(int argc, char **argv) {
             return 1;
         }
     }
-    int64_t arg_cwidth = aven_arg_get_int(args, "--columns");
-    int64_t arg_depth = aven_arg_get_int(args, "--parse-depth");
+    uint64_t arg_cwidth = aven_arg_get_uint(args, "--columns");
+    uint64_t arg_depth = aven_arg_get_uint(args, "--parse-depth");
     size_t column_width = (size_t)arg_cwidth;
     size_t parse_depth = (size_t)arg_depth;
     AvenIoReader reader = aven_io_stdin;

@@ -8,12 +8,18 @@
     typedef enum {
         AVEN_ARG_TYPE_BOOL = 0,
         AVEN_ARG_TYPE_INT,
+        AVEN_ARG_TYPE_UINT,
         AVEN_ARG_TYPE_STRING,
     } AvenArgType;
 
     typedef struct {
         AvenArgType type;
-        union { bool arg_bool; int64_t arg_int; AvenStr arg_str; } data;
+        union {
+            bool arg_bool;
+            int64_t arg_int;
+            uint64_t arg_uint;
+            AvenStr arg_str;
+        } data;
     } AvenArgValue;
 
     typedef struct {
@@ -37,8 +43,12 @@
 
     static void aven_arg_print_type(AvenArgType arg_type) {
         switch (arg_type) {
-            case AVEN_ARG_TYPE_INT: {
+            case AVEN_ARG_TYPE_UINT: {
                 aven_io_perr(" n");
+                break;
+            }
+            case AVEN_ARG_TYPE_INT: {
+                aven_io_perr(" [+|-]n");
                 break;
             }
             case AVEN_ARG_TYPE_STRING: {
@@ -64,6 +74,10 @@
             }
             case AVEN_ARG_TYPE_INT: {
                 aven_io_perrf("{}", aven_fmt_int(value.data.arg_int));
+                break;
+            }
+            case AVEN_ARG_TYPE_UINT: {
+                aven_io_perrf("{}", aven_fmt_uint(value.data.arg_uint));
                 break;
             }
             case AVEN_ARG_TYPE_STRING: {
@@ -165,6 +179,29 @@
                         }
                         break;
                     }
+                    case AVEN_ARG_TYPE_UINT: {
+                        if (i + 1 >= argc) {
+                            aven_io_perr("missing expected argument value:\n");
+                            aven_arg_print(*arg);
+                            return AVEN_ARG_ERROR_VALUE;
+                        }
+                        AvenStr next_arg = aven_str_cstr(argv[i + 1]);
+                        AvenFmtParseIntResult pr_res =
+                            aven_fmt_parse_int_decimal(next_arg);
+                        if (pr_res.error != 0 or pr_res.payload < 0) {
+                            aven_io_perrf(
+                                "expected unsigned integer argument, "
+                                "found \"{}\"",
+                                aven_fmt_str(next_arg)
+                            );
+                            aven_arg_print(*arg);
+                            return AVEN_ARG_ERROR_VALUE;
+                        }
+                        arg->value.data.arg_int = pr_res.payload;
+                        arg->value.type = AVEN_ARG_TYPE_UINT;
+                        i += 1;
+                        break;
+                    }
                     case AVEN_ARG_TYPE_INT: {
                         if (i + 1 >= argc) {
                             aven_io_perr("missing expected argument value:\n");
@@ -230,6 +267,22 @@
                                 );
                                 return AVEN_ARG_ERROR_VALUE;
                             }
+                            found = true;
+                            break;
+                        }
+                        case AVEN_ARG_TYPE_UINT: {
+                            AvenFmtParseIntResult pr_res =
+                                aven_fmt_parse_int_decimal(arg_str);
+                            if (pr_res.error != 0 or pr_res.payload < 0) {
+                                aven_io_perrf(
+                                    "expected unsigned integer argument,"
+                                    " found \"{}\"",
+                                    aven_fmt_str(arg_str)
+                                );
+                                return AVEN_ARG_ERROR_VALUE;
+                            }
+                            arg->value.data.arg_int = pr_res.payload;
+                            arg->value.type = AVEN_ARG_TYPE_UINT;
                             found = true;
                             break;
                         }
@@ -304,6 +357,10 @@
             aven_str(n) \
         )
     #define aven_arg_get_int(as, n) aven_arg_get_int_internal(as, aven_str(n))
+    #define aven_arg_get_uint(as, n) aven_arg_get_uint_internal( \
+            as, \
+            aven_str(n) \
+        )
     #define aven_arg_get_str(as, n) aven_arg_get_str_internal(as, aven_str(n))
 
     static inline bool aven_arg_has_arg_internal(
@@ -335,6 +392,17 @@
         assert(arg.type == arg.value.type);
         assert(arg.type == AVEN_ARG_TYPE_INT);
         return arg.value.data.arg_int;
+    }
+
+    static inline uint64_t aven_arg_get_uint_internal(
+        AvenArgSlice arg_slice,
+        AvenStr argname
+    ) {
+        AvenArgOptional opt_arg = aven_arg_get(arg_slice, argname);
+        AvenArg arg = unwrap(opt_arg);
+        assert(arg.type == arg.value.type);
+        assert(arg.type == AVEN_ARG_TYPE_UINT);
+        return arg.value.data.arg_uint;
     }
 
     static inline AvenStr aven_arg_get_str_internal(
