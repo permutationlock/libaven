@@ -7,10 +7,7 @@
 
     typedef void AvenThreadPoolJobFn(void *);
 
-    typedef struct {
-        AvenThreadPoolJobFn *fn;
-        void *args;
-    } AvenThreadPoolJob;
+    typedef struct { AvenThreadPoolJobFn *fn; void *args; } AvenThreadPoolJob;
     typedef Slice(AvenThreadPoolJob) AvenThreadPoolJobSlice;
 
     typedef struct {

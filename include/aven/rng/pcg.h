@@ -36,10 +36,7 @@
     #include "../../aven.h"
     #include "../rng.h"
 
-    typedef struct {
-        uint64_t state;
-        uint64_t inc;
-    } AvenRngPcg;
+    typedef struct { uint64_t state; uint64_t inc; } AvenRngPcg;
 
     static inline uint32_t aven_rng_pcg_rand(AvenRngPcg *pcg) {
         uint64_t oldstate = pcg->state;
