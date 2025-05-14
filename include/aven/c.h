@@ -2454,13 +2454,6 @@
         AvenStr exp;
     } AvenCAstError;
 
-    #ifndef AVEN_C_MAX_PARSE_DEPTH
-        #define AVEN_C_MAX_PARSE_DEPTH 128
-    #endif
-    #ifndef AVEN_C_MIN_PARES_DEPTH
-        #define AVEN_C_MIN_PARSE_DEPTH 8
-    #endif
-
     typedef struct {
         AvenCTokenSet tset;
         List(AvenCAstNode) nodes;
