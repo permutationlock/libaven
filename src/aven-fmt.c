@@ -20,31 +20,31 @@ static AvenArg arg_data[] = {
     },
     {
         .name = aven_str_init("--out"),
-        .description = aven_str_init("Output file"),
+        .description = aven_str_init("output file"),
         .optional = true,
         .type = AVEN_ARG_TYPE_STRING,
     },
     {
         .name = aven_str_init("--stdin"),
-        .description = aven_str_init("Read from stdin"),
+        .description = aven_str_init("read from stdin"),
         .type = AVEN_ARG_TYPE_BOOL,
         .value = { .type = AVEN_ARG_TYPE_BOOL, .data = { .arg_bool = false } },
     },
     {
         .name = aven_str_init("--in-place"),
-        .description = aven_str_init("Format src_file in-place"),
+        .description = aven_str_init("format src_file in-place"),
         .type = AVEN_ARG_TYPE_BOOL,
         .value = { .type = AVEN_ARG_TYPE_BOOL, .data = { .arg_bool = false } },
     },
     {
         .name = aven_str_init("--columns"),
-        .description = aven_str_init("Column width, 0 for no limit"),
+        .description = aven_str_init("column width, 0 for no limit"),
         .value = { .type = AVEN_ARG_TYPE_UINT, .data = { .arg_int = 80 } },
         .type = AVEN_ARG_TYPE_UINT,
     },
     {
-        .name = aven_str_init("--parse-depth"),
-        .description = aven_str_init("Parse depth limit, 0 for no limit"),
+        .name = aven_str_init("--depth"),
+        .description = aven_str_init("parse depth limit, 0 for no limit"),
         .value = { .type = AVEN_ARG_TYPE_UINT, .data = { .arg_int = 12 } },
         .type = AVEN_ARG_TYPE_UINT,
     },
@@ -65,6 +65,7 @@ int main(int argc, char **argv) {
     AvenStr overview = aven_str("Aven C Formatter");
     AvenStr usage = aven_str("aven-fmt [src_file]");
     AvenArgSlice args = slice_array(arg_data);
+    size_t arg_cols = aven_arg_col_len(args);
     AvenArgError parse_error = aven_arg_parse(args, argv, argc, overview, usage);
     switch (parse_error) {
         case AVEN_ARG_ERROR_NONE: {
@@ -78,7 +79,7 @@ int main(int argc, char **argv) {
         }
     }
     uint64_t arg_cwidth = aven_arg_get_uint(args, "--columns");
-    uint64_t arg_depth = aven_arg_get_uint(args, "--parse-depth");
+    uint64_t arg_depth = aven_arg_get_uint(args, "--depth");
     size_t column_width = (size_t)arg_cwidth;
     size_t parse_depth = (size_t)arg_depth;
     AvenIoReader reader = aven_io_stdin;
@@ -93,7 +94,7 @@ int main(int argc, char **argv) {
         in_file.value = aven_arg_get_str(args, "");
     } else if (!aven_arg_get_bool(args, "--stdin")) {
         aven_io_perr("error: specify src_file to format or use --stdin\n");
-        aven_arg_help(args, overview, usage);
+        aven_arg_help(args, overview, usage, arg_cols);
         return 1;
     }
 
@@ -102,7 +103,7 @@ int main(int argc, char **argv) {
     if (aven_arg_has_arg(args, "--out")) {
         if (in_place) {
             aven_io_perr("error: can't specify both --out and --in-place\n");
-            aven_arg_help(args, overview, usage);
+            aven_arg_help(args, overview, usage, arg_cols);
             return 1;
         }
         out_file.valid = true;
@@ -111,7 +112,7 @@ int main(int argc, char **argv) {
     if (in_place) {
         if (!in_file.valid) {
             aven_io_perr("error: specify src_file to use --in-place\n");
-            aven_arg_help(args, overview, usage);
+            aven_arg_help(args, overview, usage, arg_cols);
             return 1;
         }
         assert(out_file.valid == false);
