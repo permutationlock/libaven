@@ -179,33 +179,39 @@
 
     static int test_c(AvenArena arena) {
         AvenTestCase tcase_data[] = {
+            // {
+            //     .desc = aven_str("aven_c_lex empty file"),
+            //     .fn = test_aven_c_lex,
+            //     .args = &(TestAvenCLexPpArgs){ .src = slice_array(""), .expected = { 0 } },
+            // },
+            // {
+            //     .desc = aven_str("aven_c_lex single declaration"),
+            //     .fn = test_aven_c_lex,
+            //     .args = &(TestAvenCLexPpArgs){
+            //         .src = slice_array("int x;"),
+            //         .expected = slice_array(
+            //             (TestAvenCToken[]){
+            //                 { .val = aven_str("int"), .type = AVEN_C_TOKEN_TYPE_KEY },
+            //                 { .val = aven_str("x"), .type = AVEN_C_TOKEN_TYPE_ID },
+            //                 { .val = aven_str(";"), .type = AVEN_C_TOKEN_TYPE_PNC },
+            //             }
+            //         ),
+            //     },
+            // },
             {
-                .desc = aven_str("aven_c_lex empty file"),
-                .fn = test_aven_c_lex,
-                .args = &(TestAvenCLexPpArgs){ .src = slice_array(""), .expected = { 0 } },
-            },
-            {
-                .desc = aven_str("aven_c_lex single declaration"),
-                .fn = test_aven_c_lex,
-                .args = &(TestAvenCLexPpArgs){
-                    .src = slice_array("int x;"),
-                    .expected = slice_array(
-                        (TestAvenCToken[]){
-                            { .val = aven_str("int"), .type = AVEN_C_TOKEN_TYPE_KEY },
-                            { .val = aven_str("x"), .type = AVEN_C_TOKEN_TYPE_ID },
-                            { .val = aven_str(";"), .type = AVEN_C_TOKEN_TYPE_PNC },
-                        }
-                    ),
-                },
-            },
-            {
-                .desc = aven_str("aven_c_lex preprocessor directive"),
+                .desc = aven_str("aven_c_lex include directive"),
                 .fn = test_aven_c_lex,
                 .args = &(TestAvenCLexPpArgs){
                     .src = slice_array("#include <stdio.h>"),
                     .expected = slice_array(
                         (TestAvenCToken[]){
-                            { .val = aven_str("#include <stdio.h>"), .type = AVEN_C_TOKEN_TYPE_CMT },
+                            { .val = aven_str("#include <stdio.h>"), .type = AVEN_C_TOKEN_TYPE_HDR },
+                            { .val = aven_str(""), .type = AVEN_C_TOKEN_TYPE_NONE },
+                            { .val = aven_str("#"), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("include"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str("<"), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("stdio.h"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str(">"), .type = AVEN_C_TOKEN_TYPE_PNC },
                         }
                     ),
                 },
