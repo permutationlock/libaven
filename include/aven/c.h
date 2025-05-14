@@ -1151,7 +1151,7 @@
                         if (str.len == 0) {
                             list_push(ctx->tokens) = (AvenCToken){
                                 .index = ctx->token_start,
-                                .end = ctx->index,
+                                .end = AVEN_C_PNC_HSH,
                                 .type = AVEN_C_TOKEN_TYPE_PNC,
                             };
                             ctx->state = AVEN_C_LEX_STATE_NONE;
@@ -3430,47 +3430,29 @@
         if (aven_c_ast_next(ctx).type != AVEN_C_TOKEN_TYPE_KEY) {
             return 0;
         }
+        AvenCKeyword keyword = (AvenCKeyword)aven_c_ast_next(ctx).end;
         uint32_t main_token = aven_c_ast_next_index(ctx);
-        char nchar = get(ctx->tset.bytes, aven_c_ast_next(ctx).index);
         uint32_t node = 0;
-        switch (nchar) {
-            case 'c': {
-                if (aven_c_ast_match_keyword(ctx, AVEN_C_KEYWORD_CONST)) {
-                    node = aven_c_ast_push_leaf(
-                        ctx,
-                        AVEN_C_AST_NODE_TYPE_TYPE_QUALIFIER,
-                        main_token
-                    );
-                }
+        switch (keyword) {
+            case AVEN_C_KEYWORD_CONST:
+            case AVEN_C_KEYWORD_RESTRICT:
+            case AVEN_C_KEYWORD_VOLATILE:
+            case AVEN_C_KEYWORD_ATOMIC: {
+                aven_c_ast_inc_index(ctx);
+                node = aven_c_ast_push_leaf(
+                    ctx,
+                    AVEN_C_AST_NODE_TYPE_TYPE_QUALIFIER,
+                    main_token
+                );
                 break;
             }
-            case 'r': {
-                if (aven_c_ast_match_keyword(ctx, AVEN_C_KEYWORD_RESTRICT)) {
-                    node = aven_c_ast_push_leaf(
-                        ctx,
-                        AVEN_C_AST_NODE_TYPE_TYPE_QUALIFIER,
-                        main_token
-                    );
-                }
-                break;
-            }
-            case 'v': {
-                if (aven_c_ast_match_keyword(ctx, AVEN_C_KEYWORD_VOLATILE)) {
-                    node = aven_c_ast_push_leaf(
-                        ctx,
-                        AVEN_C_AST_NODE_TYPE_TYPE_QUALIFIER,
-                        main_token
-                    );
-                }
-                break;
-            }
-            case '_': {
-                if (aven_c_ast_match_keyword(ctx, AVEN_C_KEYWORD_ATOMIC)) {
-                    node = aven_c_ast_push_leaf(
-                        ctx,
-                        AVEN_C_AST_NODE_TYPE_TYPE_QUALIFIER,
-                        main_token
-                    );
+            default: {
+                if (main_token >= ctx->error.token) {
+                    ctx->error = (AvenCAstError){
+                        .token = aven_c_ast_next_index(ctx),
+                        .type = AVEN_C_TOKEN_TYPE_KEY,
+                        .exp = aven_str("[const|restrict|volatile|_Atomic]"),
+                    };
                 }
                 break;
             }
@@ -4522,7 +4504,7 @@
                 aven_c_ast_parse_direct_abstract_declarator_op(ctx, node, paren);
             paren = false;
             if (suffix_node == 0) {
-                aven_c_ast_restore_trap(ctx, state);
+                aven_c_ast_error(ctx, state);
                 return 0;
             }
             node = suffix_node;
