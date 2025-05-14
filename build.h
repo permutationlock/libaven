@@ -3,7 +3,7 @@
 
     static AvenArg libaven_build_arg_data[] = {
         {
-            .name = aven_str_init("-winutf8"),
+            .name = aven_str_init("--winutf8"),
             .description = aven_str_init(
                 "Link a Windows resource to enable UTF8 mode"
             ),
@@ -20,7 +20,7 @@
             },
         },
         {
-            .name = aven_str_init("-winpthreads"),
+            .name = aven_str_init("--winpthreads"),
             .description = aven_str_init(
                 "Build and link a local Mingw-w64 winpthreads"
             ),
@@ -35,7 +35,7 @@
             },
         },
         {
-            .name = aven_str_init("-winpthreads-ccflags"),
+            .name = aven_str_init("--winpthreads-ccflags"),
             .description = aven_str_init(
                 "C compiler flags for local winpthreads"
             ),
@@ -55,15 +55,11 @@
         return args;
     }
 
-    typedef struct {
-        bool local;
-        Optional(AvenStrSlice) ccflags;
-    } LibAvenBuildWinpthreadsOpts;
+    typedef struct { bool local; Optional(AvenStrSlice) ccflags; }
+        LibAvenBuildWinpthreadsOpts;
 
-    typedef struct {
-        bool winutf8;
-        LibAvenBuildWinpthreadsOpts winpthreads;
-    } LibAvenBuildOpts;
+    typedef struct { bool winutf8; LibAvenBuildWinpthreadsOpts winpthreads; }
+        LibAvenBuildOpts;
 
     static inline LibAvenBuildOpts libaven_build_opts(
         AvenArgSlice args,
@@ -72,12 +68,12 @@
         (void)arena;
 
         LibAvenBuildOpts opts = { 0 };
-        opts.winutf8 = aven_arg_get_bool(args, "-winutf8");
+        opts.winutf8 = aven_arg_get_bool(args, "--winutf8");
 
-        opts.winpthreads.local = aven_arg_get_bool(args, "-winpthreads");
-        if (aven_arg_has_arg(args, "-winpthreads-ccflags")) {
+        opts.winpthreads.local = aven_arg_get_bool(args, "--winpthreads");
+        if (aven_arg_has_arg(args, "--winpthreads-ccflags")) {
             opts.winpthreads.ccflags.value = aven_str_split(
-                aven_arg_get_str(args, "-winpthreads-ccflags"),
+                aven_arg_get_str(args, "--winpthreads-ccflags"),
                 ' ',
                 arena
             );

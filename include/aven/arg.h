@@ -44,9 +44,9 @@
 
     static const AvenStr aven_arg_type_data[] = {
         [AVEN_ARG_TYPE_BOOL] = aven_str_init(" [true|false]"),
-        [AVEN_ARG_TYPE_UINT] = aven_str_init(" n"),
-        [AVEN_ARG_TYPE_INT] = aven_str_init(" [+|-]n"),
-        [AVEN_ARG_TYPE_STRING] = aven_str_init(" \"s\""),
+        [AVEN_ARG_TYPE_UINT] = aven_str_init(" N"),
+        [AVEN_ARG_TYPE_INT] = aven_str_init(" [+|-]N"),
+        [AVEN_ARG_TYPE_STRING] = aven_str_init(" \"str\""),
         [AVEN_ARG_TYPE_HELP] = aven_str_init(""),
     };
 
@@ -145,10 +145,10 @@
         aven_io_perrf("overview: {}\n", aven_fmt_str(overview));
         aven_io_perrf("usage: {}\n", aven_fmt_str(usage));
         aven_io_perr("options:\n");
-        aven_arg_print(aven_arg_help_arg, cols);
         for (size_t i = 0; i < args.len; i += 1) {
             aven_arg_print(get(args, i), cols);
         }
+        aven_arg_print(aven_arg_help_arg, cols);
     }
 
     static inline AvenArgError aven_arg_parse(

@@ -76,7 +76,7 @@
             .type = AVEN_ARG_TYPE_BOOL,
         },
         {
-            .name = aven_str_init("-cc"),
+            .name = aven_str_init("--cc"),
             .description = aven_str_init("C compiler exe"),
             .type = AVEN_ARG_TYPE_STRING,
             .value = {
@@ -111,7 +111,7 @@
             },
         },
         {
-            .name = aven_str_init("-ld"),
+            .name = aven_str_init("--ld"),
             .description = aven_str_init(
                 "Linker exe to use instead of C compiler"
             ),
@@ -133,7 +133,7 @@
     #endif
         },
         {
-            .name = aven_str_init("-ar"),
+            .name = aven_str_init("--ar"),
             .description = aven_str_init(
                 "Archiver exe to create static libraries"
             ),
@@ -170,7 +170,7 @@
             },
         },
         {
-            .name = aven_str_init("-windres"),
+            .name = aven_str_init("--windres"),
             .description = aven_str_init("Windows resource compiler"),
             .type = AVEN_ARG_TYPE_STRING,
     #if defined(AVEN_BUILD_COMMON_DEFAULT_WINDRES)
@@ -207,7 +207,7 @@
     #endif
         },
         {
-            .name = aven_str_init("-ccflags"),
+            .name = aven_str_init("--ccflags"),
             .description = aven_str_init("C compiler common flags"),
             .type = AVEN_ARG_TYPE_STRING,
             .value = {
@@ -234,7 +234,7 @@
             },
         },
         {
-            .name = aven_str_init("-ldflags"),
+            .name = aven_str_init("--ldflags"),
             .description = aven_str_init("Linker common flags"),
             .type = AVEN_ARG_TYPE_STRING,
             .value = {
@@ -249,7 +249,7 @@
             },
         },
         {
-            .name = aven_str_init("-arflags"),
+            .name = aven_str_init("--arflags"),
             .description = aven_str_init("Archiver common flags"),
             .type = AVEN_ARG_TYPE_STRING,
             .value = {
@@ -268,7 +268,7 @@
             },
         },
         {
-            .name = aven_str_init("-windresflags"),
+            .name = aven_str_init("--windresflags"),
             .description = aven_str_init(
                 "Windows resource compiler common flags"
             ),
@@ -287,7 +287,7 @@
             },
         },
         {
-            .name = aven_str_init("-obext"),
+            .name = aven_str_init("--obext"),
             .description = aven_str_init("File extension(s) for object files"),
             .type = AVEN_ARG_TYPE_STRING,
             .value = {
@@ -308,7 +308,7 @@
             },
         },
         {
-            .name = aven_str_init("-exext"),
+            .name = aven_str_init("--exext"),
             .description = aven_str_init("File extension(s) for executables"),
             .type = AVEN_ARG_TYPE_STRING,
             .value = {
@@ -325,7 +325,7 @@
             },
         },
         {
-            .name = aven_str_init("-soext"),
+            .name = aven_str_init("--soext"),
             .description = aven_str_init(
                 "File extension(s) for shared library files"
             ),
@@ -348,7 +348,7 @@
             },
         },
         {
-            .name = aven_str_init("-arext"),
+            .name = aven_str_init("--arext"),
             .description = aven_str_init(
                 "File extension(s) for static libraries"
             ),
@@ -371,7 +371,7 @@
             },
         },
         {
-            .name = aven_str_init("-wrext"),
+            .name = aven_str_init("--wrext"),
             .description = aven_str_init(
                 "File extension(s) for windows resource files"
             ),
@@ -394,7 +394,7 @@
             },
         },
         {
-            .name = aven_str_init("-ccincflag"),
+            .name = aven_str_init("--ccincflag"),
             .description = aven_str_init("C compiler flag to add include path"),
             .type = AVEN_ARG_TYPE_STRING,
             .value = {
@@ -413,7 +413,7 @@
             },
         },
         {
-            .name = aven_str_init("-ccdefflag"),
+            .name = aven_str_init("--ccdefflag"),
             .description = aven_str_init("C compiler flag to define macro"),
             .type = AVEN_ARG_TYPE_STRING,
             .value = {
@@ -432,7 +432,7 @@
             },
         },
         {
-            .name = aven_str_init("-ccobjflag"),
+            .name = aven_str_init("--ccobjflag"),
             .description = aven_str_init("C compiler flag to compile object"),
             .type = AVEN_ARG_TYPE_STRING,
             .value = {
@@ -451,7 +451,7 @@
             },
         },
         {
-            .name = aven_str_init("-ccoutflag"),
+            .name = aven_str_init("--ccoutflag"),
             .description = aven_str_init(
                 "C compiler flag to specify output file"
             ),
@@ -472,7 +472,7 @@
             },
         },
         {
-            .name = aven_str_init("-ldlibflag"),
+            .name = aven_str_init("--ldlibflag"),
             .description = aven_str_init("Linker flag to link library"),
             .type = AVEN_ARG_TYPE_STRING,
             .value = {
@@ -491,7 +491,7 @@
             },
         },
         {
-            .name = aven_str_init("-ldshrflag"),
+            .name = aven_str_init("--ldshrflag"),
             .description = aven_str_init("Linker flag to emit shared library"),
             .type = AVEN_ARG_TYPE_STRING,
             .value = {
@@ -510,7 +510,7 @@
             },
         },
         {
-            .name = aven_str_init("-ldconflag"),
+            .name = aven_str_init("--ldconflag"),
             .description = aven_str_init(
                 "Linker flag to link a console application"
             ),
@@ -543,7 +543,7 @@
             },
         },
         {
-            .name = aven_str_init("-ldwinflag"),
+            .name = aven_str_init("--ldwinflag"),
             .description = aven_str_init(
                 "Linker flag to link a graphical window application"
             ),
@@ -576,7 +576,7 @@
             },
         },
         {
-            .name = aven_str_init("-ldoutflag"),
+            .name = aven_str_init("--ldoutflag"),
             .description = aven_str_init("Linker flag to specify output file"),
             .type = AVEN_ARG_TYPE_STRING,
             .value = {
@@ -595,7 +595,7 @@
             },
         },
         {
-            .name = aven_str_init("-aroutflag"),
+            .name = aven_str_init("--aroutflag"),
             .description = aven_str_init("Archiver flag to specify output file"),
             .type = AVEN_ARG_TYPE_STRING,
     #if defined(AVEN_BUILD_COMMON_DEFAULT_AROUTFLAG)
@@ -617,7 +617,7 @@
     #endif
         },
         {
-            .name = aven_str_init("-windresoutflag"),
+            .name = aven_str_init("--windresoutflag"),
             .description = aven_str_init(
                 "Windows res compiler flag to specify output file"
             ),
@@ -638,7 +638,7 @@
             },
         },
         {
-            .name = aven_str_init("-ccflagsep"),
+            .name = aven_str_init("--ccflagsep"),
             .description = aven_str_init(
                 "C compiler add space between flag and argument"
             ),
@@ -655,7 +655,7 @@
             },
         },
         {
-            .name = aven_str_init("-ldflagsep"),
+            .name = aven_str_init("--ldflagsep"),
             .description = aven_str_init(
                 "Linker add space between flag and argument"
             ),
@@ -672,7 +672,7 @@
             },
         },
         {
-            .name = aven_str_init("-arflagsep"),
+            .name = aven_str_init("--arflagsep"),
             .description = aven_str_init(
                 "Archiver add space between flag and argument"
             ),
@@ -704,87 +704,87 @@
         opts.test = aven_arg_get_bool(arg_slice, "test");
         opts.clean = aven_arg_get_bool(arg_slice, "clean");
 
-        opts.cc.compiler = aven_arg_get_str(arg_slice, "-cc");
-        opts.cc.incflag = aven_arg_get_str(arg_slice, "-ccincflag");
-        opts.cc.defflag = aven_arg_get_str(arg_slice, "-ccdefflag");
-        opts.cc.objflag = aven_arg_get_str(arg_slice, "-ccobjflag");
-        opts.cc.outflag = aven_arg_get_str(arg_slice, "-ccoutflag");
-        opts.cc.flagsep = aven_arg_get_bool(arg_slice, "-ccflagsep");
+        opts.cc.compiler = aven_arg_get_str(arg_slice, "--cc");
+        opts.cc.incflag = aven_arg_get_str(arg_slice, "--ccincflag");
+        opts.cc.defflag = aven_arg_get_str(arg_slice, "--ccdefflag");
+        opts.cc.objflag = aven_arg_get_str(arg_slice, "--ccobjflag");
+        opts.cc.outflag = aven_arg_get_str(arg_slice, "--ccoutflag");
+        opts.cc.flagsep = aven_arg_get_bool(arg_slice, "--ccflagsep");
         opts.cc.flags = aven_str_split(
-            aven_arg_get_str(arg_slice, "-ccflags"),
+            aven_arg_get_str(arg_slice, "--ccflags"),
             ' ',
             arena
         );
 
-        if (aven_arg_has_arg(arg_slice, "-ld")) {
-            opts.ld.linker = aven_arg_get_str(arg_slice, "-ld");
+        if (aven_arg_has_arg(arg_slice, "--ld")) {
+            opts.ld.linker = aven_arg_get_str(arg_slice, "--ld");
         } else {
             opts.ld.linker = opts.cc.compiler;
         }
-        opts.ld.outflag = aven_arg_get_str(arg_slice, "-ldoutflag");
-        opts.ld.libflag = aven_arg_get_str(arg_slice, "-ldlibflag");
-        opts.ld.conflag = aven_arg_get_str(arg_slice, "-ldconflag");
-        opts.ld.winflag = aven_arg_get_str(arg_slice, "-ldwinflag");
-        opts.ld.shrflag = aven_arg_get_str(arg_slice, "-ldshrflag");
-        opts.ld.flagsep = aven_arg_get_bool(arg_slice, "-ldflagsep");
+        opts.ld.outflag = aven_arg_get_str(arg_slice, "--ldoutflag");
+        opts.ld.libflag = aven_arg_get_str(arg_slice, "--ldlibflag");
+        opts.ld.conflag = aven_arg_get_str(arg_slice, "--ldconflag");
+        opts.ld.winflag = aven_arg_get_str(arg_slice, "--ldwinflag");
+        opts.ld.shrflag = aven_arg_get_str(arg_slice, "--ldshrflag");
+        opts.ld.flagsep = aven_arg_get_bool(arg_slice, "--ldflagsep");
         opts.ld.flags = aven_str_split(
-            aven_arg_get_str(arg_slice, "-ldflags"),
+            aven_arg_get_str(arg_slice, "--ldflags"),
             ' ',
             arena
         );
 
-        opts.ar.archiver = aven_arg_get_str(arg_slice, "-ar");
-        if (aven_arg_has_arg(arg_slice, "-aroutflag")) {
-            opts.ar.outflag = aven_arg_get_str(arg_slice, "-aroutflag");
+        opts.ar.archiver = aven_arg_get_str(arg_slice, "--ar");
+        if (aven_arg_has_arg(arg_slice, "--aroutflag")) {
+            opts.ar.outflag = aven_arg_get_str(arg_slice, "--aroutflag");
         } else {
             opts.ar.outflag = aven_str("");
         }
-        opts.ar.flagsep = aven_arg_get_bool(arg_slice, "-arflagsep");
+        opts.ar.flagsep = aven_arg_get_bool(arg_slice, "--arflagsep");
         opts.ar.flags = aven_str_split(
-            aven_arg_get_str(arg_slice, "-arflags"),
+            aven_arg_get_str(arg_slice, "--arflags"),
             ' ',
             arena
         );
 
-        if (aven_arg_has_arg(arg_slice, "-windres")) {
+        if (aven_arg_has_arg(arg_slice, "--windres")) {
             opts.windres.compiler.valid = true;
             opts.windres.compiler.value = aven_arg_get_str(
                 arg_slice,
-                "-windres"
+                "--windres"
             );
             opts.windres.flags = aven_str_split(
-                aven_arg_get_str(arg_slice, "-windresflags"),
+                aven_arg_get_str(arg_slice, "--windresflags"),
                 ' ',
                 arena
             );
             opts.windres.outflag = aven_arg_get_str(
                 arg_slice,
-                "-windresoutflag"
+                "--windresoutflag"
             );
         }
 
         opts.obexts = aven_str_split(
-            aven_arg_get_str(arg_slice, "-obext"),
+            aven_arg_get_str(arg_slice, "--obext"),
             ' ',
             arena
         );
         opts.exexts = aven_str_split(
-            aven_arg_get_str(arg_slice, "-exext"),
+            aven_arg_get_str(arg_slice, "--exext"),
             ' ',
             arena
         );
         opts.soexts = aven_str_split(
-            aven_arg_get_str(arg_slice, "-soext"),
+            aven_arg_get_str(arg_slice, "--soext"),
             ' ',
             arena
         );
         opts.arexts = aven_str_split(
-            aven_arg_get_str(arg_slice, "-arext"),
+            aven_arg_get_str(arg_slice, "--arext"),
             ' ',
             arena
         );
         opts.wrexts = aven_str_split(
-            aven_arg_get_str(arg_slice, "-wrext"),
+            aven_arg_get_str(arg_slice, "--wrext"),
             ' ',
             arena
         );

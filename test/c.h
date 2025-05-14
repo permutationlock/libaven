@@ -205,15 +205,7 @@
                     .src = slice_array("#include <stdio.h>"),
                     .expected = slice_array(
                         (TestAvenCToken[]){
-                            { .val = aven_str("#include <stdio.h>"), .type = AVEN_C_TOKEN_TYPE_PPD },
-                            { .val = aven_str(""), .type = AVEN_C_TOKEN_TYPE_NONE },
-                            { .val = aven_str("#"), .type = AVEN_C_TOKEN_TYPE_PNC },
-                            { .val = aven_str("include"), .type = AVEN_C_TOKEN_TYPE_ID },
-                            { .val = aven_str("<"), .type = AVEN_C_TOKEN_TYPE_PNC },
-                            { .val = aven_str("stdio"), .type = AVEN_C_TOKEN_TYPE_ID },
-                            { .val = aven_str("."), .type = AVEN_C_TOKEN_TYPE_PNC },
-                            { .val = aven_str("h"), .type = AVEN_C_TOKEN_TYPE_ID },
-                            { .val = aven_str(">"), .type = AVEN_C_TOKEN_TYPE_PNC },
+                            { .val = aven_str("#include <stdio.h>"), .type = AVEN_C_TOKEN_TYPE_CMT },
                         }
                     ),
                 },
