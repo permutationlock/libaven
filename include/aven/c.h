@@ -7343,16 +7343,42 @@
         if (ctx->cursor == 0) {
             return true;
         }
-        if (ctx->ppd) {
-            if (get(ctx->line, ctx->cursor - 1) != ' ') {
-                get(ctx->line, ctx->cursor) = ' ';
+        Optional(AvenStr) trailing_comment = { 0 };
+        if (ctx->pp_cursor + 1 < ctx->ast->tset.tokens.len) {
+            if (get(ctx->ast->tset.tokens, ctx->pp_cursor).trailing_lines == 0) {
+                AvenCToken next_token = get(
+                    ctx->ast->tset.tokens,
+                    ctx->pp_cursor + 1
+                );
+                if (next_token.type == AVEN_C_TOKEN_TYPE_CMT) {
+                    assert(ctx->ppd == false);
+                    trailing_comment.valid = true;
+                    trailing_comment.value = aven_c_token_str(
+                        ctx->ast->tset,
+                        ctx->pp_cursor + 1
+                    );
+                    ctx->pp_cursor += 2;
+                    slice_copy(
+                        aven_str_tail(ctx->line, ctx->cursor),
+                        aven_str(" ")
+                    );
+                    ctx->cursor += 1;
+                    ctx->trailing_lines = next_token.trailing_lines;
+                }
+            }
+        }
+        if (!trailing_comment.valid) {
+            if (ctx->ppd) {
+                if (get(ctx->line, ctx->cursor - 1) != ' ') {
+                    get(ctx->line, ctx->cursor) = ' ';
+                    ctx->cursor += 1;
+                }
+                get(ctx->line, ctx->cursor) = '\\';
                 ctx->cursor += 1;
             }
-            get(ctx->line, ctx->cursor) = '\\';
-            ctx->cursor += 1;
+            slice_copy(aven_str_tail(ctx->line, ctx->cursor), ctx->newline_str);
+            ctx->cursor += (uint32_t)ctx->newline_str.len;
         }
-        slice_copy(aven_str_tail(ctx->line, ctx->cursor), ctx->newline_str);
-        ctx->cursor += (uint32_t)ctx->newline_str.len;
 
         AvenStr line = aven_str_head(ctx->line, ctx->cursor);
         AvenIoResult res = aven_io_writer_push(
@@ -7366,6 +7392,28 @@
         if (res.payload != line.len) {
             ctx->io_error = -1;
             return false;
+        }
+        if (trailing_comment.valid) {
+            AvenStr cmt_str = unwrap(trailing_comment);
+            res = aven_io_writer_push(ctx->writer, slice_as_bytes(cmt_str));
+            if (res.error != 0) {
+                ctx->io_error = res.error;
+                return false;
+            }
+            if (res.payload != cmt_str.len) {
+                ctx->io_error = -1;
+                return false;
+            }
+            AvenStr newline_str = aven_str("\n");
+            res = aven_io_writer_push(ctx->writer, slice_as_bytes(newline_str));
+            if (res.error != 0) {
+                ctx->io_error = res.error;
+                return false;
+            }
+            if (res.payload != newline_str.len) {
+                ctx->io_error = -1;
+                return false;
+            }
         }
         ctx->lines_written += 1;
         ctx->cursor = 0;
@@ -7671,27 +7719,34 @@
             return true;
         }
         uint32_t may_split = split or ctx->cursor == 0;
-        for (uint32_t i = ctx->pp_cursor; i < token_index; i += 1) {
-            AvenCToken token = get(ctx->ast->tset.tokens, i);
+        while (ctx->pp_cursor < token_index) {
+            AvenCToken token = get(ctx->ast->tset.tokens, ctx->pp_cursor);
             if (
                 token.type != AVEN_C_TOKEN_TYPE_CMT and
                     token.type != AVEN_C_TOKEN_TYPE_PPD and
                     token.type != AVEN_C_TOKEN_TYPE_HDR
             ) {
+                if (token.type == AVEN_C_TOKEN_TYPE_NONE and ctx->pp_cursor > 0) {
+                    return true;
+                }
+                ctx->pp_cursor += 1;
                 continue;
             }
             if (!may_split) {
                 return false;
             }
-            ctx->pp_cursor = i;
+            uint32_t last_pp_cursor = ctx->pp_cursor;
             if (!aven_c_ast_render_flush_line(ctx)) {
                 return false;
+            }
+            if (last_pp_cursor != ctx->pp_cursor) {
+                continue;
             }
             if (
                 !aven_c_ast_render_node(
                     ctx,
                     AVEN_C_AST_NODE_TYPE_NONE,
-                    get(ctx->ast->pp_nodes, i),
+                    get(ctx->ast->pp_nodes, ctx->pp_cursor),
                     true
                 )
             ) {
@@ -7699,14 +7754,18 @@
                 return false;
             }
             ctx->trailing_lines = token.trailing_lines;
+            last_pp_cursor = ctx->pp_cursor;
             if (!aven_c_ast_render_flush_line(ctx)) {
                 return false;
             }
             if (!aven_c_ast_render_whitespace(ctx)) {
                 return false;
             }
+            if (last_pp_cursor != ctx->pp_cursor) {
+                continue;
+            }
+            ctx->pp_cursor += 1;
         }
-        ctx->pp_cursor = token_index;
         return true;
     }
 
