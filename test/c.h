@@ -908,7 +908,7 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("int x = 2 + 2; // Hello World!\n"),
-                    .expected = aven_str("int x = 2 + 2; // Hello World!\n"),
+                    .expected = aven_str("int x = 2 + 2;\n" "// Hello World!\n"),
                     .line_len = 16,
                 },
             },
@@ -917,7 +917,7 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("int x = 2 + /* add */ 2;\n"),
-                    .expected = aven_str("int x = 2 + /* add */\n" "    2;\n"),
+                    .expected = aven_str("int x = 2 +\n" "    /* add */\n" "    2;\n"),
                     .line_len = 16,
                 },
             },
