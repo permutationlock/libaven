@@ -412,6 +412,7 @@
         AVEN_C_LEX_STATE_PPD_CHAR_ESC,
         AVEN_C_LEX_STATE_INCLUDE,
         AVEN_C_LEX_STATE_INCLUDE_CR,
+        AVEN_C_LEX_STATE_INCLUDE_FSLASH,
         AVEN_C_LEX_STATE_COMMENT,
         AVEN_C_LEX_STATE_COMMENT_ESC,
         AVEN_C_LEX_STATE_COMMENT_CR,
@@ -458,6 +459,7 @@
         AVEN_C_LEX_INCLUDE_STATE_QUOTE,
         AVEN_C_LEX_INCLUDE_STATE_ID,
         AVEN_C_LEX_INCLUDE_STATE_CR,
+        AVEN_C_LEX_INCLUDE_STATE_FSLASH,
         AVEN_C_LEX_INCLUDE_STATE_INV,
         AVEN_C_LEX_INCLUDE_STATE_DONE,
     } AvenCLexIncludeState;
@@ -517,6 +519,11 @@
                         ctx->state = AVEN_C_LEX_INCLUDE_STATE_QUOTE;
                         break;
                     }
+                    case '/': {
+                        ctx->index += 1;
+                        ctx->state = AVEN_C_LEX_INCLUDE_STATE_FSLASH;
+                        break;
+                    }
                     case '\r': {
                         ctx->state = AVEN_C_LEX_INCLUDE_STATE_CR;
                         break;
@@ -537,6 +544,20 @@
             case AVEN_C_LEX_INCLUDE_STATE_CR: {
                 switch (c) {
                     case '\n': {
+                        ctx->state = AVEN_C_LEX_INCLUDE_STATE_DONE;
+                        break;
+                    }
+                    default: {
+                        ctx->state = AVEN_C_LEX_INCLUDE_STATE_INV;
+                        break;
+                    }
+                }
+                break;
+            }
+            case AVEN_C_LEX_INCLUDE_STATE_FSLASH: {
+                switch (c) {
+                    case '/':
+                    case '*': {
                         ctx->state = AVEN_C_LEX_INCLUDE_STATE_DONE;
                         break;
                     }
@@ -1694,6 +1715,11 @@
             }
             case AVEN_C_LEX_STATE_INCLUDE: {
                 switch (c) {
+                    case '/': {
+                        ctx->index += 1;
+                        ctx->state = AVEN_C_LEX_STATE_INCLUDE_FSLASH;
+                        break;
+                    }
                     case '\r': {
                         ctx->index += 1;
                         ctx->state = AVEN_C_LEX_STATE_INCLUDE_CR;
@@ -1721,6 +1747,46 @@
                     }
                     default: {
                         ctx->index += 1;
+                        break;
+                    }
+                }
+                break;
+            }
+            case AVEN_C_LEX_STATE_INCLUDE_FSLASH: {
+                switch (c) {
+                    case '/': {
+                        ctx->index += 1;
+                        list_push(ctx->tokens) = (AvenCToken){
+                            .index = ctx->token_start,
+                            .end = ctx->index,
+                            .type = AVEN_C_TOKEN_TYPE_HDR,
+                        };
+                        ctx->token_start = ctx->index - 2;
+                        ctx->state = AVEN_C_LEX_STATE_COMMENT;
+                        break;
+                    }
+                    case '*': {
+                        ctx->index += 1;
+                        list_push(ctx->tokens) = (AvenCToken){
+                            .index = ctx->token_start,
+                            .end = ctx->index,
+                            .type = AVEN_C_TOKEN_TYPE_HDR,
+                        };
+                        ctx->token_start = ctx->index - 2;
+                        ctx->state = AVEN_C_LEX_STATE_MLCOMMENT;
+                        break;
+                    }
+                    case 0: {
+                        list_push(ctx->tokens) = (AvenCToken){
+                            .index = ctx->token_start,
+                            .end = ctx->index + 1,
+                            .type = AVEN_C_TOKEN_TYPE_HDR,
+                        };
+                        ctx->state = AVEN_C_LEX_STATE_DONE;
+                        break;
+                    }
+                    default: {
+                        ctx->state = AVEN_C_LEX_STATE_INCLUDE;
                         break;
                     }
                 }
