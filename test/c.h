@@ -179,25 +179,25 @@
 
     static int test_c(AvenArena arena) {
         AvenTestCase tcase_data[] = {
-            // {
-            //     .desc = aven_str("aven_c_lex empty file"),
-            //     .fn = test_aven_c_lex,
-            //     .args = &(TestAvenCLexPpArgs){ .src = slice_array(""), .expected = { 0 } },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_lex single declaration"),
-            //     .fn = test_aven_c_lex,
-            //     .args = &(TestAvenCLexPpArgs){
-            //         .src = slice_array("int x;"),
-            //         .expected = slice_array(
-            //             (TestAvenCToken[]){
-            //                 { .val = aven_str("int"), .type = AVEN_C_TOKEN_TYPE_KEY },
-            //                 { .val = aven_str("x"), .type = AVEN_C_TOKEN_TYPE_ID },
-            //                 { .val = aven_str(";"), .type = AVEN_C_TOKEN_TYPE_PNC },
-            //             }
-            //         ),
-            //     },
-            // },
+            {
+                .desc = aven_str("aven_c_lex empty file"),
+                .fn = test_aven_c_lex,
+                .args = &(TestAvenCLexPpArgs){ .src = slice_array(""), .expected = { 0 } },
+            },
+            {
+                .desc = aven_str("aven_c_lex single declaration"),
+                .fn = test_aven_c_lex,
+                .args = &(TestAvenCLexPpArgs){
+                    .src = slice_array("int x;"),
+                    .expected = slice_array(
+                        (TestAvenCToken[]){
+                            { .val = aven_str("int"), .type = AVEN_C_TOKEN_TYPE_KEY },
+                            { .val = aven_str("x"), .type = AVEN_C_TOKEN_TYPE_ID },
+                            { .val = aven_str(";"), .type = AVEN_C_TOKEN_TYPE_PNC },
+                        }
+                    ),
+                },
+            },
             {
                 .desc = aven_str("aven_c_lex include directive"),
                 .fn = test_aven_c_lex,
@@ -616,293 +616,293 @@
                     ),
                 },
             },
-            // {
-            //     .desc = aven_str("aven_c_ast_render int declaration"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("int x;"),
-            //         .expected = aven_str("int x;\n"),
-            //         .line_len = 16,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render int declaration list"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("int x, y;"),
-            //         .expected = aven_str("int x, y;\n"),
-            //         .line_len = 16,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render int declaration init expr"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("int x = 2 + 2;\n"),
-            //         .expected = aven_str("int x = 2 + 2;\n"),
-            //         .line_len = 16,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render int declaration init expr list"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("int x = 0, y = 0;\n"),
-            //         .expected = aven_str("int x = 0, y = 0;\n"),
-            //         .line_len = 16,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render char declaration init expr"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("char c = '\\n';\n"),
-            //         .expected = aven_str("char c = '\\n';\n"),
-            //         .line_len = 16,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render expression split same op add"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("long x = 2 + 2 * 4 - 7;"),
-            //         .expected = aven_str("long x = 2 +\n" "    2 * 4 -\n" "    7;\n"),
-            //         .line_len = 16,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render expression split same op mul"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("int x = 10 - 2 * 2 * 4 - 7;\n"),
-            //         .expected = aven_str("int x = 10 -\n" "    2 * 2 * 4 -\n" "    7;\n"),
-            //         .line_len = 16,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render expression split op same indent"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("int x = 10 - 2 * 2 * 4 - 7;\n"),
-            //         .expected = aven_str("int x = 10 -\n" "    2 * 2 * 4 -\n" "    7;\n"),
-            //         .line_len = 16,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render expression split same op mul"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("int x = 10 - 2 * 2 * 4 - 7 = 32 + 7 + 14;\n"),
-            //         .expected = aven_str(
-            //             "int x = 10 -\n"
-            //             "    2 * 2 * 4 -\n"
-            //             "    7 = 32 +\n"
-            //             "    7 +\n"
-            //             "    14;\n"
-            //         ),
-            //         .line_len = 16,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render ternary expression"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("bool x = true ? 1 : 0;\n"),
-            //         .expected = aven_str("bool x = true ? 1 : 0;\n"),
-            //         .line_len = 24,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render ternary expression split"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("bool x = true ? 1 : 0;\n"),
-            //         .expected = aven_str("bool x = true ?\n" "    1 :\n" "    0;\n"),
-            //         .line_len = 16,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render postfix '.'"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("int error = result.error;\n"),
-            //         .expected = aven_str("int error = result.error;\n"),
-            //         .line_len = 36,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render postfix []"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("int error = arr[2];\n"),
-            //         .expected = aven_str("int error = arr[2];\n"),
-            //         .line_len = 36,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render postfix [] and ()"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("int error = arr[2](x,y);\n"),
-            //         .expected = aven_str("int error = arr[2](x, y);\n"),
-            //         .line_len = 36,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render comma expression"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("int x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14);\n"),
-            //         .expected = aven_str("int x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14);\n"),
-            //         .line_len = 48,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render comma expression split"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("int x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14);\n"),
-            //         .expected = aven_str(
-            //             "int x = (\n"
-            //             "    10 -\n"
-            //             "        2 * 2 * 4 -\n"
-            //             "        7,\n"
-            //             "    32 + 7 + 14\n"
-            //             ");\n"
-            //         ),
-            //         .line_len = 19,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render complex paren assign expression split"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array(
-            //             "int x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14) = 1 + 2 + 3 + 4 + 5;\n"
-            //         ),
-            //         .expected = aven_str(
-            //             "int x = (\n"
-            //             "    10 -\n"
-            //             "        2 * 2 * 4 -\n"
-            //             "        7,\n"
-            //             "    32 + 7 + 14\n"
-            //             ") = 1 +\n"
-            //             "    2 +\n"
-            //             "    3 +\n"
-            //             "    4 +\n"
-            //             "    5;\n"
-            //         ),
-            //         .line_len = 19,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render sizeof operator postfix expr"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("const size_t x = 2 + sizeof foo(x);\n"),
-            //         .expected = aven_str("const size_t x = 2 +\n" "    sizeof foo(x);\n"),
-            //         .line_len = 32,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render sizeof operator postfix expr"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("const size_t x = 2 + sizeof foo(x);\n"),
-            //         .expected = aven_str("const size_t x = 2 +\n" "    sizeof foo(x);\n"),
-            //         .line_len = 32,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render sizeof operator paren expr"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("const size_t x = 2 + sizeof(*x);\n"),
-            //         .expected = aven_str("const size_t x = 2 + sizeof(*x);\n"),
-            //         .line_len = 32,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render sizeof operator paren postfix expr"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("const size_t x = 2 + sizeof(*x)++;\n"),
-            //         .expected = aven_str("const size_t x = 2 + sizeof (*x)++;\n"),
-            //         .line_len = 32,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render sizeof operator typename"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("const size_t x = 2 + sizeof(int);\n"),
-            //         .expected = aven_str("const size_t x = 2 + sizeof(int);\n"),
-            //         .line_len = 32,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render sizeof operator"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("const size_t x = 2 + _Alignof(int);\n"),
-            //         .expected = aven_str("const size_t x = 2 +\n" "    _Alignof(int);\n"),
-            //         .line_len = 32,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render _Atomic specifier"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("_Atomic(size_t) x;\n"),
-            //         .expected = aven_str("_Atomic(size_t) x;\n"),
-            //         .line_len = 32,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render _Alignas specifier"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("_Alignas(1) uint64_t x;\n"),
-            //         .expected = aven_str("_Alignas(1) uint64_t x;\n"),
-            //         .line_len = 32,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render static assert"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("_Static_assert(x == 2, \"OHNO\");\n"),
-            //         .expected = aven_str("_Static_assert(x == 2, \"OHNO\");\n"),
-            //         .line_len = 32,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render struct initializer postfix"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("int x = (struct T){ .x = 7 };\n"),
-            //         .expected = aven_str("int x = (struct T){ .x = 7 };\n"),
-            //         .line_len = 32,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render struct initializer postfix short"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("int x = (struct T){ .x = 7 };\n"),
-            //         .expected = aven_str("int x = (struct T){\n" "    .x = 7,\n" "};\n"),
-            //         .line_len = 24,
-            //     },
-            // },
-            // {
-            //     .desc = aven_str("aven_c_ast_render leading comment"),
-            //     .fn = test_aven_c_ast_render,
-            //     .args = &(TestAvenCAstRenderArgs){
-            //         .src = slice_array("// Hello World!\n" "int x = 2 + 2;\n"),
-            //         .expected = aven_str("// Hello World!\n" "int x = 2 + 2;\n"),
-            //         .line_len = 16,
-            //     },
-            // },
+            {
+                .desc = aven_str("aven_c_ast_render int declaration"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int x;"),
+                    .expected = aven_str("int x;\n"),
+                    .line_len = 16,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render int declaration list"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int x, y;"),
+                    .expected = aven_str("int x, y;\n"),
+                    .line_len = 16,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render int declaration init expr"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int x = 2 + 2;\n"),
+                    .expected = aven_str("int x = 2 + 2;\n"),
+                    .line_len = 16,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render int declaration init expr list"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int x = 0, y = 0;\n"),
+                    .expected = aven_str("int x = 0, y = 0;\n"),
+                    .line_len = 16,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render char declaration init expr"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("char c = '\\n';\n"),
+                    .expected = aven_str("char c = '\\n';\n"),
+                    .line_len = 16,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render expression split same op add"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("long x = 2 + 2 * 4 - 7;"),
+                    .expected = aven_str("long x = 2 +\n" "    2 * 4 -\n" "    7;\n"),
+                    .line_len = 16,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render expression split same op mul"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int x = 10 - 2 * 2 * 4 - 7;\n"),
+                    .expected = aven_str("int x = 10 -\n" "    2 * 2 * 4 -\n" "    7;\n"),
+                    .line_len = 16,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render expression split op same indent"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int x = 10 - 2 * 2 * 4 - 7;\n"),
+                    .expected = aven_str("int x = 10 -\n" "    2 * 2 * 4 -\n" "    7;\n"),
+                    .line_len = 16,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render expression split same op mul"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int x = 10 - 2 * 2 * 4 - 7 = 32 + 7 + 14;\n"),
+                    .expected = aven_str(
+                        "int x = 10 -\n"
+                        "    2 * 2 * 4 -\n"
+                        "    7 = 32 +\n"
+                        "    7 +\n"
+                        "    14;\n"
+                    ),
+                    .line_len = 16,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render ternary expression"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("bool x = true ? 1 : 0;\n"),
+                    .expected = aven_str("bool x = true ? 1 : 0;\n"),
+                    .line_len = 24,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render ternary expression split"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("bool x = true ? 1 : 0;\n"),
+                    .expected = aven_str("bool x = true ?\n" "    1 :\n" "    0;\n"),
+                    .line_len = 16,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render postfix '.'"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int error = result.error;\n"),
+                    .expected = aven_str("int error = result.error;\n"),
+                    .line_len = 36,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render postfix []"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int error = arr[2];\n"),
+                    .expected = aven_str("int error = arr[2];\n"),
+                    .line_len = 36,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render postfix [] and ()"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int error = arr[2](x,y);\n"),
+                    .expected = aven_str("int error = arr[2](x, y);\n"),
+                    .line_len = 36,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render comma expression"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14);\n"),
+                    .expected = aven_str("int x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14);\n"),
+                    .line_len = 48,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render comma expression split"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14);\n"),
+                    .expected = aven_str(
+                        "int x = (\n"
+                        "    10 -\n"
+                        "        2 * 2 * 4 -\n"
+                        "        7,\n"
+                        "    32 + 7 + 14\n"
+                        ");\n"
+                    ),
+                    .line_len = 19,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render complex paren assign expression split"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "int x = (10 - 2 * 2 * 4 - 7, 32 + 7 + 14) = 1 + 2 + 3 + 4 + 5;\n"
+                    ),
+                    .expected = aven_str(
+                        "int x = (\n"
+                        "    10 -\n"
+                        "        2 * 2 * 4 -\n"
+                        "        7,\n"
+                        "    32 + 7 + 14\n"
+                        ") = 1 +\n"
+                        "    2 +\n"
+                        "    3 +\n"
+                        "    4 +\n"
+                        "    5;\n"
+                    ),
+                    .line_len = 19,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render sizeof operator postfix expr"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("const size_t x = 2 + sizeof foo(x);\n"),
+                    .expected = aven_str("const size_t x = 2 +\n" "    sizeof foo(x);\n"),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render sizeof operator postfix expr"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("const size_t x = 2 + sizeof foo(x);\n"),
+                    .expected = aven_str("const size_t x = 2 +\n" "    sizeof foo(x);\n"),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render sizeof operator paren expr"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("const size_t x = 2 + sizeof(*x);\n"),
+                    .expected = aven_str("const size_t x = 2 + sizeof(*x);\n"),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render sizeof operator paren postfix expr"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("const size_t x = 2 + sizeof(*x)++;\n"),
+                    .expected = aven_str("const size_t x = 2 + sizeof (*x)++;\n"),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render sizeof operator typename"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("const size_t x = 2 + sizeof(int);\n"),
+                    .expected = aven_str("const size_t x = 2 + sizeof(int);\n"),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render sizeof operator"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("const size_t x = 2 + _Alignof(int);\n"),
+                    .expected = aven_str("const size_t x = 2 +\n" "    _Alignof(int);\n"),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render _Atomic specifier"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("_Atomic(size_t) x;\n"),
+                    .expected = aven_str("_Atomic(size_t) x;\n"),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render _Alignas specifier"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("_Alignas(1) uint64_t x;\n"),
+                    .expected = aven_str("_Alignas(1) uint64_t x;\n"),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render static assert"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("_Static_assert(x == 2, \"OHNO\");\n"),
+                    .expected = aven_str("_Static_assert(x == 2, \"OHNO\");\n"),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render struct initializer postfix"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int x = (struct T){ .x = 7 };\n"),
+                    .expected = aven_str("int x = (struct T){ .x = 7 };\n"),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render struct initializer postfix short"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int x = (struct T){ .x = 7 };\n"),
+                    .expected = aven_str("int x = (struct T){\n" "    .x = 7,\n" "};\n"),
+                    .line_len = 24,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render leading comment"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("// Hello World!\n" "int x = 2 + 2;\n"),
+                    .expected = aven_str("// Hello World!\n" "int x = 2 + 2;\n"),
+                    .line_len = 16,
+                },
+            },
             {
                 .desc = aven_str("aven_c_ast_render trailing comment"),
                 .fn = test_aven_c_ast_render,
@@ -2120,5 +2120,4 @@
         return 0;
     }
 #endif
-// TEST_C_H
 
