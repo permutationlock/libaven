@@ -7276,8 +7276,12 @@
         bool ppd;
     } AvenCAstRenderCtx;
 
-    typedef struct { uint32_t cursor; uint32_t indent; bool ppd; }
-        AvenCAstRenderCtxState;
+    typedef struct {
+        uint32_t cursor;
+        uint32_t indent;
+        uint32_t pp_cursor;
+        bool ppd;
+    } AvenCAstRenderCtxState;
 
     static inline AvenCAstRenderCtxState aven_c_ast_render_save(
         AvenCAstRenderCtx *ctx
@@ -7344,20 +7348,25 @@
             return true;
         }
         Optional(AvenStr) trailing_comment = { 0 };
-        if (ctx->pp_cursor + 1 < ctx->ast->tset.tokens.len) {
+        if (ctx->pp_cursor + 2 < ctx->ast->tset.tokens.len) {
             if (get(ctx->ast->tset.tokens, ctx->pp_cursor).trailing_lines == 0) {
-                AvenCToken next_token = get(
-                    ctx->ast->tset.tokens,
-                    ctx->pp_cursor + 1
-                );
+                uint32_t next_index = ctx->pp_cursor + 1;
+                AvenCToken next_token = get(ctx->ast->tset.tokens, next_index);
+                if (
+                    next_token.type == AVEN_C_TOKEN_TYPE_PNC and
+                        next_token.trailing_lines == 0
+                ) {
+                    next_index += 1;
+                    next_token = get(ctx->ast->tset.tokens, next_index);
+                }
                 if (next_token.type == AVEN_C_TOKEN_TYPE_CMT) {
                     assert(ctx->ppd == false);
                     trailing_comment.valid = true;
                     trailing_comment.value = aven_c_token_str(
                         ctx->ast->tset,
-                        ctx->pp_cursor + 1
+                        next_index
                     );
-                    ctx->pp_cursor += 2;
+                    ctx->pp_cursor = next_index + 1;
                     slice_copy(
                         aven_str_tail(ctx->line, ctx->cursor),
                         aven_str(" ")
@@ -7719,6 +7728,31 @@
             return true;
         }
         uint32_t may_split = split or ctx->cursor == 0;
+        bool pp_tokens = false;
+        for (uint32_t i = ctx->pp_cursor; i < token_index; i += 1) {
+            AvenCToken token = get(ctx->ast->tset.tokens, i);
+            if (
+                token.type == AVEN_C_TOKEN_TYPE_CMT or
+                    token.type == AVEN_C_TOKEN_TYPE_PPD or
+                    token.type == AVEN_C_TOKEN_TYPE_HDR
+            ) {
+                pp_tokens = true;
+                break;
+            }
+            if (i > 0 and token.type == AVEN_C_TOKEN_TYPE_NONE) {
+                break;
+            }
+        }
+        if (!pp_tokens) {
+            ctx->pp_cursor = token_index;
+            return true;
+        }
+        if (!may_split) {
+            return false;
+        }
+        if (!aven_c_ast_render_flush_line(ctx)) {
+            return false;
+        }
         while (ctx->pp_cursor < token_index) {
             AvenCToken token = get(ctx->ast->tset.tokens, ctx->pp_cursor);
             if (
@@ -7730,16 +7764,6 @@
                     return true;
                 }
                 ctx->pp_cursor += 1;
-                continue;
-            }
-            if (!may_split) {
-                return false;
-            }
-            uint32_t last_pp_cursor = ctx->pp_cursor;
-            if (!aven_c_ast_render_flush_line(ctx)) {
-                return false;
-            }
-            if (last_pp_cursor != ctx->pp_cursor) {
                 continue;
             }
             if (
@@ -7754,7 +7778,7 @@
                 return false;
             }
             ctx->trailing_lines = token.trailing_lines;
-            last_pp_cursor = ctx->pp_cursor;
+            uint32_t last_pp_cursor = ctx->pp_cursor;
             if (!aven_c_ast_render_flush_line(ctx)) {
                 return false;
             }
