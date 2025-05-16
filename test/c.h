@@ -144,7 +144,7 @@
         ByteSlice out_buffer = aven_arena_create_slice(
             unsigned char,
             &arena,
-            8 * fmt_args->expected.len
+            8 * fmt_args->src.len + fmt_args->expected.len
         );
         AvenIoWriter writer = aven_io_writer_init_bytes(out_buffer);
         AvenCAstRenderResult ren_res = aven_c_ast_render(
@@ -904,11 +904,29 @@
                 },
             },
             {
+                .desc = aven_str("aven_c_ast_render leading block comment"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("/* Hello World! */ int x = 2 + 2;\n"),
+                    .expected = aven_str("/* Hello World! */\n" "int x = 2 + 2;\n"),
+                    .line_len = 16,
+                },
+            },
+            {
                 .desc = aven_str("aven_c_ast_render trailing comment"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("int x = 2 + 2; // Hello World!\n"),
-                    .expected = aven_str("int x = 2 + 2;\n" "// Hello World!\n"),
+                    .expected = aven_str("int x = 2 + 2; // Hello World!\n"),
+                    .line_len = 16,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render trailing block comment"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int x = 2 + 2; /* Hello World! */\n"),
+                    .expected = aven_str("int x = 2 + 2; /* Hello World! */\n"),
                     .line_len = 16,
                 },
             },
@@ -917,7 +935,7 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("int x = 2 + /* add */ 2;\n"),
-                    .expected = aven_str("int x = 2 +\n" "    /* add */\n" "    2;\n"),
+                    .expected = aven_str("int x = 2 + /* add */\n" "    2;\n"),
                     .line_len = 16,
                 },
             },
@@ -993,7 +1011,7 @@
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("#define NUM 1 // number of entries\n"),
-                    .expected = aven_str("#define NUM 1\n// number of entries\n"),
+                    .expected = aven_str("#define NUM 1 // number of entries\n"),
                     .line_len = 16,
                 },
             },
@@ -1004,7 +1022,7 @@
                     .src = slice_array(
                         "#define NUM 1 /* number of\n" "              ** entries */\n"
                     ),
-                    .expected = aven_str("#define NUM 1\n" "/* number of\n" "** entries */\n"),
+                    .expected = aven_str("#define NUM 1 /* number of\n" "** entries */\n"),
                     .line_len = 16,
                 },
             },
@@ -1579,8 +1597,7 @@
                         "void main(\n"
                         "    int argc,\n"
                         "    const char **argv\n"
-                        ") {\n"
-                        "    /* main */\n"
+                        ") { /* main */\n"
                         "    printf(\"Hello, World!\");\n"
                         "}\n"
                     ),
@@ -2103,12 +2120,81 @@
                 },
             },
             {
-                .desc = aven_str("aven_c_ast_render pp def parenthesised expresson"),
+                .desc = aven_str("aven_c_ast_render pp warning long line"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("#warning \"a long str warning!\"\n"),
-                    .expected = aven_str("#warning \\\n        \"a long str warning!\"\n"),
+                    .expected = aven_str("#warning \"a long str warning!\"\n"),
                     .line_len = 31,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render inline comment in initializer list"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("int arr[] = { a, /* a */ b, /* b */ c /* c */ };"),
+                    .expected = aven_str(
+                        "int arr[] = {\n"
+                        "    a, /* a */\n"
+                        "    b, /* b */\n"
+                        "    c, /* c */\n"
+                        "};\n"
+                    ),
+                    .line_len = 31,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render weird inline comment in initializer list"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "int arr[] /* y */ =\n"
+                        "{ /* z */ a /* a */, /* b */ b, /* c */ /* d */ c /* e */ };"
+                    ),
+                    .expected = aven_str(
+                        "int arr[] /* y */\n"
+                        "= { /* z */\n"
+                        "    a, /* a */\n"
+                        "    /* b */\n"
+                        "    b, /* c */\n"
+                        "    /* d */\n"
+                        "    c, /* e */\n"
+                        "};\n"
+                    ),
+                    .line_len = 31,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render inline comments in compound literal"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "char arr[] =\n"
+                        "\"line1\\n\" /* a */ \"line2\\n\" /* b */ \"line3\\n\"; /* c */"
+                    ),
+                    .expected = aven_str(
+                        "char arr[] = \"line1\\n\" /* a */\n"
+                        "    \"line2\\n\" /* b */\n"
+                        "    \"line3\\n\"; /* c */\n"
+                    ),
+                    .line_len = 31,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render inline comments in indented compound literal"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "char very_long_name[] =\n"
+                        "\"line1\\n\" /* a */ \"line2\\n\" /* b */ \"line3\\n\"; /* c */"
+                    ),
+                    .expected = aven_str(
+                        "char very_long_name[] =\n"
+                        "        \"line1\\n\" /* a */\n"
+                        "        \"line2\\n\" /* b */\n"
+                        "        \"line3\\n\"; /* c */\n"
+                    ),
+                    .line_len = 24,
                 },
             },
         };
