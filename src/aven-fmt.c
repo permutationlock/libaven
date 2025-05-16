@@ -63,7 +63,14 @@ int main(int argc, char **argv) {
     AvenArena arena = aven_arena_init(mem, ARENA_SIZE);
 
     AvenStr overview = aven_str("Aven C Formatter");
-    AvenStr usage = aven_str("aven-fmt [src_file] [options]");
+    AvenStr usage = aven_str(
+        "aven-fmt [src_file] [options]\n"
+        "    comments at the top of files can configure options:\n"
+        "        // aven fmt columns: 128\n"
+        "        // aven fmt depth: 0\n"
+        "    or disable formatting:\n"
+        "        // aven fmt disable"
+    );
     AvenArgSlice args = slice_array(arg_data);
     size_t arg_cols = aven_arg_col_len(args);
     AvenArgError parse_error = aven_arg_parse(args, argv, argc, overview, usage);
