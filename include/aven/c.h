@@ -6869,19 +6869,21 @@
         aven_c_ast_parse_ppd_tokens(&ctx);
         aven_c_ast_inc_index(&ctx);
         uint32_t root = 0;
+        bool prep_error = ctx.depth_exceeded or ctx.ppd_error.valid;
+        bool prep_depth_exceeded = ctx.depth_exceeded;
         if (!ctx.depth_exceeded) {
             root = aven_c_ast_parse_translation_unit(&ctx);
         }
-        bool normal_error = aven_c_ast_next(&ctx).type != AVEN_C_TOKEN_TYPE_NONE or
-            root == 0;
-        if (normal_error or ctx.depth_exceeded or ctx.ppd_error.valid) {
+        bool normal_error = !prep_depth_exceeded and
+            (aven_c_ast_next(&ctx).type != AVEN_C_TOKEN_TYPE_NONE or root == 0);
+        if (normal_error or prep_error) {
             AvenCToken token = get(ctx.tset.tokens, ctx.error.token);
             AvenCTokenLoc eloc = aven_c_token_loc(ctx.tset, ctx.error.token);
             uint32_t token_index = token.index;
             AvenCTokenType exp_token_type = ctx.error.type;
             AvenStr exp_token_str = ctx.error.exp;
             if (
-                !normal_error or
+                (prep_error and !normal_error) or
                     (
                         ctx.ppd_error.valid and
                             ctx.ppd_error.value.token < ctx.error.token

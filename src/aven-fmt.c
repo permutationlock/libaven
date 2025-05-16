@@ -44,13 +44,13 @@ static AvenArg arg_data[] = {
     },
     {
         .name = aven_str_init("--depth"),
-        .description = aven_str_init("parse depth limit, 0 for no limit"),
+        .description = aven_str_init("parse depth, 0 for no limit"),
         .value = { .type = AVEN_ARG_TYPE_UINT, .data = { .arg_int = 12 } },
         .type = AVEN_ARG_TYPE_UINT,
     },
 };
 
-// 1GB virtual memory reserve handles pathological files up to ~10MB, for
+// 1GB virtual memory reserve handles pathological files up to ~10MB, and for
 // normal source files this limit should never be exceeded
 #define ARENA_SIZE (4096 * 250000)
 #define MAX_RENDER_SIZE ((size_t)1024 * (size_t)1024 * (size_t)100)
@@ -65,10 +65,11 @@ int main(int argc, char **argv) {
     AvenStr overview = aven_str("Aven C Formatter");
     AvenStr usage = aven_str(
         "aven-fmt [src_file] [options]\n"
-        "    comments at the top of files can configure options:\n"
+        "configure:\n"
+        "    comments at the top of files can configure options\n"
         "        // aven fmt columns: 128\n"
         "        // aven fmt depth: 0\n"
-        "    or disable formatting:\n"
+        "    or disable formatting\n"
         "        // aven fmt disable"
     );
     AvenArgSlice args = slice_array(arg_data);
