@@ -284,11 +284,9 @@
             );
             if (success == 0) {
                 switch (GetLastError()) {
-                    case 2:
-                        /* ERROR_FILE_NOT_FOUND */
+                    case 2: /* ERROR_FILE_NOT_FOUND */
                         return AVEN_FS_COPY_ERROR_IFOPEN;
-                    case 3:
-                        /* ERROR_ACCESS_DENIED */
+                    case 3: /* ERROR_ACCESS_DENIED */
                         return AVEN_FS_COPY_ERROR_OFOPEN;
                     default:
                         return AVEN_FS_COPY_ERROR_OTHER;
@@ -354,8 +352,7 @@
 
             _setmode(0, _O_BINARY);
             _setmode(1, _O_BINARY);
-            /* 65001: CP_UTF8 */
-            SetConsoleOutputCP(65001);
+            SetConsoleOutputCP(65001); /* 65001: CP_UTF8 */
         #else
         #endif
         }
@@ -365,4 +362,4 @@
 
     #endif
 #endif
-// AVEN_FS_H
+

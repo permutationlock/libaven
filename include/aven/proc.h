@@ -70,8 +70,7 @@
             AvenStr cmd_str = aven_str_join(cmd, ' ', &arena);
         #ifndef AVEN_SUPPRESS_LOGS
             aven_io_printf("{}\n", aven_fmt_str(cmd_str));
-        #endif
-            // defined(AVEN_SUPPRESS_LOGS)
+        #endif // defined(AVEN_SUPPRESS_LOGS)
         #ifdef _WIN32
             typedef struct {
                 uint32_t len;
@@ -127,8 +126,7 @@
                 .stdinput = GetStdHandle(((uint32_t)-10)),
                 .stdoutput = GetStdHandle(((uint32_t)-11)),
                 .stderror = GetStdHandle(((uint32_t)-12)),
-                .flags = 0x00000100,
-                /* STARTF_USESTDHANDLES */
+                .flags = 0x00000100, /* STARTF_USESTDHANDLES */
             };
             AvenWinProcessInfo process_info = { 0 };
 
@@ -151,8 +149,7 @@
             CloseHandle(process_info.thread);
 
             return (AvenProcCmdResult){ .payload = process_info.process };
-        #else
-            // !defined(_WIN32)
+        #else // !defined(_WIN32)
             AvenProcId cmd_pid = fork();
             if (cmd_pid < 0) {
                 return (AvenProcCmdResult){ .error = AVEN_PROC_CMD_ERROR_FORK };
@@ -197,8 +194,7 @@
                                     "execve failed: {}\n",
                                     aven_fmt_str(cmd_str)
                                 );
-        #endif
-                                // defined(AVEN_SUPPRESS_LOGS)
+        #endif // defined(AVEN_SUPPRESS_LOGS)
                                 exit(errno);
                                 break;
                         }
@@ -218,29 +214,24 @@
                                 "execve failed: {}\n",
                                 aven_fmt_str(cmd_str)
                             );
-        #endif
-                            // defined(AVEN_SUPPRESS_LOGS)
+        #endif // defined(AVEN_SUPPRESS_LOGS)
                             exit(errno);
                             break;
                     }
                 }
-        #else
-                // !defined(__linux__) or !defined(NOLIBC)
+        #else // !defined(__linux__) or !defined(NOLIBC)
                 int error = execvp(args[0], args);
                 if (error != 0) {
         #ifndef AVEN_SUPPRESS_LOGS
                     aven_io_perrf("execvp failed: {}\n", aven_fmt_str(cmd_str));
-        #endif
-                    // defined(AVEN_SUPPRESS_LOGS)
+        #endif // defined(AVEN_SUPPRESS_LOGS)
                     exit(errno);
                 }
-        #endif
-                // !defined(__linux__) or !defined(NOLIBC)
+        #endif // !defined(__linux__) or !defined(NOLIBC)
             }
 
             return (AvenProcCmdResult){ .payload = cmd_pid };
-        #endif
-            // !defined(_WIN32)
+        #endif // !defined(_WIN32)
         }
 
         static AvenProcWaitResult aven_proc_status(AvenProcId pid, bool wait) {
@@ -257,14 +248,11 @@
             uint32_t result = WaitForSingleObject(
                 pid,
                 wait ?
-                    0xffffffff
-                    /* INFINITE */
-                    :
+                    0xffffffff : /* INFINITE */
                     0x0
             );
             if (
-                result == 0x00000102L
-                /* TIMEOUT */
+                result == 0x00000102L /* TIMEOUT */
             ) {
                 return (AvenProcWaitResult){
                     .error = AVEN_PROC_WAIT_ERROR_TIMEOUT,
@@ -370,7 +358,4 @@
         #endif
         }
     #endif
-    // AVEN_IMPLEMENTATION
-
 #endif
-// AVEN_PROCESS_H

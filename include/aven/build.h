@@ -162,7 +162,7 @@
         }
 
         for (AvenBuildStepNode *dep = step->dep; dep != NULL; dep = dep->next) {
-            int error = aven_build_step_run(dep->step, arena);
+            int error = (int)aven_build_step_run(dep->step, arena);
             if (error != 0) {
                 return AVEN_BUILD_STEP_RUN_ERROR_DEPRUN;
             }
@@ -197,7 +197,7 @@
     #ifndef AVEN_SUPPRESS_LOGS
                 aven_io_printf("rm {}\n", aven_fmt_str(step->data.rm));
     #endif
-                error = aven_fs_rm(step->data.rm, arena);
+                error = (int)aven_fs_rm(step->data.rm, arena);
                 if (error != 0) {
                     return AVEN_BUILD_STEP_RUN_ERROR_RM;
                 }
@@ -207,7 +207,7 @@
     #ifndef AVEN_SUPPRESS_LOGS
                 aven_io_printf("rmdir {}\n", aven_fmt_str(step->data.rmdir));
     #endif
-                error = aven_fs_rmdir(step->data.rmdir, arena);
+                error = (int)aven_fs_rmdir(step->data.rmdir, arena);
                 if (error != 0) {
                     return AVEN_BUILD_STEP_RUN_ERROR_RMDIR;
                 }
@@ -223,7 +223,7 @@
                     aven_fmt_str(step->out_path.value)
                 );
     #endif
-                error = aven_fs_trunc(step->out_path.value, arena);
+                error = (int)aven_fs_trunc(step->out_path.value, arena);
                 if (error != 0) {
                     return AVEN_BUILD_STEP_RUN_ERROR_TRUNC;
                 }
@@ -233,7 +233,7 @@
                 if (!step->out_path.valid) {
                     return AVEN_BUILD_STEP_RUN_ERROR_OUTPATH;
                 }
-                error = aven_fs_mkdir(step->out_path.value, arena);
+                error = (int)aven_fs_mkdir(step->out_path.value, arena);
                 if (error != 0) {
                     if (error != AVEN_FS_MKDIR_ERROR_EXIST) {
                         return AVEN_BUILD_STEP_RUN_ERROR_MKDIR;
@@ -252,7 +252,7 @@
                 if (!step->out_path.valid) {
                     return AVEN_BUILD_STEP_RUN_ERROR_OUTPATH;
                 }
-                error = aven_fs_copy(
+                error = (int)aven_fs_copy(
                     step->data.copy,
                     step->out_path.value,
                     arena
@@ -302,4 +302,4 @@
         }
     }
 #endif
-// AVEN_BUILD_H
+

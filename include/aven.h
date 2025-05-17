@@ -377,6 +377,5 @@
     #ifdef _WIN32
         #define AVEN_WIN32_FN(t) __declspec(dllimport) t __stdcall
     #endif
-
 #endif
-// AVEN_H
+

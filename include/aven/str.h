@@ -227,4 +227,4 @@
         return aven_str_head(str, fin);
     }
 #endif
-// AVEN_STR_H
+

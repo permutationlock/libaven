@@ -16,7 +16,6 @@
     AVEN_FN void aven_dl_close(void *handle);
 
     #ifdef AVEN_IMPLEMENTATION
-
         #ifdef _WIN32
             AVEN_FN void *aven_dl_open(AvenStr fname, AvenArena temp_arena) {
                 AVEN_WIN32_FN(void *) LoadLibraryA(const char *fname);
@@ -109,9 +108,6 @@
                 assert(error == 0);
             }
         #endif
-
     #endif
-    // AVEN_IMPLEMENTATION
-
 #endif
-// AVEN_DL_H
+

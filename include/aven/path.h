@@ -251,7 +251,6 @@
     AVEN_FN AvenPathResult aven_path_exe(AvenArena *arena);
 
     #ifdef AVEN_IMPLEMENTATION
-
         #if defined(__linux__) and !defined(NOLIBC)
             #if !defined(_POSIX_C_SOURCE) or _POSIX_C_SOURCE < 200112L
                 #error "readlink requires _POSIX_C_SOURCE >= 200112L"
@@ -297,7 +296,5 @@
         #endif
         }
     #endif
-    // AVEN_IMPLEMENTATION
-
 #endif
-// AVEN_PATH_H
+

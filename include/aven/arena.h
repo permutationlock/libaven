@@ -200,7 +200,5 @@
             return new_ptr;
         }
     #endif
-    // AVEN_IMPLEMENTATION
-
 #endif
-// AVEN_ARENA_H
+

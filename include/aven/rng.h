@@ -29,4 +29,4 @@
         return (float)(aven_rng_rand(rng) >> 8) * (1.0f / (1UL << 24));
     }
 #endif
-// RNG_H
+

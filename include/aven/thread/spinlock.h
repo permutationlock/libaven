@@ -32,4 +32,4 @@
         atomic_store_explicit(lock, false, memory_order_release);
     }
 #endif
-// AVEN_THREAD_SPINLOCK_H
+
