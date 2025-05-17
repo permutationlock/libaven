@@ -55,7 +55,7 @@
         };
         ByteSlice bytes = aven_arena_create_slice(unsigned char, &arena, 512000);
         AvenIoWriter writer = aven_io_writer_init_bytes(bytes);
-        AvenCFmtResult fmt_res = aven_c_fmt(src, &writer, 80, 12, &arena);
+        AvenCFmtResult fmt_res = aven_c_fmt(src, &writer, 80, 4, 12, &arena);
         if (fmt_res.error != 0) {
             return (AvenTestResult){
                 .error = 1,

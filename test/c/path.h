@@ -99,15 +99,15 @@
 
         while (
             path1.len > 1 and
-                get(path1, 0) == '.' and
-                get(path1, 1) == AVEN_PATH_SEP
+            get(path1, 0) == '.' and
+            get(path1, 1) == AVEN_PATH_SEP
         ) {
             path1 = aven_str_tail(path1, 2);
         }
         while (
             path2.len > 1 and
-                get(path2, 0) == '.' and
-                get(path2, 1) == AVEN_PATH_SEP
+            get(path2, 0) == '.' and
+            get(path2, 1) == AVEN_PATH_SEP
         ) {
             path2 = aven_str_tail(path2, 2);
         }
@@ -199,7 +199,7 @@
         );
         if (
             path2_parts.len > 0 and
-                aven_str_equals(get(path2_parts, 0), aven_str("."))
+            aven_str_equals(get(path2_parts, 0), aven_str("."))
         ) {
             path2_parts.ptr += 1;
             path2_parts.len -= 1;

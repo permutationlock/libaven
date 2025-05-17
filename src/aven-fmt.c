@@ -39,13 +39,19 @@ static AvenArg arg_data[] = {
     {
         .name = aven_str_init("--columns"),
         .description = aven_str_init("column width, 0 for no limit"),
-        .value = { .type = AVEN_ARG_TYPE_UINT, .data = { .arg_int = 80 } },
+        .value = { .type = AVEN_ARG_TYPE_UINT, .data = { .arg_uint = 80 } },
+        .type = AVEN_ARG_TYPE_UINT,
+    },
+    {
+        .name = aven_str_init("--indent"),
+        .description = aven_str_init("indent width"),
+        .value = { .type = AVEN_ARG_TYPE_UINT, .data = { .arg_uint = 4 } },
         .type = AVEN_ARG_TYPE_UINT,
     },
     {
         .name = aven_str_init("--depth"),
         .description = aven_str_init("parse depth, 0 for no limit"),
-        .value = { .type = AVEN_ARG_TYPE_UINT, .data = { .arg_int = 12 } },
+        .value = { .type = AVEN_ARG_TYPE_UINT, .data = { .arg_uint = 12 } },
         .type = AVEN_ARG_TYPE_UINT,
     },
 };
@@ -68,6 +74,7 @@ int main(int argc, char **argv) {
         "configure:\n"
         "    comments at the top of files can configure options\n"
         "        // aven fmt columns: 128\n"
+        "        // aven fmt indent: 8\n"
         "        // aven fmt depth: 0\n"
         "    or disable formatting\n"
         "        // aven fmt disable"
@@ -87,8 +94,10 @@ int main(int argc, char **argv) {
         }
     }
     uint64_t arg_cwidth = aven_arg_get_uint(args, "--columns");
+    uint64_t arg_indent = aven_arg_get_uint(args, "--indent");
     uint64_t arg_depth = aven_arg_get_uint(args, "--depth");
     size_t column_width = (size_t)arg_cwidth;
+    size_t indent = (size_t)arg_indent;
     size_t parse_depth = (size_t)arg_depth;
     AvenIoReader reader = aven_io_stdin;
     Optional(AvenIoFd) in_fd = { 0 };
@@ -175,6 +184,7 @@ int main(int argc, char **argv) {
         src,
         &writer,
         column_width,
+        indent,
         parse_depth,
         &arena
     );

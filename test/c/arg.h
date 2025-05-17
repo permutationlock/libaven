@@ -139,9 +139,9 @@
             AvenStr arg_str = aven_str_cstr(argv[i]);
             if (
                 aven_str_equals(arg_str, aven_str("help")) or
-                    aven_str_equals(arg_str, aven_str("-h")) or
-                    aven_str_equals(arg_str, aven_str("-help")) or
-                    aven_str_equals(arg_str, aven_str("--help"))
+                aven_str_equals(arg_str, aven_str("-h")) or
+                aven_str_equals(arg_str, aven_str("-help")) or
+                aven_str_equals(arg_str, aven_str("--help"))
             ) {
                 aven_arg_help(args, overview, usage);
                 return AVEN_ARG_ERROR_HELP;
@@ -158,19 +158,19 @@
                     case AVEN_ARG_TYPE_BOOL: {
                         if (
                             i + 1 < argc and
-                                aven_str_equals(
-                                    aven_str_cstr(argv[i + 1]),
-                                    aven_str("false")
-                                )
+                            aven_str_equals(
+                                aven_str_cstr(argv[i + 1]),
+                                aven_str("false")
+                            )
                         ) {
                             arg->value.data.arg_bool = false;
                             i += 1;
                         } else if (
                             i + 1 < argc and
-                                aven_str_equals(
-                                    aven_str_cstr(argv[i + 1]),
-                                    aven_str("true")
-                                )
+                            aven_str_equals(
+                                aven_str_cstr(argv[i + 1]),
+                                aven_str("true")
+                            )
                         ) {
                             arg->value.data.arg_bool = true;
                             i += 1;

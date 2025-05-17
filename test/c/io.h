@@ -58,7 +58,10 @@
 
     AVEN_FN void aven_io_close(AvenIoFd fd);
 
-    typedef union { void *ptr; AvenIoFd fd; } AvenIoCtx;
+    typedef union {
+        void *ptr;
+        AvenIoFd fd;
+    } AvenIoCtx;
 
     typedef AvenIoResult AvenIoFn(AvenIoCtx ctx, ByteSlice bytes);
 
@@ -498,11 +501,20 @@
         )
     #define AVEN_IO_SLICE_FINGERPRINT ((uint64_t)0x571ce04eade2)
 
-    typedef struct { uint64_t size; uint64_t len; } AvenIoSlice;
+    typedef struct {
+        uint64_t size;
+        uint64_t len;
+    } AvenIoSlice;
 
-    typedef struct { void *ptr; AvenIoSlice slice; } AvenIoSliceGeneric;
+    typedef struct {
+        void *ptr;
+        AvenIoSlice slice;
+    } AvenIoSliceGeneric;
 
-    typedef struct { uint64_t fp; AvenIoSlice slice; } AvenIoSliceHeader;
+    typedef struct {
+        uint64_t fp;
+        AvenIoSlice slice;
+    } AvenIoSliceHeader;
 
     typedef Result(AvenIoSliceGeneric, int) AvenIoSliceResult;
 
@@ -597,11 +609,21 @@
         )
     #define AVEN_IO_LIST_FINGERPRINT ((uint64_t)0x715704eade2)
 
-    typedef struct { uint64_t size; uint64_t len; uint64_t cap; } AvenIoList;
+    typedef struct {
+        uint64_t size;
+        uint64_t len;
+        uint64_t cap;
+    } AvenIoList;
 
-    typedef struct { void *ptr; AvenIoList list; } AvenIoListGeneric;
+    typedef struct {
+        void *ptr;
+        AvenIoList list;
+    } AvenIoListGeneric;
 
-    typedef struct { uint64_t fp; AvenIoList list; } AvenIoListHeader;
+    typedef struct {
+        uint64_t fp;
+        AvenIoList list;
+    } AvenIoListHeader;
 
     typedef Result(AvenIoListGeneric, int) AvenIoListResult;
 
@@ -710,11 +732,21 @@
         )
     #define AVEN_IO_QUEUE_FINGERPRINT ((uint64_t)0x98e8e04eade2)
 
-    typedef struct { uint64_t size; uint64_t used; uint64_t cap; } AvenIoQueue;
+    typedef struct {
+        uint64_t size;
+        uint64_t used;
+        uint64_t cap;
+    } AvenIoQueue;
 
-    typedef struct { void *ptr; AvenIoQueue queue; } AvenIoQueueGeneric;
+    typedef struct {
+        void *ptr;
+        AvenIoQueue queue;
+    } AvenIoQueueGeneric;
 
-    typedef struct { uint64_t fp; AvenIoQueue queue; } AvenIoQueueHeader;
+    typedef struct {
+        uint64_t fp;
+        AvenIoQueue queue;
+    } AvenIoQueueHeader;
 
     typedef Result(AvenIoQueueGeneric, int) AvenIoQueueResult;
 
@@ -842,9 +874,15 @@
         uint64_t cap;
     } AvenIoPool;
 
-    typedef struct { void *ptr; AvenIoPool pool; } AvenIoPoolGeneric;
+    typedef struct {
+        void *ptr;
+        AvenIoPool pool;
+    } AvenIoPoolGeneric;
 
-    typedef struct { uint64_t fp; AvenIoPool pool; } AvenIoPoolHeader;
+    typedef struct {
+        uint64_t fp;
+        AvenIoPool pool;
+    } AvenIoPoolHeader;
 
     typedef Result(AvenIoPoolGeneric, int) AvenIoPoolResult;
 
@@ -976,20 +1014,18 @@
         #ifdef _WIN32
             unsigned int oflag = 0;
             switch (mode) {
-                case AVEN_IO_OPEN_MODE_WRITE: oflag = _O_CREAT |
-                    _O_TRUNC |
-                    _O_WRONLY |
-                    _O_BINARY;
-                break;
-                case AVEN_IO_OPEN_MODE_APPEND: oflag = _O_CREAT |
-                    _O_APPEND |
-                    _O_WRONLY |
-                    _O_BINARY;
-                break;
-                case AVEN_IO_OPEN_MODE_READ: oflag = _O_RDONLY | _O_BINARY;
-                break;
-                default: assert(false);
-                break;
+                case AVEN_IO_OPEN_MODE_WRITE:
+                    oflag = _O_CREAT | _O_TRUNC | _O_WRONLY | _O_BINARY;
+                    break;
+                case AVEN_IO_OPEN_MODE_APPEND:
+                    oflag = _O_CREAT | _O_APPEND | _O_WRONLY | _O_BINARY;
+                    break;
+                case AVEN_IO_OPEN_MODE_READ:
+                    oflag = _O_RDONLY | _O_BINARY;
+                    break;
+                default:
+                    assert(false);
+                    break;
             }
             AvenIoFd fd = _open(
                 aven_str_to_cstr(file_path, &temp_arena),
@@ -998,15 +1034,18 @@
             );
             if (fd < 0) {
                 switch (errno) {
-                    case EACCES: return (AvenIoOpenResult){
-                        .error = AVEN_IO_OPEN_ERROR_ACCESS,
-                    };
-                    case ENOENT: return (AvenIoOpenResult){
-                        .error = AVEN_IO_OPEN_ERROR_BADPATH,
-                    };
-                    default: return (AvenIoOpenResult){
-                        .error = AVEN_IO_OPEN_ERROR_OTHER,
-                    };
+                    case EACCES:
+                        return (AvenIoOpenResult){
+                            .error = AVEN_IO_OPEN_ERROR_ACCESS,
+                        };
+                    case ENOENT:
+                        return (AvenIoOpenResult){
+                            .error = AVEN_IO_OPEN_ERROR_BADPATH,
+                        };
+                    default:
+                        return (AvenIoOpenResult){
+                            .error = AVEN_IO_OPEN_ERROR_OTHER,
+                        };
                 }
             }
 
@@ -1015,18 +1054,18 @@
             AvenIoFd fd = -1;
             int oflag = 0;
             switch (mode) {
-                case AVEN_IO_OPEN_MODE_WRITE: oflag = O_CREAT |
-                    O_TRUNC |
-                    O_WRONLY;
-                break;
-                case AVEN_IO_OPEN_MODE_APPEND: oflag = O_CREAT |
-                    O_APPEND |
-                    O_WRONLY;
-                break;
-                case AVEN_IO_OPEN_MODE_READ: oflag = O_RDONLY;
-                break;
-                default: assert(false);
-                break;
+                case AVEN_IO_OPEN_MODE_WRITE:
+                    oflag = O_CREAT | O_TRUNC | O_WRONLY;
+                    break;
+                case AVEN_IO_OPEN_MODE_APPEND:
+                    oflag = O_CREAT | O_APPEND | O_WRONLY;
+                    break;
+                case AVEN_IO_OPEN_MODE_READ:
+                    oflag = O_RDONLY;
+                    break;
+                default:
+                    assert(false);
+                    break;
             }
             do {
                 fd = open(
@@ -1037,17 +1076,20 @@
             } while (fd < 0 and errno == EINTR);
             if (fd < 0) {
                 switch (errno) {
-                    case EACCES: return (AvenIoOpenResult){
-                        .error = AVEN_IO_OPEN_ERROR_ACCESS,
-                    };
+                    case EACCES:
+                        return (AvenIoOpenResult){
+                            .error = AVEN_IO_OPEN_ERROR_ACCESS,
+                        };
                     case ENOENT:
                     case ENOTDIR:
-                    case EISDIR: return (AvenIoOpenResult){
-                        .error = AVEN_IO_OPEN_ERROR_BADPATH,
-                    };
-                    default: return (AvenIoOpenResult){
-                        .error = AVEN_IO_OPEN_ERROR_OTHER,
-                    };
+                    case EISDIR:
+                        return (AvenIoOpenResult){
+                            .error = AVEN_IO_OPEN_ERROR_BADPATH,
+                        };
+                    default:
+                        return (AvenIoOpenResult){
+                            .error = AVEN_IO_OPEN_ERROR_OTHER,
+                        };
                 }
             }
 
@@ -1066,14 +1108,16 @@
                     break;
                 } else {
                     switch (errno) {
-                        case EBADF: return (AvenIoReadResult){
-                            .error = AVEN_IO_READ_ERROR_BADF,
-                            .payload = dest.len - dest_rem.len,
-                        };
-                        default: return (AvenIoReadResult){
-                            .error = AVEN_IO_READ_ERROR_OTHER,
-                            .payload = dest.len - dest_rem.len,
-                        };
+                        case EBADF:
+                            return (AvenIoReadResult){
+                                .error = AVEN_IO_READ_ERROR_BADF,
+                                .payload = dest.len - dest_rem.len,
+                            };
+                        default:
+                            return (AvenIoReadResult){
+                                .error = AVEN_IO_READ_ERROR_OTHER,
+                                .payload = dest.len - dest_rem.len,
+                            };
                     }
                 }
             }
@@ -1089,14 +1133,16 @@
                     break;
                 } else if (errno != EINTR) {
                     switch (errno) {
-                        case EBADF: return (AvenIoReadResult){
-                            .error = AVEN_IO_READ_ERROR_BADF,
-                            .payload = dest.len - dest_rem.len,
-                        };
-                        default: return (AvenIoReadResult){
-                            .error = AVEN_IO_READ_ERROR_OTHER,
-                            .payload = dest.len - dest_rem.len,
-                        };
+                        case EBADF:
+                            return (AvenIoReadResult){
+                                .error = AVEN_IO_READ_ERROR_BADF,
+                                .payload = dest.len - dest_rem.len,
+                            };
+                        default:
+                            return (AvenIoReadResult){
+                                .error = AVEN_IO_READ_ERROR_OTHER,
+                                .payload = dest.len - dest_rem.len,
+                            };
                     }
                 }
             }
@@ -1116,14 +1162,16 @@
                     break;
                 } else {
                     switch (errno) {
-                        case EBADF: return (AvenIoWriteResult){
-                            .error = AVEN_IO_WRITE_ERROR_BADF,
-                            .payload = src.len - src_rem.len,
-                        };
-                        default: return (AvenIoWriteResult){
-                            .error = AVEN_IO_WRITE_ERROR_OTHER,
-                            .payload = src.len - src_rem.len,
-                        };
+                        case EBADF:
+                            return (AvenIoWriteResult){
+                                .error = AVEN_IO_WRITE_ERROR_BADF,
+                                .payload = src.len - src_rem.len,
+                            };
+                        default:
+                            return (AvenIoWriteResult){
+                                .error = AVEN_IO_WRITE_ERROR_OTHER,
+                                .payload = src.len - src_rem.len,
+                            };
                     }
                 }
             }
@@ -1139,14 +1187,16 @@
                     break;
                 } else if (errno != EINTR) {
                     switch (errno) {
-                        case EBADF: return (AvenIoWriteResult){
-                            .error = AVEN_IO_WRITE_ERROR_BADF,
-                            .payload = src.len - src_rem.len,
-                        };
-                        default: return (AvenIoWriteResult){
-                            .error = AVEN_IO_WRITE_ERROR_OTHER,
-                            .payload = src.len - src_rem.len,
-                        };
+                        case EBADF:
+                            return (AvenIoWriteResult){
+                                .error = AVEN_IO_WRITE_ERROR_BADF,
+                                .payload = src.len - src_rem.len,
+                            };
+                        default:
+                            return (AvenIoWriteResult){
+                                .error = AVEN_IO_WRITE_ERROR_OTHER,
+                                .payload = src.len - src_rem.len,
+                            };
                     }
                 }
             }

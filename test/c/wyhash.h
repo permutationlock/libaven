@@ -118,13 +118,13 @@ uint64_t hash=wyhash(s.c_str(), s.size(), 0, aven_wyhash_wyp_internal);
                 defined(__LITTLE_ENDIAN__) || \
                 ( \
                     defined(__BYTE_ORDER__) && \
-                        __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ \
+                    __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ \
                 )
             #define AVEN_WYHASH_LITTLE_ENDIAN 1
         #elif defined(__BIG_ENDIAN__) || \
                 ( \
                     defined(__BYTE_ORDER__) && \
-                        __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__ \
+                    __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__ \
                 )
             #define AVEN_WYHASH_LITTLE_ENDIAN 0
         #else
@@ -172,31 +172,29 @@ uint64_t hash=wyhash(s.c_str(), s.size(), 0, aven_wyhash_wyp_internal);
             uint64_t v;
             memcpy(&v, p, 8);
             return (
-                ((v >> 56) & 0xff) |
-                    ((v >> 40) & 0xff00) |
-                    ((v >> 24) & 0xff0000) |
-                    ((v >> 8) & 0xff000000) |
-                    ((v << 8) & 0xff00000000) |
-                    ((v << 24) & 0xff0000000000) |
-                    ((v << 40) & 0xff000000000000) |
-                    ((v << 56) & 0xff00000000000000)
+                ((v >> 56) & 0xff) | ((v >> 40) & 0xff00) | (
+                    (v >> 24) & 0xff0000
+                ) | ((v >> 8) & 0xff000000) | ((v << 8) & 0xff00000000) | (
+                    (v << 24) & 0xff0000000000
+                ) | ((v << 40) & 0xff000000000000) | (
+                    (v << 56) & 0xff00000000000000
+                )
             );
         }
         static inline uint64_t aven_wyhash_wyr4_internal(const uint8_t *p) {
             uint32_t v;
             memcpy(&v, p, 4);
             return (
-                ((v >> 24) & 0xff) |
-                    ((v >> 8) & 0xff00) |
-                    ((v << 8) & 0xff0000) |
-                    ((v << 24) & 0xff000000)
+                ((v >> 24) & 0xff) | ((v >> 8) & 0xff00) | ((v << 8) & 0xff0000) | (
+                    (v << 24) & 0xff000000
+                )
             );
         }
     #endif
     static inline uint64_t aven_wyhash_wyr3_internal(const uint8_t *p, size_t k) {
-        return (((uint64_t)p[0]) << 16) |
-            (((uint64_t)p[k >> 1]) << 8) |
-            p[k - 1];
+        return (((uint64_t)p[0]) << 16) | (((uint64_t)p[k >> 1]) << 8) | p[
+            k - 1
+        ];
     }
     //wyhash main function
     static inline uint64_t aven_wyhash(
@@ -217,7 +215,8 @@ uint64_t hash=wyhash(s.c_str(), s.size(), 0, aven_wyhash_wyp_internal);
             } else if (aven_wyhash_likely_internal(len > 0)) {
                 a = aven_wyhash_wyr3_internal(p, len);
                 b = 0;
-            } else a = b = 0;
+            } else
+                a = b = 0;
         } else {
             size_t i = len;
             if (aven_wyhash_unlikely_internal(i >= 48)) {
@@ -292,10 +291,12 @@ uint64_t hash=wyhash(s.c_str(), s.size(), 0, aven_wyhash_wyp_internal);
     static inline double aven_wyhash_wy2gau(uint64_t r) {
         const double _wynorm = 1.0 / (1ull << 20);
         return (
-            (double)(
-                (r & 0x1fffff) + ((r >> 21) & 0x1fffff) + ((r >> 42) & 0x1fffff)
-            )
-        ) *
+                (double)(
+                    (r & 0x1fffff) +
+                    ((r >> 21) & 0x1fffff) +
+                    ((r >> 42) & 0x1fffff)
+                )
+            ) *
             _wynorm -
             3.0;
     }
@@ -318,13 +319,15 @@ uint64_t hash=wyhash(s.c_str(), s.size(), 0, aven_wyhash_wyp_internal);
         while (b) {
             if (b & 1) {
                 unsigned long long r2 = r + a;
-                if (r2 < r) r2 -= m;
+                if (r2 < r)
+                    r2 -= m;
                 r = r2 % m;
             }
             b >>= 1;
             if (b) {
                 unsigned long long a2 = a + a;
-                if (a2 < a) a2 -= m;
+                if (a2 < a)
+                    a2 -= m;
                 a = a2 % m;
             }
         }
@@ -337,9 +340,11 @@ uint64_t hash=wyhash(s.c_str(), s.size(), 0, aven_wyhash_wyp_internal);
     ) {
         unsigned long long r = 1;
         while (b) {
-            if (b & 1) r = aven_wyhash_mul_mod(r, a, m);
+            if (b & 1)
+                r = aven_wyhash_mul_mod(r, a, m);
             b >>= 1;
-            if (b) a = aven_wyhash_mul_mod(a, a, m);
+            if (b)
+                a = aven_wyhash_mul_mod(a, a, m);
         }
         return r;
     }
@@ -363,31 +368,49 @@ uint64_t hash=wyhash(s.c_str(), s.size(), 0, aven_wyhash_wyp_internal);
             s += 1;
         }
         unsigned long long b = aven_wyhash_pow_mod(a, d, n);
-        if ((b == 1) || (b == (n - 1))) return 1;
+        if ((b == 1) || (b == (n - 1)))
+            return 1;
         unsigned char r;
         for (r = 1; r < s; r++) {
             b = aven_wyhash_mul_mod(b, b, n);
-            if (b <= 1) return 0;
-            if (b == (n - 1)) return 1;
+            if (b <= 1)
+                return 0;
+            if (b == (n - 1))
+                return 1;
         }
         return 0;
     }
     unsigned aven_wyhash_is_prime(unsigned long long n) {
-        if (n < 2 || !(n & 1)) return 0;
-        if (n < 4) return 1;
-        if (!aven_wyhash_sprp(n, 2)) return 0;
-        if (n < 2047) return 1;
-        if (!aven_wyhash_sprp(n, 3)) return 0;
-        if (!aven_wyhash_sprp(n, 5)) return 0;
-        if (!aven_wyhash_sprp(n, 7)) return 0;
-        if (!aven_wyhash_sprp(n, 11)) return 0;
-        if (!aven_wyhash_sprp(n, 13)) return 0;
-        if (!aven_wyhash_sprp(n, 17)) return 0;
-        if (!aven_wyhash_sprp(n, 19)) return 0;
-        if (!aven_wyhash_sprp(n, 23)) return 0;
-        if (!aven_wyhash_sprp(n, 29)) return 0;
-        if (!aven_wyhash_sprp(n, 31)) return 0;
-        if (!aven_wyhash_sprp(n, 37)) return 0;
+        if (n < 2 || !(n & 1))
+            return 0;
+        if (n < 4)
+            return 1;
+        if (!aven_wyhash_sprp(n, 2))
+            return 0;
+        if (n < 2047)
+            return 1;
+        if (!aven_wyhash_sprp(n, 3))
+            return 0;
+        if (!aven_wyhash_sprp(n, 5))
+            return 0;
+        if (!aven_wyhash_sprp(n, 7))
+            return 0;
+        if (!aven_wyhash_sprp(n, 11))
+            return 0;
+        if (!aven_wyhash_sprp(n, 13))
+            return 0;
+        if (!aven_wyhash_sprp(n, 17))
+            return 0;
+        if (!aven_wyhash_sprp(n, 19))
+            return 0;
+        if (!aven_wyhash_sprp(n, 23))
+            return 0;
+        if (!aven_wyhash_sprp(n, 29))
+            return 0;
+        if (!aven_wyhash_sprp(n, 31))
+            return 0;
+        if (!aven_wyhash_sprp(n, 37))
+            return 0;
         return 1;
     }
     //make your own secret
@@ -469,9 +492,10 @@ uint64_t hash=wyhash(s.c_str(), s.size(), 0, aven_wyhash_wyp_internal);
             do {
                 ok = 1;
                 secret[i] = 0;
-                for (size_t j = 0; j < 64; j += 8) secret[i] |= (
-                    (uint64_t)c[aven_wyhahs_rand(&seed) % sizeof(c)]
-                ) << j;
+                for (size_t j = 0; j < 64; j += 8)
+                    secret[i] |= (
+                        (uint64_t)c[aven_wyhahs_rand(&seed) % sizeof(c)]
+                    ) << j;
                 if (secret[i] % 2 == 0) {
                     ok = 0;
                     continue;
@@ -501,7 +525,8 @@ uint64_t hash=wyhash(s.c_str(), s.size(), 0, aven_wyhash_wyp_internal);
                     }
     #endif
                 }
-                if (ok && !aven_wyhash_is_prime(secret[i])) ok = 0;
+                if (ok && !aven_wyhash_is_prime(secret[i]))
+                    ok = 0;
             } while (!ok);
         }
     }

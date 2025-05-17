@@ -674,8 +674,10 @@
                 .desc = aven_str("aven_c_ast_render expression split same op mul"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array("int x = 10 - 2 * 2 * 4 - 7;\n"),
-                    .expected = aven_str("int x = 10 -\n" "    2 * 2 * 4 -\n" "    7;\n"),
+                    .src = slice_array("int x = 10 + 2 * 2 * 4 * 7;\n"),
+                    .expected = aven_str(
+                        "int x = 10 +\n" "    2 *\n" "    2 *\n" "    4 *\n" "    7;\n"
+                    ),
                     .line_len = 16,
                 },
             },
@@ -689,7 +691,7 @@
                 },
             },
             {
-                .desc = aven_str("aven_c_ast_render expression split same op mul"),
+                .desc = aven_str("aven_c_ast_render expression split assignment"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("int x = 10 - 2 * 2 * 4 - 7 = 32 + 7 + 14;\n"),
@@ -765,8 +767,8 @@
                     .expected = aven_str(
                         "int x = (\n"
                         "    10 -\n"
-                        "        2 * 2 * 4 -\n"
-                        "        7,\n"
+                        "    2 * 2 * 4 -\n"
+                        "    7,\n"
                         "    32 + 7 + 14\n"
                         ");\n"
                     ),
@@ -783,8 +785,8 @@
                     .expected = aven_str(
                         "int x = (\n"
                         "    10 -\n"
-                        "        2 * 2 * 4 -\n"
-                        "        7,\n"
+                        "    2 * 2 * 4 -\n"
+                        "    7,\n"
                         "    32 + 7 + 14\n"
                         ") = 1 +\n"
                         "    2 +\n"
@@ -793,15 +795,6 @@
                         "    5;\n"
                     ),
                     .line_len = 19,
-                },
-            },
-            {
-                .desc = aven_str("aven_c_ast_render sizeof operator postfix expr"),
-                .fn = test_aven_c_ast_render,
-                .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array("const size_t x = 2 + sizeof foo(x);\n"),
-                    .expected = aven_str("const size_t x = 2 +\n" "    sizeof foo(x);\n"),
-                    .line_len = 32,
                 },
             },
             {
@@ -826,9 +819,9 @@
                 .desc = aven_str("aven_c_ast_render sizeof operator paren postfix expr"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
-                    .src = slice_array("const size_t x = 2 + sizeof(*x)++;\n"),
-                    .expected = aven_str("const size_t x = 2 + sizeof (*x)++;\n"),
-                    .line_len = 32,
+                    .src = slice_array("const size_t x = 2 + sizeof(*x)->y;\n"),
+                    .expected = aven_str("const size_t x = 2 + sizeof (*x)->y;\n"),
+                    .line_len = 38,
                 },
             },
             {
@@ -1373,8 +1366,142 @@
                     ),
                     .expected = aven_str(
                         "void bar(int n) {\n"
-                        "    if (n % 2 == 0) return n / 2;\n"
+                        "    if (n % 2 == 0)\n"
+                        "        return n / 2;\n"
                         "    return 3 * n + 1;\n"
+                        "}\n"
+                    ),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render if else statement non-compound"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void bar(int n) {\n"
+                        "    if (n % 2 == 0) return n / 2;"
+                        "    else return 3 * n + 1;\n"
+                        "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void bar(int n) {\n"
+                        "    if (n % 2 == 0)\n"
+                        "        return n / 2;\n"
+                        "    else\n"
+                        "        return 3 * n + 1;\n"
+                        "}\n"
+                    ),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render if else if else statement non-compound"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void bar(int n) {\n"
+                        "    if (n % 2 == 0) return n / 2;"
+                        "    else if (n % 5 == 0) return n / 5;"
+                        "    else return 3 * n + 1;\n"
+                        "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void bar(int n) {\n"
+                        "    if (n % 2 == 0)\n"
+                        "        return n / 2;\n"
+                        "    else if (n % 5 == 0)\n"
+                        "        return n / 5;\n"
+                        "    else\n"
+                        "        return 3 * n + 1;\n"
+                        "}\n"
+                    ),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render if statement compound"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void bar(int n) {\n"
+                        "    if (n % 2 == 0) { return n / 2; }\n"
+                        "    return 3 * n + 1;\n"
+                        "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void bar(int n) {\n"
+                        "    if (n % 2 == 0) {\n"
+                        "        return n / 2;\n"
+                        "    }\n"
+                        "    return 3 * n + 1;\n"
+                        "}\n"
+                    ),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render if else statement compound"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void bar(int n) {\n"
+                        "    if (n % 2 == 0) { return n / 2; }"
+                        "    else { return 3 * n + 1; }\n"
+                        "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void bar(int n) {\n"
+                        "    if (n % 2 == 0) {\n"
+                        "        return n / 2;\n"
+                        "    } else {\n"
+                        "        return 3 * n + 1;\n"
+                        "    }\n"
+                        "}\n"
+                    ),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render if else if else statement compound"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void bar(int n) {\n"
+                        "    if (n % 2 == 0) { return n / 2; }"
+                        "    else if (n % 5 == 0) { return n / 5; }"
+                        "    else { return 3 * n + 1; }\n"
+                        "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void bar(int n) {\n"
+                        "    if (n % 2 == 0) {\n"
+                        "        return n / 2;\n"
+                        "    } else if (n % 5 == 0) {\n"
+                        "        return n / 5;\n"
+                        "    } else {\n"
+                        "        return 3 * n + 1;\n"
+                        "    }\n"
+                        "}\n"
+                    ),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render if else statement compound empty"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void bar(int n) {\n"
+                        "    if (n % 2 == 0) {  }\n"
+                        "    else { return 3 * n + 1; }\n"
+                        "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void bar(int n) {\n"
+                        "    if (n % 2 == 0) {} else {\n"
+                        "        return 3 * n + 1;\n"
+                        "    }\n"
                         "}\n"
                     ),
                     .line_len = 32,
@@ -1401,7 +1528,46 @@
                 },
             },
             {
-                .desc = aven_str("aven_c_ast_render for statement"),
+                .desc = aven_str("aven_c_ast_render for statement non-compound"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void bar(int n) {\n" "    for (int x = 0; x < n; x++) foo(x);\n" "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void bar(int n) {\n"
+                        "    for (int x = 0; x < n; x++)\n"
+                        "        foo(x);\n"
+                        "}\n"
+                    ),
+                    .line_len = 80,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render for statement if statement non-compound"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void bar(int n) {\n"
+                        "    for (int x = 0; x < n; x++) "
+                        "if (x%2 == 0) foo(x);\n"
+                        "else bar(x);"
+                        "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void bar(int n) {\n"
+                        "    for (int x = 0; x < n; x++)\n"
+                        "        if (x % 2 == 0)\n"
+                        "            foo(x);\n"
+                        "        else\n"
+                        "            bar(x);\n"
+                        "}\n"
+                    ),
+                    .line_len = 80,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render for statement compound"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array(
@@ -1455,6 +1621,31 @@
                         "void bar(int n) {\n" "    for (;;) {\n" "        foo(x);\n" "    }\n" "}\n"
                     ),
                     .line_len = 80,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render for statement split"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void bar(int n) {\n"
+                        "    for (int x = 0; x < n; x++) {\n"
+                        "        foo(x);\n"
+                        "    }\n"
+                        "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void bar(int n) {\n"
+                        "    for (\n"
+                        "        int x = 0;\n"
+                        "        x < n;\n"
+                        "        x++\n"
+                        "    ) {\n"
+                        "        foo(x);\n"
+                        "    }\n"
+                        "}\n"
+                    ),
+                    .line_len = 24,
                 },
             },
             {
@@ -1660,7 +1851,38 @@
                 },
             },
             {
-                .desc = aven_str("aven_c_ast_render function definition w/switch"),
+                .desc = aven_str("aven_c_ast_render function definition w/switch non-compound"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void collatz(int n) {\n"
+                        "    switch (n % 2) {\n"
+                        "        case 0:\n"
+                        "            return n / 2;\n"
+                        "            break;\n"
+                        "        default:\n"
+                        "            return 3 * n + 1;\n"
+                        "            break;\n"
+                        "    }\n"
+                        "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void collatz(int n) {\n"
+                        "    switch (n % 2) {\n"
+                        "        case 0:\n"
+                        "            return n / 2;\n"
+                        "            break;\n"
+                        "        default:\n"
+                        "            return 3 * n + 1;\n"
+                        "            break;\n"
+                        "    }\n"
+                        "}\n"
+                    ),
+                    .line_len = 48,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render function definition w/switch compound"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array(
@@ -1695,7 +1917,28 @@
                 },
             },
             {
-                .desc = aven_str("aven_c_ast_render function definition w/while"),
+                .desc = aven_str("aven_c_ast_render function definition w/while non-compound"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array(
+                        "void main(void) {\n"
+                        "    char c = 0;\n"
+                        "    while (c != '\\n')\n"
+                        "        c = getc();\n"
+                        "}\n"
+                    ),
+                    .expected = aven_str(
+                        "void main(void) {\n"
+                        "    char c = 0;\n"
+                        "    while (c != '\\n')\n"
+                        "        c = getc();\n"
+                        "}\n"
+                    ),
+                    .line_len = 48,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render function definition w/while compound"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array(
@@ -1980,7 +2223,7 @@
                 },
             },
             {
-                .desc = aven_str("aven_c_ast_render msvc warn pragma"),
+                .desc = aven_str("aven_c_ast_render macro, postfix, sizeof expression"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array(
@@ -1989,7 +2232,7 @@
                     .expected = aven_str(
                         "void *x = RL_MALLOC(\n"
                         "    anim[a].num_frames *\n"
-                        "        sizeof(Transform *)\n"
+                        "    sizeof(Transform *)\n"
                         ");\n"
                     ),
                     .line_len = 36,
@@ -2035,10 +2278,10 @@
                         "void foo(void) {\n"
                         "    if (\n"
                         "        node == 0 or\n"
-                        "            get(\n"
-                        "                ppd_ctx.tset.tokens,\n"
-                        "                aven_c_ast_next_index(&ppd_ctx)\n"
-                        "            ).type != AVEN_C_TOKEN_TYPE_NONE\n"
+                        "        get(\n"
+                        "            ppd_ctx.tset.tokens,\n"
+                        "            aven_c_ast_next_index(&ppd_ctx)\n"
+                        "        ).type != AVEN_C_TOKEN_TYPE_NONE\n"
                         "    ) {\n"
                         "        break;\n"
                         "    }\n"
@@ -2096,13 +2339,15 @@
                 },
             },
             {
-                .desc = aven_str("aven_c_ast_render don't space one-liner struct members"),
+                .desc = aven_str("aven_c_ast_render always split struct members"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array(
-                        "struct Gap{\n" "    int member1;\n" "\n" "    int member2;\n" "\n" "};\n"
+                        "struct Gap{\n" "    int member1;\n" "    int member2;\n" "\n" "};\n"
                     ),
-                    .expected = aven_str("struct Gap { int member1; int member2; };\n"),
+                    .expected = aven_str(
+                        "struct Gap {\n" "    int member1;\n" "    int member2;\n" "};\n"
+                    ),
                     .line_len = 80,
                 },
             },

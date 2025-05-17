@@ -334,12 +334,12 @@
     #define aven_panic_internal_s(x) #x
     #define aven_panic_internal_sfy(x) aven_panic_internal_s(x)
     #define aven_panic_internal_fmt(msg) "panic at " \
-        __FILE__ \
-        ":" \
-        aven_panic_internal_sfy(__LINE__) \
-        "\n    error: " \
-        msg \
-        "\n"
+            __FILE__ \
+            ":" \
+            aven_panic_internal_sfy(__LINE__) \
+            "\n    error: " \
+            msg \
+            "\n"
     #define aven_panic_internal_ex(msg) aven_panic_internal_fn( \
             msg, \
             sizeof((msg)) - 1 \

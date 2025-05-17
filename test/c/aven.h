@@ -60,11 +60,27 @@
 
     #define countof(...) (sizeof(__VA_ARGS__) / sizeof(*(__VA_ARGS__)))
 
-    #define Optional(t) struct { t value; uint8_t valid; }
-    #define OptPtr(t) union { t *value; t *valid; }
-    #define Result(t, e) struct { t payload; e error; }
-    #define Slice(t) struct { t *ptr; size_t len; }
-    #define List(t) struct { t *ptr; size_t len; size_t cap; }
+    #define Optional(t) struct { \
+            t value; \
+            uint8_t valid; \
+        }
+    #define OptPtr(t) union { \
+            t *value; \
+            t *valid; \
+        }
+    #define Result(t, e) struct { \
+            t payload; \
+            e error; \
+        }
+    #define Slice(t) struct { \
+            t *ptr; \
+            size_t len; \
+        }
+    #define List(t) struct { \
+            t *ptr; \
+            size_t len; \
+            size_t cap; \
+        }
     #define Queue(t) struct { \
             t *ptr; \
             size_t cap; \
@@ -73,7 +89,10 @@
             size_t used; \
         }
 
-    #define PoolEntry(t) union { t data; uint64_t parent; }
+    #define PoolEntry(t) union { \
+            t data; \
+            uint64_t parent; \
+        }
     #define PoolExplicit(e) struct { \
             e *ptr; \
             size_t len; \
@@ -334,12 +353,12 @@
     #define aven_panic_internal_s(x) #x
     #define aven_panic_internal_sfy(x) aven_panic_internal_s(x)
     #define aven_panic_internal_fmt(msg) "panic at " \
-        __FILE__ \
-        ":" \
-        aven_panic_internal_sfy(__LINE__) \
-        "\n    error: " \
-        msg \
-        "\n"
+            __FILE__ \
+            ":" \
+            aven_panic_internal_sfy(__LINE__) \
+            "\n    error: " \
+            msg \
+            "\n"
     #define aven_panic_internal_ex(msg) aven_panic_internal_fn( \
             msg, \
             sizeof((msg)) - 1 \

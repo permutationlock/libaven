@@ -28,8 +28,12 @@
         AVEN_BUILD_STEP_TYPE_COPY,
     } AvenBuildStepType;
 
-    typedef union { AvenStrSlice cmd; AvenStr rm; AvenStr rmdir; AvenStr copy; }
-        AvenBuildStepData;
+    typedef union {
+        AvenStrSlice cmd;
+        AvenStr rm;
+        AvenStr rmdir;
+        AvenStr copy;
+    } AvenBuildStepData;
 
     typedef Optional(AvenStr) AvenBuildOptionalPath;
     typedef struct AvenBuildStepNode AvenBuildStepNode;
@@ -43,7 +47,10 @@
         AvenBuildOptionalPath out_path;
     } AvenBuildStep;
 
-    struct AvenBuildStepNode { AvenBuildStepNode *next; AvenBuildStep *step; };
+    struct AvenBuildStepNode {
+        AvenBuildStepNode *next;
+        AvenBuildStep *step;
+    };
 
     typedef Slice(AvenBuildStep) AvenBuildStepSlice;
     typedef Slice(AvenBuildStep *) AvenBuildStepPtrSlice;
@@ -175,86 +182,95 @@
         AvenProcCmdResult result;
         switch (step->type) {
             case AVEN_BUILD_STEP_TYPE_ROOT:
-            case AVEN_BUILD_STEP_TYPE_PATH: step->state =
-                AVEN_BUILD_STEP_STATE_DONE;
-            break;
-            case AVEN_BUILD_STEP_TYPE_CMD: result = aven_proc_cmd(
-                step->data.cmd,
-                arena
-            );
-            if (result.error != 0) {
-                return AVEN_BUILD_STEP_RUN_ERROR_CMD;
-            }
+            case AVEN_BUILD_STEP_TYPE_PATH:
+                step->state = AVEN_BUILD_STEP_STATE_DONE;
+                break;
+            case AVEN_BUILD_STEP_TYPE_CMD:
+                result = aven_proc_cmd(step->data.cmd, arena);
+                if (result.error != 0) {
+                    return AVEN_BUILD_STEP_RUN_ERROR_CMD;
+                }
 
-            step->pid = result.payload;
-            break;
+                step->pid = result.payload;
+                break;
             case AVEN_BUILD_STEP_TYPE_RM:
     #ifndef AVEN_SUPPRESS_LOGS
-            aven_io_printf("rm {}\n", aven_fmt_str(step->data.rm));
+                aven_io_printf("rm {}\n", aven_fmt_str(step->data.rm));
     #endif
-            error = aven_fs_rm(step->data.rm, arena);
-            if (error != 0) {
-                return AVEN_BUILD_STEP_RUN_ERROR_RM;
-            }
-            step->state = AVEN_BUILD_STEP_STATE_DONE;
-            break;
+                error = aven_fs_rm(step->data.rm, arena);
+                if (error != 0) {
+                    return AVEN_BUILD_STEP_RUN_ERROR_RM;
+                }
+                step->state = AVEN_BUILD_STEP_STATE_DONE;
+                break;
             case AVEN_BUILD_STEP_TYPE_RMDIR:
     #ifndef AVEN_SUPPRESS_LOGS
-            aven_io_printf("rmdir {}\n", aven_fmt_str(step->data.rmdir));
+                aven_io_printf("rmdir {}\n", aven_fmt_str(step->data.rmdir));
     #endif
-            error = aven_fs_rmdir(step->data.rmdir, arena);
-            if (error != 0) {
-                return AVEN_BUILD_STEP_RUN_ERROR_RMDIR;
-            }
-            step->state = AVEN_BUILD_STEP_STATE_DONE;
-            break;
-            case AVEN_BUILD_STEP_TYPE_TRUNC: if (!step->out_path.valid) {
-                return AVEN_BUILD_STEP_RUN_ERROR_OUTPATH;
-            }
-    #ifndef AVEN_SUPPRESS_LOGS
-            aven_io_printf(
-                "truncate -s 0 {}\n",
-                aven_fmt_str(step->out_path.value)
-            );
-    #endif
-            error = aven_fs_trunc(step->out_path.value, arena);
-            if (error != 0) {
-                return AVEN_BUILD_STEP_RUN_ERROR_TRUNC;
-            }
-            step->state = AVEN_BUILD_STEP_STATE_DONE;
-            break;
-            case AVEN_BUILD_STEP_TYPE_MKDIR: if (!step->out_path.valid) {
-                return AVEN_BUILD_STEP_RUN_ERROR_OUTPATH;
-            }
-            error = aven_fs_mkdir(step->out_path.value, arena);
-            if (error != 0) {
-                if (error != AVEN_FS_MKDIR_ERROR_EXIST) {
-                    return AVEN_BUILD_STEP_RUN_ERROR_MKDIR;
+                error = aven_fs_rmdir(step->data.rmdir, arena);
+                if (error != 0) {
+                    return AVEN_BUILD_STEP_RUN_ERROR_RMDIR;
                 }
-            } else {
+                step->state = AVEN_BUILD_STEP_STATE_DONE;
+                break;
+            case AVEN_BUILD_STEP_TYPE_TRUNC:
+                if (!step->out_path.valid) {
+                    return AVEN_BUILD_STEP_RUN_ERROR_OUTPATH;
+                }
     #ifndef AVEN_SUPPRESS_LOGS
-                aven_io_printf("mkdir {}\n", aven_fmt_str(step->out_path.value));
+                aven_io_printf(
+                    "truncate -s 0 {}\n",
+                    aven_fmt_str(step->out_path.value)
+                );
     #endif
-            }
-            step->state = AVEN_BUILD_STEP_STATE_DONE;
-            break;
-            case AVEN_BUILD_STEP_TYPE_COPY: if (!step->out_path.valid) {
-                return AVEN_BUILD_STEP_RUN_ERROR_OUTPATH;
-            }
-            error = aven_fs_copy(step->data.copy, step->out_path.value, arena);
-            if (error != 0) {
-                return AVEN_BUILD_STEP_RUN_ERROR_COPY;
-            }
+                error = aven_fs_trunc(step->out_path.value, arena);
+                if (error != 0) {
+                    return AVEN_BUILD_STEP_RUN_ERROR_TRUNC;
+                }
+                step->state = AVEN_BUILD_STEP_STATE_DONE;
+                break;
+            case AVEN_BUILD_STEP_TYPE_MKDIR:
+                if (!step->out_path.valid) {
+                    return AVEN_BUILD_STEP_RUN_ERROR_OUTPATH;
+                }
+                error = aven_fs_mkdir(step->out_path.value, arena);
+                if (error != 0) {
+                    if (error != AVEN_FS_MKDIR_ERROR_EXIST) {
+                        return AVEN_BUILD_STEP_RUN_ERROR_MKDIR;
+                    }
+                } else {
     #ifndef AVEN_SUPPRESS_LOGS
-            aven_io_printf(
-                "cp {} {}\n",
-                aven_fmt_str(step->data.copy),
-                aven_fmt_str(step->out_path.value)
-            );
+                    aven_io_printf(
+                        "mkdir {}\n",
+                        aven_fmt_str(step->out_path.value)
+                    );
     #endif
-            step->state = AVEN_BUILD_STEP_STATE_DONE;
-            break;
-            default: return AVEN_BUILD_STEP_RUN_ERROR_BADTYPE;
+                }
+                step->state = AVEN_BUILD_STEP_STATE_DONE;
+                break;
+            case AVEN_BUILD_STEP_TYPE_COPY:
+                if (!step->out_path.valid) {
+                    return AVEN_BUILD_STEP_RUN_ERROR_OUTPATH;
+                }
+                error = aven_fs_copy(
+                    step->data.copy,
+                    step->out_path.value,
+                    arena
+                );
+                if (error != 0) {
+                    return AVEN_BUILD_STEP_RUN_ERROR_COPY;
+                }
+    #ifndef AVEN_SUPPRESS_LOGS
+                aven_io_printf(
+                    "cp {} {}\n",
+                    aven_fmt_str(step->data.copy),
+                    aven_fmt_str(step->out_path.value)
+                );
+    #endif
+                step->state = AVEN_BUILD_STEP_STATE_DONE;
+                break;
+            default:
+                return AVEN_BUILD_STEP_RUN_ERROR_BADTYPE;
         }
 
         return AVEN_BUILD_STEP_RUN_ERROR_NONE;

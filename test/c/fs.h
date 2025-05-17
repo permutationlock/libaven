@@ -88,9 +88,12 @@
             int error = _unlink(aven_str_to_cstr(path, &temp_arena));
             if (error != 0) {
                 switch (errno) {
-                    case EACCES: return AVEN_FS_RM_ERROR_ACCESS;
-                    case ENOENT: return AVEN_FS_RM_ERROR_BADPATH;
-                    default: return AVEN_FS_RM_ERROR_OTHER;
+                    case EACCES:
+                        return AVEN_FS_RM_ERROR_ACCESS;
+                    case ENOENT:
+                        return AVEN_FS_RM_ERROR_BADPATH;
+                    default:
+                        return AVEN_FS_RM_ERROR_OTHER;
                 }
             }
 
@@ -99,12 +102,17 @@
             int error = unlink(aven_str_to_cstr(path, &temp_arena));
             if (error != 0) {
                 switch (errno) {
-                    case EACCES: return AVEN_FS_RM_ERROR_ACCESS;
-                    case ENOENT: return AVEN_FS_RM_ERROR_BADPATH;
-                    case EBUSY: return AVEN_FS_RM_ERROR_ACCESS;
+                    case EACCES:
+                        return AVEN_FS_RM_ERROR_ACCESS;
+                    case ENOENT:
+                        return AVEN_FS_RM_ERROR_BADPATH;
+                    case EBUSY:
+                        return AVEN_FS_RM_ERROR_ACCESS;
                     case ENOTDIR:
-                    case EISDIR: return AVEN_FS_RM_ERROR_BADPATH;
-                    default: return AVEN_FS_RM_ERROR_OTHER;
+                    case EISDIR:
+                        return AVEN_FS_RM_ERROR_BADPATH;
+                    default:
+                        return AVEN_FS_RM_ERROR_OTHER;
                 }
             }
 
@@ -120,10 +128,14 @@
             int error = _rmdir(aven_str_to_cstr(path, &temp_arena));
             if (error != 0) {
                 switch (errno) {
-                    case ENOTEMPTY: return AVEN_FS_RMDIR_ERROR_NOTEMPTY;
-                    case EACCES: return AVEN_FS_RMDIR_ERROR_ACCESS;
-                    case ENOENT: return AVEN_FS_RMDIR_ERROR_BADPATH;
-                    default: return AVEN_FS_RMDIR_ERROR_OTHER;
+                    case ENOTEMPTY:
+                        return AVEN_FS_RMDIR_ERROR_NOTEMPTY;
+                    case EACCES:
+                        return AVEN_FS_RMDIR_ERROR_ACCESS;
+                    case ENOENT:
+                        return AVEN_FS_RMDIR_ERROR_BADPATH;
+                    default:
+                        return AVEN_FS_RMDIR_ERROR_OTHER;
                 }
             }
 
@@ -132,15 +144,21 @@
             int error = rmdir(aven_str_to_cstr(path, &temp_arena));
             if (error != 0) {
                 switch (errno) {
-                    case ENOTEMPTY: return AVEN_FS_RMDIR_ERROR_NOTEMPTY;
-                    case EACCES: return AVEN_FS_RMDIR_ERROR_ACCESS;
-                    case ENOENT: return AVEN_FS_RMDIR_ERROR_BADPATH;
+                    case ENOTEMPTY:
+                        return AVEN_FS_RMDIR_ERROR_NOTEMPTY;
+                    case EACCES:
+                        return AVEN_FS_RMDIR_ERROR_ACCESS;
+                    case ENOENT:
+                        return AVEN_FS_RMDIR_ERROR_BADPATH;
         #ifndef _WIN32
-                    case EBUSY: return AVEN_FS_RMDIR_ERROR_ACCESS;
+                    case EBUSY:
+                        return AVEN_FS_RMDIR_ERROR_ACCESS;
                     case EINVAL:
-                    case ENOTDIR: return AVEN_FS_RMDIR_ERROR_BADPATH;
+                    case ENOTDIR:
+                        return AVEN_FS_RMDIR_ERROR_BADPATH;
         #endif
-                    default: return AVEN_FS_RMDIR_ERROR_OTHER;
+                    default:
+                        return AVEN_FS_RMDIR_ERROR_OTHER;
                 }
             }
 
@@ -156,10 +174,14 @@
             int error = _mkdir(aven_str_to_cstr(path, &temp_arena));
             if (error != 0) {
                 switch (errno) {
-                    case EACCES: return AVEN_FS_MKDIR_ERROR_ACCESS;
-                    case ENOENT: return AVEN_FS_MKDIR_ERROR_BADPATH;
-                    case EEXIST: return AVEN_FS_MKDIR_ERROR_EXIST;
-                    default: return AVEN_FS_MKDIR_ERROR_OTHER;
+                    case EACCES:
+                        return AVEN_FS_MKDIR_ERROR_ACCESS;
+                    case ENOENT:
+                        return AVEN_FS_MKDIR_ERROR_BADPATH;
+                    case EEXIST:
+                        return AVEN_FS_MKDIR_ERROR_EXIST;
+                    default:
+                        return AVEN_FS_MKDIR_ERROR_OTHER;
                 }
             }
 
@@ -171,12 +193,17 @@
             );
             if (error != 0) {
                 switch (errno) {
-                    case EACCES: return AVEN_FS_MKDIR_ERROR_ACCESS;
-                    case ENOENT: return AVEN_FS_MKDIR_ERROR_BADPATH;
-                    case EEXIST: return AVEN_FS_MKDIR_ERROR_EXIST;
+                    case EACCES:
+                        return AVEN_FS_MKDIR_ERROR_ACCESS;
+                    case ENOENT:
+                        return AVEN_FS_MKDIR_ERROR_BADPATH;
+                    case EEXIST:
+                        return AVEN_FS_MKDIR_ERROR_EXIST;
                     case ENAMETOOLONG:
-                    case ENOTDIR: return AVEN_FS_MKDIR_ERROR_BADPATH;
-                    default: return AVEN_FS_MKDIR_ERROR_OTHER;
+                    case ENOTDIR:
+                        return AVEN_FS_MKDIR_ERROR_BADPATH;
+                    default:
+                        return AVEN_FS_MKDIR_ERROR_OTHER;
                 }
             }
 
@@ -196,9 +223,12 @@
             );
             if (fd < 0) {
                 switch (errno) {
-                    case EACCES: return AVEN_FS_TRUNC_ERROR_ACCESS;
-                    case ENOENT: return AVEN_FS_TRUNC_ERROR_BADPATH;
-                    default: return AVEN_FS_TRUNC_ERROR_OTHER;
+                    case EACCES:
+                        return AVEN_FS_TRUNC_ERROR_ACCESS;
+                    case ENOENT:
+                        return AVEN_FS_TRUNC_ERROR_BADPATH;
+                    default:
+                        return AVEN_FS_TRUNC_ERROR_OTHER;
                 }
             }
 
@@ -216,11 +246,15 @@
             } while (fd < 0 and errno == EINTR);
             if (fd < 0) {
                 switch (errno) {
-                    case EACCES: return AVEN_FS_TRUNC_ERROR_ACCESS;
-                    case ENOENT: return AVEN_FS_TRUNC_ERROR_BADPATH;
+                    case EACCES:
+                        return AVEN_FS_TRUNC_ERROR_ACCESS;
+                    case ENOENT:
+                        return AVEN_FS_TRUNC_ERROR_BADPATH;
                     case ENOTDIR:
-                    case EISDIR: return AVEN_FS_TRUNC_ERROR_BADPATH;
-                    default: return AVEN_FS_TRUNC_ERROR_OTHER;
+                    case EISDIR:
+                        return AVEN_FS_TRUNC_ERROR_BADPATH;
+                    default:
+                        return AVEN_FS_TRUNC_ERROR_OTHER;
                 }
             }
 
@@ -251,12 +285,13 @@
             if (success == 0) {
                 switch (GetLastError()) {
                     case 2:
-                    /* ERROR_FILE_NOT_FOUND */
-                    return AVEN_FS_COPY_ERROR_IFOPEN;
+                        /* ERROR_FILE_NOT_FOUND */
+                        return AVEN_FS_COPY_ERROR_IFOPEN;
                     case 3:
-                    /* ERROR_ACCESS_DENIED */
-                    return AVEN_FS_COPY_ERROR_OFOPEN;
-                    default: return AVEN_FS_COPY_ERROR_OTHER;
+                        /* ERROR_ACCESS_DENIED */
+                        return AVEN_FS_COPY_ERROR_OFOPEN;
+                    default:
+                        return AVEN_FS_COPY_ERROR_OTHER;
                 }
             }
 
