@@ -58,7 +58,10 @@ return errors on non-Linux POSIX targets.
 The dependency on libc is so minimal that the Linux header-only [`nolibc`][8]
 is supported. Disable the standard libc (e.g. `-nostdlib`), define
 the macro (e.g. `-D AVEN_LINUX_NOLIBC`), and include the `nolibc` headers
-(e.g. `-I /path/to/nolibc/include`).
+(e.g. `-I /path/to/nolibc/include`). Even though `nolibc` seems to provide the
+`__stack_chk` symbols in `stackprotector.h`, I've never been able to get stack protection
+working with `gcc` or `clang`. Therefore you will likely also need to disable stack
+protection with `-fno-stack-protector`.
 
 ## Aven C build system
 

@@ -178,19 +178,19 @@
                     case AVEN_ARG_TYPE_BOOL: {
                         if (
                             i + 1 < argc and
-                                aven_str_equals(
-                                    aven_str_cstr(argv[i + 1]),
-                                    aven_str("false")
-                                )
+                            aven_str_equals(
+                                aven_str_cstr(argv[i + 1]),
+                                aven_str("false")
+                            )
                         ) {
                             arg->value.data.arg_bool = false;
                             i += 1;
                         } else if (
                             i + 1 < argc and
-                                aven_str_equals(
-                                    aven_str_cstr(argv[i + 1]),
-                                    aven_str("true")
-                                )
+                            aven_str_equals(
+                                aven_str_cstr(argv[i + 1]),
+                                aven_str("true")
+                            )
                         ) {
                             arg->value.data.arg_bool = true;
                             i += 1;

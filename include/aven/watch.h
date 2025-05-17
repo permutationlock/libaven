@@ -155,10 +155,7 @@
                 int result = inotify_add_watch(
                     handle,
                     aven_str_to_cstr(dirname, &temp_arena),
-                    IN_CREATE |
-                        IN_DELETE |
-                        IN_MOVED_FROM |
-                        IN_MOVED_TO |
+                    IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO |
                         IN_MODIFY
                 );
                 if (result <= 0) {

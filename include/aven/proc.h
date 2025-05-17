@@ -189,17 +189,18 @@
                         switch (errno) {
                             case EACCES:
                             case ENOENT:
-                            case ENOTDIR: break;
+                            case ENOTDIR:
+                                break;
                             default:
         #ifndef AVEN_SUPPRESS_LOGS
-                            aven_io_perrf(
+                                aven_io_perrf(
                                     "execve failed: {}\n",
                                     aven_fmt_str(cmd_str)
                                 );
         #endif
-                            // defined(AVEN_SUPPRESS_LOGS)
-                            exit(errno);
-                            break;
+                                // defined(AVEN_SUPPRESS_LOGS)
+                                exit(errno);
+                                break;
                         }
                     }
                 }
@@ -209,17 +210,18 @@
                     switch (errno) {
                         case EACCES:
                         case ENOENT:
-                        case ENOTDIR: break;
+                        case ENOTDIR:
+                            break;
                         default:
         #ifndef AVEN_SUPPRESS_LOGS
-                        aven_io_perrf(
+                            aven_io_perrf(
                                 "execve failed: {}\n",
                                 aven_fmt_str(cmd_str)
                             );
         #endif
-                        // defined(AVEN_SUPPRESS_LOGS)
-                        exit(errno);
-                        break;
+                            // defined(AVEN_SUPPRESS_LOGS)
+                            exit(errno);
+                            break;
                     }
                 }
         #else
@@ -357,8 +359,10 @@
             if (error < 0) {
                 switch (errno) {
                     case EPERM:
-                    case ESRCH: return AVEN_PROC_KILL_ERROR_KILL;
-                    default: return AVEN_PROC_KILL_ERROR_OTHER;
+                    case ESRCH:
+                        return AVEN_PROC_KILL_ERROR_KILL;
+                    default:
+                        return AVEN_PROC_KILL_ERROR_OTHER;
                 }
             }
 

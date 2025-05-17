@@ -5,7 +5,9 @@
     #include "arena.h"
     #include "wyhash.h"
 
-    typedef struct { uint64_t secret[4]; } AvenHashCtx;
+    typedef struct {
+        uint64_t secret[4];
+    } AvenHashCtx;
 
     static inline AvenHashCtx aven_hash_init(uint64_t seed) {
         AvenHashCtx ctx = { 0 };

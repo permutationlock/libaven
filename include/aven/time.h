@@ -4,7 +4,10 @@
     #include "../aven.h"
 
     #ifdef _WIN32
-        typedef struct { int64_t tv_sec; long tv_nsec; } AvenTimeInst;
+        typedef struct {
+            int64_t tv_sec;
+            long tv_nsec;
+        } AvenTimeInst;
     #else
         #include <time.h>
         typedef struct timespec AvenTimeInst;
@@ -46,7 +49,7 @@
                     .tv_sec = count / freq,
                     .tv_nsec = (int)(
                         ((count % freq) * AVEN_TIME_NSEC_PER_SEC + (freq >> 1)) /
-                            freq
+                        freq
                     ),
                 };
                 if (now.tv_nsec >= AVEN_TIME_NSEC_PER_SEC) {

@@ -978,22 +978,21 @@
         }
 
         switch (bin_type) {
-            case AVEN_BUILD_COMMON_BIN_TYPE_WINDOW: if (
-                opts->ld.winflag.len > 0
-            ) {
-                list_push(cmd_list) = opts->ld.winflag;
-            }
-            break;
-            case AVEN_BUILD_COMMON_BIN_TYPE_DLL: if (opts->ld.shrflag.len > 0) {
-                list_push(cmd_list) = opts->ld.shrflag;
-            }
-            break;
-            case AVEN_BUILD_COMMON_BIN_TYPE_CONSOLE: if (
-                opts->ld.conflag.len > 0
-            ) {
-                list_push(cmd_list) = opts->ld.conflag;
-            }
-            break;
+            case AVEN_BUILD_COMMON_BIN_TYPE_WINDOW:
+                if (opts->ld.winflag.len > 0) {
+                    list_push(cmd_list) = opts->ld.winflag;
+                }
+                break;
+            case AVEN_BUILD_COMMON_BIN_TYPE_DLL:
+                if (opts->ld.shrflag.len > 0) {
+                    list_push(cmd_list) = opts->ld.shrflag;
+                }
+                break;
+            case AVEN_BUILD_COMMON_BIN_TYPE_CONSOLE:
+                if (opts->ld.conflag.len > 0) {
+                    list_push(cmd_list) = opts->ld.conflag;
+                }
+                break;
         }
 
         if (opts->ld.flagsep) {

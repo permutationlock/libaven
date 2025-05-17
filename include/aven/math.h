@@ -5,21 +5,21 @@
 
     #if ( \
             !defined(AVEN_MATH_USE_STDMATH) and \
-                defined(__GNUC__) and \
-                __has_builtin(__builtin_sinf) and \
-                __has_builtin(__builtin_cosf) and \
-                __has_builtin(__builtin_tanf) and \
-                __has_builtin(__builtin_asinf) and \
-                __has_builtin(__builtin_acosf) and \
-                __has_builtin(__builtin_atanf) and \
-                __has_builtin(__builtin_atan2f) and \
-                __has_builtin(__builtin_sqrtf) and \
-                __has_builtin(__builtin_logf) and \
-                __has_builtin(__builtin_expf) and \
-                __has_builtin(__builtin_powf) and \
-                __has_builtin(__builtin_ceilf) and \
-                __has_builtin(__builtin_floorf) and \
-                __has_builtin(__builtin_fabsf) \
+            defined(__GNUC__) and \
+            __has_builtin(__builtin_sinf) and \
+            __has_builtin(__builtin_cosf) and \
+            __has_builtin(__builtin_tanf) and \
+            __has_builtin(__builtin_asinf) and \
+            __has_builtin(__builtin_acosf) and \
+            __has_builtin(__builtin_atanf) and \
+            __has_builtin(__builtin_atan2f) and \
+            __has_builtin(__builtin_sqrtf) and \
+            __has_builtin(__builtin_logf) and \
+            __has_builtin(__builtin_expf) and \
+            __has_builtin(__builtin_powf) and \
+            __has_builtin(__builtin_ceilf) and \
+            __has_builtin(__builtin_floorf) and \
+            __has_builtin(__builtin_fabsf) \
         )
         #define AVEN_MATH_USE_BUILTINS
 
@@ -54,10 +54,10 @@
 
     #if ( \
             !defined(AVEN_MATH_NO_SIMD) and \
-                defined(__GNUC__) and \
-                __has_attribute(vector_size) and \
-                __has_attribute(aligned) and \
-                __has_builtin(__builtin_shuffle) \
+            defined(__GNUC__) and \
+            __has_attribute(vector_size) and \
+            __has_attribute(aligned) and \
+            __has_builtin(__builtin_shuffle) \
         )
         #define AVEN_MATH_SIMD
 
@@ -195,8 +195,8 @@
         return 0.5f *
             fabsf(
                 p1[0] * (p2[1] - p3[1]) +
-                    p2[0] * (p3[1] - p1[1]) +
-                    p3[0] * (p1[1] - p2[1])
+                p2[0] * (p3[1] - p1[1]) +
+                p3[0] * (p1[1] - p2[1])
             );
     }
 
@@ -889,8 +889,9 @@
     static inline void ivec2_abs(IVec2 dst, IVec2 a) {
     #ifdef AVEN_MATH_SIMD
         IVec2SIMD gez = ((*(IVec2SIMD *)a) >= 0);
-        *(IVec2SIMD *)dst = (gez & (*(IVec2SIMD *)a)) |
-            (~gez & (-(*(IVec2SIMD *)a)));
+        *(IVec2SIMD *)dst = (gez & (*(IVec2SIMD *)a)) | (
+            ~gez & (-(*(IVec2SIMD *)a))
+        );
     #else
         dst[0] = a[0] >= 0 ? a[0] : -a[0];
         dst[1] = a[1] >= 0 ? a[1] : -a[1];

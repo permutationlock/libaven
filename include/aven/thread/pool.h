@@ -7,7 +7,10 @@
 
     typedef void AvenThreadPoolJobFn(void *);
 
-    typedef struct { AvenThreadPoolJobFn *fn; void *args; } AvenThreadPoolJob;
+    typedef struct {
+        AvenThreadPoolJobFn *fn;
+        void *args;
+    } AvenThreadPoolJob;
     typedef Slice(AvenThreadPoolJob) AvenThreadPoolJobSlice;
 
     typedef struct {
@@ -46,8 +49,8 @@
             thread_pool->jobs_in_progress -= 1;
             if (
                 !thread_pool->done and
-                    thread_pool->jobs_in_progress == 0 and
-                    thread_pool->job_queue.used == 0
+                thread_pool->jobs_in_progress == 0 and
+                thread_pool->job_queue.used == 0
             ) {
                 aven_thread_cnd_signal(&thread_pool->done_cond);
             }
@@ -129,8 +132,8 @@
         aven_thread_mtx_lock(&thread_pool->lock);
         while (
             thread_pool->job_queue.used > 0 or
-                (!thread_pool->done and thread_pool->jobs_in_progress > 0) or
-                (thread_pool->done and thread_pool->active_threads > 0)
+            (!thread_pool->done and thread_pool->jobs_in_progress > 0) or
+            (thread_pool->done and thread_pool->active_threads > 0)
         ) {
             aven_thread_cnd_wait(&thread_pool->done_cond, &thread_pool->lock);
         }

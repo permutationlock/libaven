@@ -416,7 +416,10 @@
     typedef Slice(AvenCToken) AvenCTokenSlice;
     typedef List(AvenCToken) AvenCTokenList;
 
-    typedef struct { AvenStr bytes; AvenCTokenSlice tokens; } AvenCTokenSet;
+    typedef struct {
+        AvenStr bytes;
+        AvenCTokenSlice tokens;
+    } AvenCTokenSet;
 
     static inline AvenStr aven_c_token_str(AvenCTokenSet tset, uint32_t index) {
         AvenCToken token = get(tset.tokens, index);
@@ -443,7 +446,10 @@
         return aven_str_range(tset.bytes, token.index, token.end);
     }
 
-    typedef struct { uint32_t line; uint32_t col; } AvenCTokenLoc;
+    typedef struct {
+        uint32_t line;
+        uint32_t col;
+    } AvenCTokenLoc;
 
     static inline AvenCTokenLoc aven_c_token_loc(
         AvenCTokenSet tset,
@@ -2930,9 +2936,14 @@
         AVEN_C_AST_RESULT_TYPE_AST = 0,
         AVEN_C_AST_RESULT_TYPE_ERROR = 1,
     } AvenCAstResultType;
-    typedef union { AvenStr error; AvenCAst ast; } AvenCAstResultData;
-    typedef struct { AvenCAstResultType type; AvenCAstResultData data; }
-        AvenCAstResult;
+    typedef union {
+        AvenStr error;
+        AvenCAst ast;
+    } AvenCAstResultData;
+    typedef struct {
+        AvenCAstResultType type;
+        AvenCAstResultData data;
+    } AvenCAstResult;
 
     static inline AvenCAstNode aven_c_ast_node(AvenCAst *ast, uint32_t index) {
         return get(ast->nodes, index - 1);
@@ -3412,7 +3423,10 @@
         );
     }
 
-    typedef struct { uint32_t decl_spec_list; bool abstract; } AvenCAstDsl;
+    typedef struct {
+        uint32_t decl_spec_list;
+        bool abstract;
+    } AvenCAstDsl;
 
     static inline uint32_t aven_c_ast_parse_type_name(AvenCAstCtx *ctx);
     static inline uint32_t aven_c_ast_parse_type_specifier(AvenCAstCtx *ctx);
@@ -7377,8 +7391,11 @@
         AVEN_C_AST_RENDER_ERROR_FMT = 1,
         AVEN_C_AST_RENDER_ERROR_IO = 1,
     } AvenCAstRenderError;
-    typedef struct { AvenCAstRenderError error; int io_error; AvenStr msg; }
-        AvenCAstRenderResult;
+    typedef struct {
+        AvenCAstRenderError error;
+        int io_error;
+        AvenStr msg;
+    } AvenCAstRenderResult;
 
     typedef struct {
         AvenCAst *ast;
@@ -9857,9 +9874,15 @@
         return AVEN_C_CONFIG_TYPE_NONE;
     }
 
-    typedef union { uint32_t columns; uint32_t indent; uint32_t depth; }
-        AvenCConfigOpt;
-    typedef struct { AvenCConfigType type; AvenCConfigOpt opt; } AvenCConfig;
+    typedef union {
+        uint32_t columns;
+        uint32_t indent;
+        uint32_t depth;
+    } AvenCConfigOpt;
+    typedef struct {
+        AvenCConfigType type;
+        AvenCConfigOpt opt;
+    } AvenCConfig;
 
     static inline AvenCConfig aven_c_parse_config_comment(
         AvenStr cmt,
@@ -9973,8 +9996,11 @@
         AVEN_C_FMT_ERROR_PARSE,
         AVEN_C_FMT_ERROR_RENDER,
     } AvenCFmtError;
-    typedef struct { AvenCFmtError error; int io_error; AvenStr msg; }
-        AvenCFmtResult;
+    typedef struct {
+        AvenCFmtError error;
+        int io_error;
+        AvenStr msg;
+    } AvenCFmtResult;
 
     static inline AvenCFmtResult aven_c_fmt(
         AvenStr src,

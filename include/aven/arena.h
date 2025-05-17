@@ -24,7 +24,10 @@
 
     // Inspired by and/or copied from Chris Wellons (https://nullprogram.com)
 
-    typedef struct { unsigned char *base; unsigned char *top; } AvenArena;
+    typedef struct {
+        unsigned char *base;
+        unsigned char *top;
+    } AvenArena;
 
     static inline AvenArena aven_arena_init(void *mem, size_t size) {
         return (AvenArena){ .base = mem, .top = (unsigned char *)mem + size };
@@ -127,7 +130,10 @@
             aven_arena_resize_list(a, l, (l).len), (st)slice_list(l) \
         )
 
-    typedef struct { AvenArena arena; unsigned char *og_base; } AvenArenaChild;
+    typedef struct {
+        AvenArena arena;
+        unsigned char *og_base;
+    } AvenArenaChild;
 
     static inline AvenArenaChild aven_arena_child_init(
         AvenArena *parent,

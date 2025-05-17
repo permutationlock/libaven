@@ -163,9 +163,11 @@
             switch (c) {
                 case '\\':
                 case '\"':
-                case '\'': list_push(esc_list) = '\\';
-                break;
-                default: break;
+                case '\'':
+                    list_push(esc_list) = '\\';
+                    break;
+                default:
+                    break;
             }
             list_push(esc_list) = c;
         }
