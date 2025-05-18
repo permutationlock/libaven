@@ -104,6 +104,10 @@
 
     typedef Slice(unsigned char) ByteSlice;
 
+    typedef struct {
+        uint32_t index;
+    } Idx;
+
     static inline size_t aven_queue_push_internal(
         size_t *used,
         size_t *back,
@@ -162,6 +166,9 @@
         *free = index + 1;
     }
 
+    #define idx_valid(i) ((i).index != 0)
+    #define idx_unwrap(i) (assert(idx_valid(i)), (i).index - 1)
+    #define idx_wrap(i) ((Idx){ .index = ((i)) + 1 })
     #define unwrap(o) (assert((o).valid), (o).value)
     #define get(s, i) (s).ptr[(assert((i) < (s).len), i)]
     #define list_get(l, i) get(l, i)
@@ -361,7 +368,7 @@
             "\n"
     #define aven_panic_internal_ex(msg) aven_panic_internal_fn( \
             msg, \
-            sizeof((msg)) - 1 \
+            sizeof(msg) - 1 \
         )
     #define aven_panic(msg) aven_panic_internal_ex( \
             aven_panic_internal_fmt(msg) \

@@ -2683,8 +2683,8 @@
                 );
                 if (
                     node == 0 or
-                    get(ppd_ctx.tset.tokens, aven_c_ast_next_index(&ppd_ctx)).
-                        type != AVEN_C_TOKEN_TYPE_NONE
+                    get(ppd_ctx.tset.tokens, aven_c_ast_next_index(&ppd_ctx))
+                        .type != AVEN_C_TOKEN_TYPE_NONE
                 ) {
                     ctx->ppd_error.valid = true;
                     ctx->ppd_error.value = (AvenCAstError){
@@ -7052,8 +7052,8 @@
             return false;
         }
         if (!ctx->ppd) {
-            ctx->trailing_lines = get(ctx->ast->tset.tokens, token).
-                trailing_lines;
+            ctx->trailing_lines = get(ctx->ast->tset.tokens, token)
+                .trailing_lines;
         }
         return true;
     }

@@ -8,9 +8,15 @@
     #include <aven/str.h>
     #include <aven/test.h>
 
-    typedef struct { AvenStr val; AvenCTokenType type; } TestAvenCToken;
+    typedef struct {
+        AvenStr val;
+        AvenCTokenType type;
+    } TestAvenCToken;
 
-    typedef struct { AvenStr src; Slice(TestAvenCToken) expected; } TestAvenCLexPpArgs;
+    typedef struct {
+        AvenStr src;
+        Slice(TestAvenCToken) expected;
+    } TestAvenCLexPpArgs;
 
     static AvenTestResult test_aven_c_lex(AvenArena *emsg_arena, AvenArena arena, void *args) {
         TestAvenCLexPpArgs *pp_args = args;
@@ -58,9 +64,15 @@
         return (AvenTestResult){ 0 };
     }
 
-    typedef struct { TestAvenCToken token; AvenCTokenLoc loc; } TestAvenCTokenLoc;
+    typedef struct {
+        TestAvenCToken token;
+        AvenCTokenLoc loc;
+    } TestAvenCTokenLoc;
 
-    typedef struct { AvenStr src; Slice(TestAvenCTokenLoc) expected; } TestAvenCTokenLocArgs;
+    typedef struct {
+        AvenStr src;
+        Slice(TestAvenCTokenLoc) expected;
+    } TestAvenCTokenLocArgs;
 
     static AvenTestResult test_aven_c_token_loc(AvenArena *emsg_arena, AvenArena arena, void *args) {
         TestAvenCTokenLocArgs *pp_args = args;
@@ -123,7 +135,11 @@
         return (AvenTestResult){ 0 };
     }
 
-    typedef struct { AvenStr src; AvenStr expected; size_t line_len; } TestAvenCAstRenderArgs;
+    typedef struct {
+        AvenStr src;
+        AvenStr expected;
+        size_t line_len;
+    } TestAvenCAstRenderArgs;
 
     static AvenTestResult test_aven_c_ast_render(AvenArena *emsg_arena, AvenArena arena, void *args) {
         TestAvenCAstRenderArgs *fmt_args = args;
@@ -816,11 +832,20 @@
                 },
             },
             {
-                .desc = aven_str("aven_c_ast_render sizeof operator paren postfix expr"),
+                .desc = aven_str("aven_c_ast_render sizeof operator unambiguous postfix expr"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array("const size_t x = 2 + sizeof(*x)->y;\n"),
                     .expected = aven_str("const size_t x = 2 + sizeof (*x)->y;\n"),
+                    .line_len = 38,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render sizeof operator prefer type to expr"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("const size_t x = 2 + sizeof (x)-y;\n"),
+                    .expected = aven_str("const size_t x = 2 + sizeof(x) - y;\n"),
                     .line_len = 38,
                 },
             },
@@ -2257,7 +2282,7 @@
                 },
             },
             {
-                .desc = aven_str("aven_c_ast_render long equals expression"),
+                .desc = aven_str("aven_c_ast_render postfix binary op bound to rhs"),
                 .fn = test_aven_c_ast_render,
                 .args = &(TestAvenCAstRenderArgs){
                     .src = slice_array(
@@ -2278,16 +2303,14 @@
                         "void foo(void) {\n"
                         "    if (\n"
                         "        node == 0 or\n"
-                        "        get(\n"
-                        "            ppd_ctx.tset.tokens,\n"
-                        "            aven_c_ast_next_index(&ppd_ctx)\n"
-                        "        ).type != AVEN_C_TOKEN_TYPE_NONE\n"
+                        "        get(ppd_ctx.tset.tokens, aven_c_ast_next_index(&ppd_ctx))\n"
+                        "            .type != AVEN_C_TOKEN_TYPE_NONE\n"
                         "    ) {\n"
                         "        break;\n"
                         "    }\n"
                         "}\n"
                     ),
-                    .line_len = 48,
+                    .line_len = 68,
                 },
             },
             {
@@ -2440,6 +2463,24 @@
                         "        \"line3\\n\"; /* c */\n"
                     ),
                     .line_len = 24,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render ppd with whitespace between # and define"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("#   define  A   24\n"),
+                    .expected = aven_str("#define A 24\n"),
+                    .line_len = 32,
+                },
+            },
+            {
+                .desc = aven_str("aven_c_ast_render ppd with whitespace between # and include"),
+                .fn = test_aven_c_ast_render,
+                .args = &(TestAvenCAstRenderArgs){
+                    .src = slice_array("#   include  <  path / to /   header .   h>\n"),
+                    .expected = aven_str("#include <path/to/header.h>\n"),
+                    .line_len = 32,
                 },
             },
         };
