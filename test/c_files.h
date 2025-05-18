@@ -9,7 +9,9 @@
     #include <aven/str.h>
     #include <aven/test.h>
 
-    typedef struct { AvenStr fpath; } TestAvenCFileArgs;
+    typedef struct {
+        AvenStr fpath;
+    } TestAvenCFileArgs;
 
     AvenTestResult test_aven_c_file(
         AvenArena *emsg_arena,
@@ -34,7 +36,7 @@
             };
         }
         size_t block_size = 8192;
-        AvenIoPopAllResult rd_res = aven_io_reader_pop_all(
+        AvenIoBytesResult rd_res = aven_io_reader_pop_all(
             &reader,
             block_size,
             &arena
@@ -67,27 +69,66 @@
             };
         }
         AvenStr act = { .ptr = (char *)writer.buffer.ptr, .len = writer.index };
-        size_t i = 0;
-        for (; i < min(src.len, act.len); i += 1) {
-            if (get(src, i) != get(act, i)) {
+        AvenIoReader exp_reader = aven_io_reader_init_bytes(slice_as_bytes(src));
+        AvenIoReader act_reader = aven_io_reader_init_bytes(slice_as_bytes(act));
+        for (;;) {
+            AvenArena temp_arena = arena;
+            AvenIoBytesResult exp_res = aven_io_reader_pop_line(
+                &exp_reader,
+                4096,
+                &temp_arena
+            );
+            AvenIoBytesResult act_res = aven_io_reader_pop_line(
+                &act_reader,
+                4096,
+                &temp_arena
+            );
+            assert(exp_res.error == 0 and act_res.error == 0);
+            AvenStr exp_line = {
+                .ptr = (char *)exp_res.payload.ptr,
+                .len = exp_res.payload.len,
+            };
+            AvenStr act_line = {
+                .ptr = (char *)act_res.payload.ptr,
+                .len = act_res.payload.len,
+            };
+            if (exp_line.len == 0 and act_line.len == 0) {
                 break;
             }
-        }
-        if (i != src.len - 1) {
-            size_t start = i > 100 ? i - 100 : 0;
-            size_t src_end = (i + 32) < src.len ? i + 32 : src.len;
-            size_t act_end = (i + 32) < act.len ? i + 32 : act.len;
-            AvenStr exp = aven_str_range(src, start, src_end);
-            AvenStr found = aven_str_range(act, start, act_end);
-            return (AvenTestResult){
-                .error = 1,
-                .message = aven_fmt(
-                    emsg_arena,
-                    "expected:\n    \"{}\"\nfound:\n    \"{}\"\n",
-                    aven_fmt_str(exp),
-                    aven_fmt_str(found)
-                ),
-            };
+            if (exp_line.len != 0) {
+                exp_line = aven_str_head(exp_line, exp_line.len - 1);
+            }
+            if (act_line.len != 0) {
+                act_line = aven_str_head(act_line, act_line.len - 1);
+            }
+            if (exp_line.len != 0 and get(exp_line, exp_line.len - 1) == '\r') {
+                exp_line = aven_str_head(exp_line, exp_line.len - 1);
+            }
+            if (act_line.len != 0 and get(act_line, act_line.len - 1) == '\r') {
+                act_line = aven_str_head(act_line, act_line.len - 1);
+            }
+            size_t i = 0;
+            for (; i < min(exp_line.len, act_line.len); i += 1) {
+                if (get(exp_line, i) != get(act_line, i)) {
+                    break;
+                }
+            }
+            if (i != exp_line.len) {
+                size_t start = i > 100 ? i - 100 : 0;
+                size_t exp_end = (i + 32) < exp_line.len ? i + 32 : exp_line.len;
+                size_t act_end = (i + 32) < act_line.len ? i + 32 : act_line.len;
+                AvenStr exp = aven_str_range(exp_line, start, exp_end);
+                AvenStr found = aven_str_range(act_line, start, act_end);
+                return (AvenTestResult){
+                    .error = 1,
+                    .message = aven_fmt(
+                        emsg_arena,
+                        "expected:\n    \"{}\"\nfound:\n    \"{}\"\n",
+                        aven_fmt_str(exp),
+                        aven_fmt_str(found)
+                    ),
+                };
+            }
         }
         return (AvenTestResult){ 0 };
     }

@@ -146,6 +146,18 @@
         return aven_io_reader_init_fd_buffered(0, size, arena);
     }
 
+    static inline int aven_io_reader_fill(AvenIoReader *reader) {
+        assert(reader->index == reader->buffer.len);
+        ByteSlice buffer_cap = {
+            .ptr = reader->buffer.ptr,
+            .len = reader->buffer.cap,
+        };
+        AvenIoResult res = reader->read(reader->ctx, buffer_cap);
+        reader->index = 0;
+        reader->buffer.len = res.payload;
+        return res.error;
+    }
+
     static inline AvenIoResult aven_io_reader_pop(
         AvenIoReader *reader,
         ByteSlice dest
@@ -175,14 +187,7 @@
                     };
                 }
             } else {
-                ByteSlice buffer_cap = {
-                    .ptr = reader->buffer.ptr,
-                    .len = reader->buffer.cap,
-                };
-                AvenIoResult res = reader->read(reader->ctx, buffer_cap);
-                reader->index = 0;
-                reader->buffer.len = res.payload;
-
+                int error = aven_io_reader_fill(reader);
                 ByteSlice src_rem = slice_list(reader->buffer);
                 ByteSlice fit = slice_head(
                     src_rem,
@@ -192,10 +197,10 @@
                 dest_rem = (ByteSlice)slice_tail(dest_rem, fit.len);
                 reader->index += fit.len;
 
-                if (res.error != 0 or res.payload == 0) {
+                if (error != 0 or src_rem.len == 0) {
                     return (AvenIoResult){
                         .payload = dest.len - dest_rem.len,
-                        .error = res.error,
+                        .error = error,
                     };
                 }
             }
@@ -409,9 +414,9 @@
         return aven_io_writer_push_fmt_args_ex(writer, fmt, args, arena);
     }
 
-    typedef Result(ByteSlice, int) AvenIoPopAllResult;
+    typedef Result(ByteSlice, int) AvenIoBytesResult;
 
-    static inline AvenIoPopAllResult aven_io_reader_pop_all(
+    static inline AvenIoBytesResult aven_io_reader_pop_all(
         AvenIoReader *reader,
         size_t block_size,
         AvenArena *arena
@@ -429,7 +434,14 @@
             }
             AvenIoResult res = aven_io_reader_pop(reader, rem);
             if (res.error != 0) {
-                return (AvenIoPopAllResult){ .error = res.error };
+                return (AvenIoBytesResult){
+                    .error = res.error,
+                    .payload = aven_arena_commit_list_to_slice(
+                        ByteSlice,
+                        arena,
+                        input
+                    ),
+                };
             }
             if (res.payload == 0) {
                 break;
@@ -437,9 +449,85 @@
             input.len += res.payload;
         }
         list_push(input) = 0;
-        return (AvenIoPopAllResult){
+        return (AvenIoBytesResult){
             .payload = aven_arena_commit_list_to_slice(ByteSlice, arena, input),
         };
+    }
+
+    static inline AvenIoBytesResult aven_io_reader_pop_line(
+        AvenIoReader *reader,
+        size_t block_size,
+        AvenArena *arena
+    ) {
+        List(unsigned char) input = aven_arena_create_list(
+            unsigned char,
+            arena,
+            block_size
+        );
+        if (reader->buffer.cap == 0) {
+            unsigned char c = 0;
+            while (c != '\n') {
+                AvenIoResult res = aven_io_reader_pop(reader, as_bytes(&c));
+                if (res.error != 0 or res.payload == 0) {
+                    return (AvenIoBytesResult){
+                        .error = res.error,
+                        .payload = aven_arena_commit_list_to_slice(
+                            ByteSlice,
+                            arena,
+                            input
+                        ),
+                    };
+                }
+                list_push(input) = c;
+                if (input.len == input.cap) {
+                    aven_arena_resize_list(arena, input, input.len + block_size);
+                }
+            }
+            return (AvenIoBytesResult){
+                .payload = aven_arena_commit_list_to_slice(
+                    ByteSlice,
+                    arena,
+                    input
+                ),
+            };
+        }
+        for (;;) {
+            ByteSlice avail = slice_tail(reader->buffer, reader->index);
+            if (avail.len == 0) {
+                int error = aven_io_reader_fill(reader);
+                if (error != 0 or reader->buffer.len == 0) {
+                    return (AvenIoBytesResult){
+                        .error = error,
+                        .payload = aven_arena_commit_list_to_slice(
+                            ByteSlice,
+                            arena,
+                            input
+                        ),
+                    };
+                }
+                avail = (ByteSlice)slice_tail(reader->buffer, reader->index);
+            }
+            for (size_t i = 0; i < avail.len; i += 1) {
+                if (input.len == input.cap) {
+                    aven_arena_resize_list(arena, input, input.len + block_size);
+                }
+                unsigned char c = get(avail, i);
+                list_push(input) = c;
+                if (c == '\n') {
+                    reader->index += i + 1;
+                    return (AvenIoBytesResult){
+                        .payload = aven_arena_commit_list_to_slice(
+                            ByteSlice,
+                            arena,
+                            input
+                        ),
+                    };
+                }
+            }
+            reader->index = reader->buffer.len;
+        }
+        assert(false);
+        return (AvenIoBytesResult){ 0 };
     }
 
     #define aven_io_writer_push_struct(w, s) \
@@ -497,7 +585,7 @@
             .len = (size_t)(g).slice.len, \
         }
     #define aven_io_slice_size(s) ( \
-            sizeof (AvenIoSliceHeader)+(s).len * sizeof(*(s).ptr) \
+            sizeof(AvenIoSliceHeader) + (s).len * sizeof(*(s).ptr) \
         )
     #define AVEN_IO_SLICE_FINGERPRINT ((uint64_t)0x571ce04eade2)
 
@@ -605,7 +693,7 @@
             .len = (size_t)(g).list.len, \
         }
     #define aven_io_list_size(s) ( \
-            sizeof (AvenIoListHeader)+(s).len * sizeof(*(s).ptr) \
+            sizeof(AvenIoListHeader) + (s).len * sizeof(*(s).ptr) \
         )
     #define AVEN_IO_LIST_FINGERPRINT ((uint64_t)0x715704eade2)
 
@@ -728,7 +816,7 @@
             .used = (size_t)(g).queue.used, \
         }
     #define aven_io_queue_size(s) ( \
-            sizeof (AvenIoQueueHeader)+(s).used * sizeof(*(s).ptr) \
+            sizeof(AvenIoQueueHeader) + (s).used * sizeof(*(s).ptr) \
         )
     #define AVEN_IO_QUEUE_FINGERPRINT ((uint64_t)0x98e8e04eade2)
 
@@ -862,7 +950,7 @@
             .cap = (size_t)(g).pool.cap, \
         }
     #define aven_io_pool_size(s) ( \
-            sizeof (AvenIoPoolHeader)+(s).len * sizeof(*(s).ptr) \
+            sizeof(AvenIoPoolHeader) + (s).len * sizeof(*(s).ptr) \
         )
     #define AVEN_IO_POOL_FINGERPRINT ((uint64_t)0x700704eade2)
 

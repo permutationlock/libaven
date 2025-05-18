@@ -608,6 +608,7 @@
                         break;
                     }
                     case '\r': {
+                        ctx->index += 1;
                         ctx->state = AVEN_C_LEX_INCLUDE_STATE_CR;
                         break;
                     }

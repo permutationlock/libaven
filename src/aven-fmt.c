@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
         reader = aven_io_reader_init_fd(in_fd.value);
     }
     size_t block_size = 8192;
-    AvenIoPopAllResult rd_res = aven_io_reader_pop_all(
+    AvenIoBytesResult rd_res = aven_io_reader_pop_all(
         &reader,
         block_size,
         &arena
