@@ -142,20 +142,31 @@ int main(int argc, char **argv) {
         aven_build_step_clean(&root_step, arena);
         aven_build_step_clean(&test_root_step, arena);
     } else if (opts.test) {
-        AvenBuildStepRunError run_error = aven_build_step_run(
-            &test_root_step,
-            arena
-        );
-        if (run_error != 0) {
-            aven_io_perrf("TEST FAILED: {}\n", aven_fmt_int(run_error));
+        if (opts.dry_run) {
+            aven_build_step_dry_run(&test_root_step, arena);
+        } else {
+            AvenBuildStepRunError run_error = aven_build_step_run(
+                &test_root_step,
+                arena
+            );
+            if (run_error != 0) {
+                aven_io_perrf("TEST FAILED: {}\n", aven_fmt_int(run_error));
+                return 1;
+            }
         }
-        return 1;
     } else {
-        AvenBuildStepRunError run_error = aven_build_step_run(&root_step, arena);
-        if (run_error != 0) {
-            aven_io_perrf("BUILD FAILED: {}\n", aven_fmt_int(run_error));
+        if (opts.dry_run) {
+            aven_build_step_dry_run(&root_step, arena);
+        } else {
+            AvenBuildStepRunError run_error = aven_build_step_run(
+                &root_step,
+                arena
+            );
+            if (run_error != 0) {
+                aven_io_perrf("BUILD FAILED: {}\n", aven_fmt_int(run_error));
+                return 1;
+            }
         }
-        return 1;
     }
 
     return 0;

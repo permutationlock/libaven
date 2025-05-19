@@ -6,10 +6,7 @@
     #include "fs.h"
     #include "proc.h"
     #include "str.h"
-
-    #ifndef AVEN_SUPPRESS_LOGS
-        #include "io.h"
-    #endif
+    #include "io.h"
 
     typedef enum {
         AVEN_BUILD_STEP_STATE_NONE = 0,
@@ -180,7 +177,6 @@
         step->state = AVEN_BUILD_STEP_STATE_RUNNING;
 
         int error = 0;
-        ;
         AvenProcCmdResult result;
         switch (step->type) {
             case AVEN_BUILD_STEP_TYPE_ROOT:
@@ -276,6 +272,60 @@
         }
 
         return AVEN_BUILD_STEP_RUN_ERROR_NONE;
+    }
+
+    static inline void aven_build_step_dry_run(
+        AvenBuildStep *step,
+        AvenArena arena
+    ) {
+        for (AvenBuildStepNode *dep = step->dep; dep != NULL; dep = dep->next) {
+            aven_build_step_dry_run(dep->step, arena);
+        }
+
+        switch (step->type) {
+            case AVEN_BUILD_STEP_TYPE_ROOT:
+            case AVEN_BUILD_STEP_TYPE_PATH:
+                break;
+            case AVEN_BUILD_STEP_TYPE_CMD:
+                aven_io_printf(
+                    "{}\n",
+                    aven_fmt_str(aven_str_join(step->data.cmd, ' ', &arena))
+                );
+                break;
+            case AVEN_BUILD_STEP_TYPE_RM:
+                aven_io_printf("rm {}\n", aven_fmt_str(step->data.rm));
+                break;
+            case AVEN_BUILD_STEP_TYPE_RMDIR:
+                aven_io_printf("rmdir {}\n", aven_fmt_str(step->data.rmdir));
+                break;
+            case AVEN_BUILD_STEP_TYPE_TRUNC:
+                if (!step->out_path.valid) {
+                    break;
+                }
+                aven_io_printf(
+                    "truncate -s 0 {}\n",
+                    aven_fmt_str(step->out_path.value)
+                );
+                break;
+            case AVEN_BUILD_STEP_TYPE_MKDIR:
+                if (!step->out_path.valid) {
+                    break;
+                }
+                aven_io_printf("mkdir {}\n", aven_fmt_str(step->out_path.value));
+                break;
+            case AVEN_BUILD_STEP_TYPE_COPY:
+                if (!step->out_path.valid) {
+                    break;
+                }
+                aven_io_printf(
+                    "cp {} {}\n",
+                    aven_fmt_str(step->data.copy),
+                    aven_fmt_str(step->out_path.value)
+                );
+                break;
+            default:
+                break;
+        }
     }
 
     static inline void aven_build_step_clean(

@@ -52,6 +52,7 @@
         AvenStrSlice soexts;
         AvenStrSlice arexts;
         AvenStrSlice wrexts;
+        bool dry_run;
         bool clean;
         bool test;
     } AvenBuildCommonOpts;
@@ -73,6 +74,11 @@
         {
             .name = aven_str_init("clean"),
             .description = aven_str_init("Remove all build artifacts"),
+            .type = AVEN_ARG_TYPE_BOOL,
+        },
+        {
+            .name = aven_str_init("--dry-run"),
+            .description = aven_str_init("Print commands but don't run them"),
             .type = AVEN_ARG_TYPE_BOOL,
         },
         {
@@ -703,6 +709,7 @@
 
         opts.test = aven_arg_get_bool(arg_slice, "test");
         opts.clean = aven_arg_get_bool(arg_slice, "clean");
+        opts.dry_run = aven_arg_get_bool(arg_slice, "--dry-run");
 
         opts.cc.compiler = aven_arg_get_str(arg_slice, "--cc");
         opts.cc.incflag = aven_arg_get_str(arg_slice, "--ccincflag");
