@@ -52,6 +52,8 @@
         AvenBuildStep *step;
     };
 
+    typedef Optional(AvenBuildStep) AvenBuildStepOptional;
+    typedef Optional(AvenBuildStep *) AvenBuildStepPtrOptional;
     typedef Slice(AvenBuildStep) AvenBuildStepSlice;
     typedef Slice(AvenBuildStep *) AvenBuildStepPtrSlice;
 
