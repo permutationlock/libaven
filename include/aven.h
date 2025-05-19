@@ -8,6 +8,10 @@
     #define or ||
     #define and &&
 
+    #ifdef __APPLE__
+        #include <unistd.h>
+    #endif
+
     #ifndef _WIN32
         #ifdef AVEN_LINUX_NOLIBC
             #include <nolibc.h>
