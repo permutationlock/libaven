@@ -68,7 +68,7 @@
     static AvenArg aven_build_common_args_data[] = {
         {
             .name = aven_str_init("test"),
-            .description = aven_str_init("Build and  run tests"),
+            .description = aven_str_init("Build and run tests"),
             .type = AVEN_ARG_TYPE_BOOL,
         },
         {
