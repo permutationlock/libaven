@@ -83,18 +83,18 @@ that satisfies the following requirements:
 The following toochains are fully supported, e.g. the default configuration
 should work out-of-the-box when one is used to compile the `build.c`. 
 
- - GNU (Linux + Windows w/[MinGW][3]): -cc `gcc` -ar `ar`
- - clang (Linux + Windows w/MSVC or MinGW): -cc `clang` -ar `llvm-ar`
- - MSVC (Windows): -cc `cl.exe` -ld `link.ex` -ar `lib.exe`
- - [tinycc][5] (Linux + Windows): -cc `tcc` -ccflags
-   "-D\_\_BIGGEST\_ALIGNMENT\_\_=16" -ar `tcc` -arflags "-ar -rcs"
+ - GNU (Linux + Windows w/[MinGW][3]): --cc gcc --ar ar
+ - clang (Linux + Windows w/MSVC or MinGW): --cc clang --ar llvm-ar
+ - MSVC (Windows): --cc cl.exe --ld link.ex --ar lib.exe
+ - [tinycc][5] (Linux + Windows): --cc tcc --ccflags
+   "-D\_\_BIGGEST\_ALIGNMENT\_\_=16" --ar tcc --arflags "-ar -rcs"
 
 The following toolchains are undectectable from predefined macros, but have
 been tested with the indicated configuration.
 
- - [Zig][1] (Linux + Windows): -cc `zig` -ccflags "cc" -ldflags "cc" -ar `zig`
-   -arflags "ar -rcs"
- - [cproc][4] w/GNU (Linux): -cc `cproc` -ccflags "-std=c11" -ar `ar`
+ - [Zig][1] (Linux + Windows): --cc zig --ccflags "cc" --ldflags "cc" --ar zig
+   --arflags "ar -rcs"
+ - [cproc][4] w/GNU (Linux): --cc cproc --ccflags "-std=c11" --ar ar
 
 Hopefully many other toolchains are supported as well! The MSVC
 toolchain is so weird that the build configuration has been expanded to be
@@ -164,14 +164,14 @@ an `x86_64` Windows target using MinGW-w64.
 
 ```
 tcc -D__BIGGEST_ALIGNMENT__=16 -o build build.c
-./build -cc "x86_64-w64-mingww32-gcc" \
-    -ar "x86_64-w64-mingw32-ar" \
-    -windres "x86_64-w64-mingw32-windres" \
-    -ccflags "-std=c11 -O3 -Werror -Wall -Wextra" \
-    -exext ".exe" -soext ".dll" \
-    -ldwinflag "-mwindows" \
-    -syslibs "kernel32 user32 gdi32 shell32" \
-    -winutf8
+./build --cc "x86_64-w64-mingww32-gcc" \
+    --ar "x86_64-w64-mingw32-ar" \
+    --windres "x86_64-w64-mingw32-windres" \
+    --ccflags "-std=c11 -O3 -Werror -Wall -Wextra" \
+    --exext ".exe" -soext ".dll" \
+    --ldwinflag "-mwindows" \
+    --syslibs "kernel32 user32 gdi32 shell32" \
+    --winutf8
 ```
 
 Try this command in a project that produces a graphical application like
