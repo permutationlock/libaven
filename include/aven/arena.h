@@ -156,6 +156,12 @@
         child->arena.top = child->arena.base;
     }
 
+    static inline ByteSlice aven_arena_alloc_all(AvenArena *arena) {
+        size_t rem = (size_t)(arena->top - arena->base);
+        arena->base = arena->top;
+        return (ByteSlice){ .ptr = arena->base, .len = rem };
+    }
+
     #ifdef AVEN_IMPLEMENTATION
         AVEN_FN void *aven_arena_alloc(
             AvenArena *arena,
