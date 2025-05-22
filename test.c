@@ -13,6 +13,7 @@
 
 #include <stdlib.h>
 
+#include "test/str.h"
 #include "test/path.h"
 #include "test/io.h"
 #include "test/hash_map.h"
@@ -24,6 +25,7 @@ int main(void) {
     void *mem = malloc(ARENA_SIZE);
     AvenArena test_arena = aven_arena_init(mem, ARENA_SIZE);
 
+    test_str(test_arena);
     test_path(test_arena);
     test_io(test_arena);
     test_hash_map(test_arena);

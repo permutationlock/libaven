@@ -226,5 +226,53 @@
 
         return aven_str_head(str, fin);
     }
+
+    typedef enum {
+        AVEN_STR_CODEPOINTS_ERROR_NONE = 0,
+        AVEN_STR_CODEPOINTS_ERROR_INV,
+    } AvneStrCodepointsError;
+    typedef Result(size_t, AvneStrCodepointsError) AvenStrCodepointsResult;
+    static inline AvenStrCodepointsResult aven_str_codepoints(AvenStr str) {
+        size_t count = 0;
+        for (size_t i = 0; i < str.len; i += 1) {
+            unsigned char c = (unsigned char)get(str, i);
+            if (c < (1U << 7)) {
+                count += 1;
+                continue;
+            }
+            size_t len = 0;
+            if ((c & 0xe0) == 0xc0) {
+                len = 2;
+            } else if ((c & 0xf0) == 0xe0) {
+                len = 3;
+            } else if ((c & 0xf8) == 0xf0) {
+                len = 4;
+            } else {
+                return (AvenStrCodepointsResult){
+                    .error = AVEN_STR_CODEPOINTS_ERROR_INV,
+                    .payload = i,
+                };
+            }
+            if (i + len > str.len) {
+                return (AvenStrCodepointsResult){
+                    .error = AVEN_STR_CODEPOINTS_ERROR_INV,
+                    .payload = i,
+                };
+            }
+            AvenStr codepoint = slice_range(str, i, i + len);
+            for (size_t j = 1; j < len; j += 1) {
+                unsigned char d = (unsigned char)get(codepoint, j);
+                if ((d & 0xc0) != 0x80) {
+                    return (AvenStrCodepointsResult){
+                        .error = AVEN_STR_CODEPOINTS_ERROR_INV,
+                        .payload = i,
+                    };
+                }
+            }
+            i += len - 1;
+            count += 1;
+        }
+        return (AvenStrCodepointsResult){ .payload = count };
+    }
 #endif
 
