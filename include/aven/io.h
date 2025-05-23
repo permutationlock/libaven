@@ -18,6 +18,27 @@
     } AvenIoError;
     typedef Result(size_t, int) AvenIoResult;
 
+    static const AvenStr aven_io_error_data[] = {
+        [AVEN_IO_ERROR_NONE] = aven_str_init("none"),
+        [AVEN_IO_ERROR_BADF] = aven_str_init("bad file"),
+        [AVEN_IO_ERROR_OTHER] = aven_str_init("other"),
+        [AVEN_IO_ERROR_NOSPACE] = aven_str_init("no space"),
+        [AVEN_IO_ERROR_FINGERPRINT] = aven_str_init("fingerprint"),
+        [AVEN_IO_ERROR_MISMATCH] = aven_str_init("mismatch"),
+    };
+
+    static const AvenStrSlice aven_io_errors = {
+        .ptr = (AvenStr *)aven_io_error_data,
+        .len = countof(aven_io_error_data),
+    };
+
+    static inline AvenStr aven_io_error_str(int error) {
+        if (error < 0 or (size_t)error >= aven_io_errors.len) {
+            return aven_str("unknown");
+        }
+        return get(aven_io_errors, (size_t)error);
+    }
+
     typedef enum {
         AVEN_IO_OPEN_MODE_READ = 0,
         AVEN_IO_OPEN_MODE_WRITE,
@@ -31,6 +52,22 @@
         AVEN_IO_OPEN_ERROR_OTHER,
     } AvenIoOpenError;
     typedef Result(AvenIoFd, AvenIoOpenError) AvenIoOpenResult;
+
+    static const AvenStr aven_io_open_error_data[] = {
+        [AVEN_IO_OPEN_ERROR_NONE] = aven_str_init("none"),
+        [AVEN_IO_OPEN_ERROR_ACCESS] = aven_str_init("access"),
+        [AVEN_IO_OPEN_ERROR_BADPATH] = aven_str_init("bad path"),
+        [AVEN_IO_OPEN_ERROR_OTHER] = aven_str_init("other"),
+    };
+
+    static const AvenStrSlice aven_io_open_errors = {
+        .ptr = (AvenStr *)aven_io_open_error_data,
+        .len = countof(aven_io_open_error_data),
+    };
+
+    static inline AvenStr aven_io_open_error_str(AvenIoOpenError error) {
+        return get(aven_io_open_errors, (size_t)error);
+    }
 
     AVEN_FN AvenIoOpenResult aven_io_open(
         AvenStr file_path,

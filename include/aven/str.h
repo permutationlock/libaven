@@ -232,6 +232,7 @@
         AVEN_STR_CODEPOINTS_ERROR_INV,
     } AvneStrCodepointsError;
     typedef Result(size_t, AvneStrCodepointsError) AvenStrCodepointsResult;
+
     static inline AvenStrCodepointsResult aven_str_codepoints(AvenStr str) {
         size_t count = 0;
         for (size_t i = 0; i < str.len; i += 1) {
