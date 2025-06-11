@@ -111,6 +111,7 @@
         AvenBuildCommonOpts *opts,
         AvenStr root_path,
         AvenBuildStep *out_dir_step,
+        bool pic,
         AvenArena *arena
     ) {
         AvenStr include_paths[] = {
@@ -125,6 +126,7 @@
             macros,
             aven_path(arena, root_path, aven_str("src"), aven_str("aven.c")),
             out_dir_step,
+            pic,
             arena
         );
     }
@@ -154,6 +156,7 @@
         LibAvenBuildOpts *libaven_opts,
         AvenStr root_path,
         AvenBuildStep *out_dir_step,
+        bool pic,
         AvenArena *arena
     ) {
         AvenStr include_paths[] = {
@@ -179,6 +182,7 @@
                 aven_str("winpthreads.c")
             ),
             out_dir_step,
+            pic,
             arena
         );
     }

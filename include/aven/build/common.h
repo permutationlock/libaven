@@ -14,6 +14,7 @@
         AvenStr outflag;
         AvenStr incflag;
         AvenStr defflag;
+        AvenStr picflag;
         AvenStrSlice flags;
         bool flagsep;
     } AvenBuildCommonCOpts;
@@ -419,6 +420,25 @@
             },
         },
         {
+            .name = aven_str_init("--ccpicflag"),
+            .description = aven_str_init(
+                "C compiler flag for position indpendent code"
+            ),
+            .type = AVEN_ARG_TYPE_STRING,
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
+    #if defined(AVEN_BUILD_COMMON_DEFAULT_CCPICFLAG)
+                .data = {
+                    .arg_str = aven_str_init(
+                        AVEN_BUILD_COMMON_DEFAULT_CCPICFLAGEXT
+                    ),
+                },
+    #elif defined(__clang__) or defined(__GNUC__) or defined(__TINYC__)
+                .data = { .arg_str = aven_str_init("-fPIC") },
+    #endif
+            },
+        },
+        {
             .name = aven_str_init("--ccdefflag"),
             .description = aven_str_init("C compiler flag to define macro"),
             .type = AVEN_ARG_TYPE_STRING,
@@ -713,6 +733,7 @@
 
         opts.cc.compiler = aven_arg_get_str(arg_slice, "--cc");
         opts.cc.incflag = aven_arg_get_str(arg_slice, "--ccincflag");
+        opts.cc.picflag = aven_arg_get_str(arg_slice, "--ccpicflag");
         opts.cc.defflag = aven_arg_get_str(arg_slice, "--ccdefflag");
         opts.cc.objflag = aven_arg_get_str(arg_slice, "--ccobjflag");
         opts.cc.outflag = aven_arg_get_str(arg_slice, "--ccoutflag");
@@ -842,6 +863,7 @@
         AvenStrSlice macros,
         AvenStr src_path,
         AvenBuildStep *out_dir_step,
+        bool pic,
         AvenArena *arena
     ) {
         AvenStr out_dir_path = unwrap(out_dir_step->out_path);
@@ -859,13 +881,17 @@
         List(AvenStr) cmd_list = aven_arena_create_list(
             AvenStr,
             arena,
-            5 + opts->cc.flags.len + 2 * includes.len + 2 * macros.len
+            6 + opts->cc.flags.len + 2 * includes.len + 2 * macros.len
         );
 
         list_push(cmd_list) = opts->cc.compiler;
 
         for (size_t j = 0; j < opts->cc.flags.len; j += 1) {
             list_push(cmd_list) = get(opts->cc.flags, j);
+        }
+
+        if (pic and opts->cc.picflag.len > 0) {
+            list_push(cmd_list) = opts->cc.picflag;
         }
 
         for (size_t j = 0; j < includes.len; j += 1) {
@@ -932,6 +958,7 @@
         AvenBuildCommonOpts *opts,
         AvenStr src_path,
         AvenBuildStep *out_dir_step,
+        bool pic,
         AvenArena *arena
     ) {
         return aven_build_common_step_cc_ex(
@@ -940,6 +967,7 @@
             (AvenStrSlice){ 0 },
             src_path,
             out_dir_step,
+            pic,
             arena
         );
     }
@@ -1275,6 +1303,7 @@
             macros,
             src_path,
             out_dir_step,
+            bin_type == AVEN_BUILD_COMMON_BIN_TYPE_DLL,
             arena
         );
 

@@ -76,6 +76,7 @@ int main(int argc, char **argv) {
         &opts,
         root_dir,
         &out_dir_step,
+        false,
         &arena
     );
 
@@ -106,6 +107,7 @@ int main(int argc, char **argv) {
             &libaven_opts,
             root_dir,
             &out_dir_step,
+            false,
             &arena
         );
     }
