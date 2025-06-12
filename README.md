@@ -1,4 +1,4 @@
-# libaven: a tiny portable C library, pretty-printer, and build system
+# libaven: a tiny portable C library, and build system
 
 I love programming in C, but I always need slices, optionals, and
 result types (a.k.a. "errors as values").
@@ -14,6 +14,7 @@ The library has expanded to include:
  - a C build system: `aven/build.h`, `aven/build/common.h`
  - simple string formatting and parsing: `aven/fmt.h`
  - portable file system interaction: `aven/fs.h`
+ - simple hashing, hash sets, and hash maps: `aven/hash.h`
  - portable I/O independent of libc: `aven/io.h`
  - a tiny SIMD linear algebra library: `aven/math.h`
  - portable file path string manipulation: `aven/path.h`
