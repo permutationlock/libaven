@@ -433,7 +433,8 @@
                         AVEN_BUILD_COMMON_DEFAULT_CCPICFLAGEXT
                     ),
                 },
-    #elif defined(__clang__) or defined(__GNUC__) or defined(__TINYC__)
+    #elif !defined(_MSC_VER) and \
+            (defined(__clang__) or defined(__GNUC__) or defined(__TINYC__))
                 .data = { .arg_str = aven_str_init("-fPIC") },
     #endif
             },
