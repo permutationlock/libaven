@@ -1,9 +1,6 @@
 #ifndef AVEN_TS_H
     #define AVEN_TS_H
 
-    #include "fmt.h"
-    #include "str.h"
-
     #define AVEN_TS_PLAIN ""
     #define AVEN_TS_BRIGHT "1"
     #define AVEN_TS_DIM "2"
@@ -39,18 +36,13 @@
     #define aven_ts_join5(s1, ...) "" s1 ";" aven_ts_join4(__VA_ARGS__)
     #define aven_ts_join6(s1, ...) "" s1 ";" aven_ts_join5(__VA_ARGS__)
     #define aven_ts_join7(s1, ...) "" s1 ";" aven_ts_join6(__VA_ARGS__)
-    #define aven_ts_join8(s1, ...) "" s1 ";" aven_ts_join7(__VA_ARGS__)
-    #define aven_ts_apply(m, ...) m(__VA_ARGS__)
     #define aven_ts_join_dispatch(n) aven_ts_join##n
+    #define aven_ts_apply(m, ...) m(__VA_ARGS__)
     #define aven_ts_cntn(_1, _2, _3, _4, _5, _6, _7, n, ...) n
     #define aven_ts_cnt(...) aven_ts_cntn(__VA_ARGS__, 7, 6, 5, 4, 3, 2, 1, 0)
     #define aven_ts_join(...) aven_ts_apply( \
             aven_ts_join_dispatch, \
             aven_ts_cnt(__VA_ARGS__) \
         )(__VA_ARGS__)
-
-    #define aven_ts_esc(...) "\x1b[" aven_ts_join(__VA_ARGS__) "m"
-    #define aven_ts_str(...) aven_str(aven_ts_esc(__VA_ARGS__))
-    #define aven_ts(...) aven_fmt_str(aven_ts_str(__VA_ARGS__))
-
-#endif // AVEN_TS_H
+    #define aven_ts(...) "\x1b[" aven_ts_join(__VA_ARGS__) "m"
+#endif
