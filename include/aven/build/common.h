@@ -86,36 +86,53 @@
             .name = aven_str_init("--cc"),
             .description = aven_str_init("C compiler exe"),
             .type = AVEN_ARG_TYPE_STRING,
+    #if defined(AVEN_BUILD_COMMON_DEFAULT_CC)
             .value = {
                 .type = AVEN_ARG_TYPE_STRING,
-    #if defined(AVEN_BUILD_COMMON_DEFAULT_CC)
                 .data = {
                     .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_CC),
                 },
+            },
     #elif defined(_WIN32)
     #if defined(__clang__)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
                 .data = { .arg_str = aven_str_init("clang.exe") },
+            },
     #elif defined(__GNUC__)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
                 .data = { .arg_str = aven_str_init("gcc.exe") },
+            },
     #elif defined(_MSC_VER)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
                 .data = { .arg_str = aven_str_init("cl.exe") },
+            },
     #elif defined(__TINYC__)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
                 .data = { .arg_str = aven_str_init("tcc.exe") },
-    #else
-                .data = { .arg_str = aven_str_init("") },
+            },
     #endif
     #else
     #if defined(__clang__)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
                 .data = { .arg_str = aven_str_init("clang") },
-    #elif defined(__GNUC__)
-                .data = { .arg_str = aven_str_init("gcc") },
-    #elif defined(__TINYC__)
-                .data = { .arg_str = aven_str_init("tcc") },
-    #else
-                .data = { .arg_str = aven_str_init("") },
-    #endif
-    #endif
             },
+    #elif defined(__GNUC__)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
+                .data = { .arg_str = aven_str_init("gcc") },
+            },
+    #elif defined(__TINYC__)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
+                .data = { .arg_str = aven_str_init("tcc") },
+            },
+    #endif
+    #endif
         },
         {
             .name = aven_str_init("--ld"),
@@ -135,9 +152,8 @@
                 .type = AVEN_ARG_TYPE_STRING,
                 .data = { .arg_str = aven_str_init("link.exe") },
             },
-    #else
-            .optional = true,
     #endif
+            .optional = true,
         },
         {
             .name = aven_str_init("--ar"),
@@ -145,36 +161,53 @@
                 "Archiver exe to create static libraries"
             ),
             .type = AVEN_ARG_TYPE_STRING,
+    #if defined(AVEN_BUILD_COMMON_DEFAULT_AR)
             .value = {
                 .type = AVEN_ARG_TYPE_STRING,
-    #if defined(AVEN_BUILD_COMMON_DEFAULT_AR)
                 .data = {
                     .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_AR),
                 },
+            },
     #elif defined(_WIN32)
     #if defined(__clang__)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
                 .data = { .arg_str = aven_str_init("llvm-ar.exe") },
+            },
     #elif defined(_MSC_VER)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
                 .data = { .arg_str = aven_str_init("lib.exe") },
+            },
     #elif defined(__GNUC__)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
                 .data = { .arg_str = aven_str_init("ar.exe") },
+            },
     #elif defined(__TINYC__)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
                 .data = { .arg_str = aven_str_init("tcc.exe") },
-    #else
-                .data = { .arg_str = aven_str_init("") },
+            },
     #endif
     #else
     #if defined(__clang__)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
                 .data = { .arg_str = aven_str_init("llvm-ar") },
-    #elif defined(__GNUC__)
-                .data = { .arg_str = aven_str_init("ar") },
-    #elif defined(__TINYC__)
-                .data = { .arg_str = aven_str_init("tcc") },
-    #else
-                .data = { .arg_str = aven_str_init("") },
-    #endif
-    #endif
             },
+    #elif defined(__GNUC__)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
+                .data = { .arg_str = aven_str_init("ar") },
+            },
+    #elif defined(__TINYC__)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
+                .data = { .arg_str = aven_str_init("tcc") },
+            },
+    #endif
+    #endif
         },
         {
             .name = aven_str_init("--windres"),
@@ -203,15 +236,9 @@
                 .type = AVEN_ARG_TYPE_STRING,
                 .data = { .arg_str = aven_str_init("windres.exe") },
             },
-    #else
-            .value = {
-                .type = AVEN_ARG_TYPE_STRING,
-                .data = { .arg_str = aven_str_init("") },
-            },
     #endif
-    #else
+    #endif
             .optional = true,
-    #endif
         },
         {
             .name = aven_str_init("--ccflags"),
@@ -1256,6 +1283,9 @@
             4 + opts->windres.flags.len
         );
 
+        if (!opts->windres.compiler.valid) {
+            aven_panic("missing windres compiler");
+        }
         list_push(cmd_list) = unwrap(opts->windres.compiler);
 
         for (size_t j = 0; j < opts->windres.flags.len; j += 1) {

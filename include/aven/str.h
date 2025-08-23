@@ -276,4 +276,3 @@
         return (AvenStrCodepointsResult){ .payload = count };
     }
 #endif
-
