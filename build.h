@@ -1,6 +1,13 @@
 #ifndef LIBAVEN_BUILD_H
     #define LIBAVEN_BUILD_H
 
+    #include "include/aven.h"
+    #include "include/aven/arena.h"
+    #include "include/aven/build.h"
+    #include "include/aven/build/common.h"
+    #include "include/aven/path.h"
+    #include "include/aven/str.h"
+
     static AvenArg libaven_build_arg_data[] = {
         {
             .name = aven_str_init("--winutf8"),
