@@ -55,7 +55,6 @@ int main(int argc, char **argv) {
     );
     if (arg_error != 0) {
         if (arg_error != AVEN_ARG_ERROR_HELP) {
-            aven_io_perrf("ARG PARSE ERROR: {}\n", aven_fmt_int(arg_error));
             return 1;
         }
         return 0;
