@@ -278,6 +278,9 @@
         AvenBuildStep *step,
         AvenArena arena
     ) {
+        if (step->state != AVEN_BUILD_STEP_STATE_NONE) {
+            return;
+        }
         for (AvenBuildStepNode *dep = step->dep; dep != NULL; dep = dep->next) {
             aven_build_step_dry_run(dep->step, arena);
         }
@@ -326,6 +329,8 @@
             default:
                 break;
         }
+
+        step->state = AVEN_BUILD_STEP_STATE_DONE;
     }
 
     static inline void aven_build_step_clean(
