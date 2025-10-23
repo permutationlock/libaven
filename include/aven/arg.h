@@ -93,21 +93,41 @@
             AvenFmtArg default_arg = { 0 };
             switch (arg.type) {
                 case AVEN_ARG_TYPE_BOOL: {
-                    default_arg = arg.value.data.arg_bool ?
-                        aven_fmt_str(aven_str("true")) :
-                        aven_fmt_str(aven_str("false"));
+                    aven_io_perrf(
+                        "    {}    {} (default: {})\n",
+                        aven_fmt_str(str),
+                        aven_fmt_str(arg.description),
+                        arg.value.data.arg_bool ?
+                            aven_fmt_str(aven_str("true")) :
+                            aven_fmt_str(aven_str("false"))
+                    );
                     break;
                 }
                 case AVEN_ARG_TYPE_UINT: {
-                    default_arg = aven_fmt_uint(arg.value.data.arg_uint);
+                    aven_io_perrf(
+                        "    {}    {} (default: {})\n",
+                        aven_fmt_str(str),
+                        aven_fmt_str(arg.description),
+                        aven_fmt_uint(arg.value.data.arg_uint)
+                    );
                     break;
                 }
                 case AVEN_ARG_TYPE_INT: {
-                    default_arg = aven_fmt_int(arg.value.data.arg_int);
+                    aven_io_perrf(
+                        "    {}    {} (default: {})\n",
+                        aven_fmt_str(str),
+                        aven_fmt_str(arg.description),
+                        aven_fmt_int(arg.value.data.arg_int)
+                    );
                     break;
                 }
                 case AVEN_ARG_TYPE_STRING: {
-                    default_arg = aven_fmt_str(arg.value.data.arg_str);
+                    aven_io_perrf(
+                        "    {}    {} (default: \"{}\")\n",
+                        aven_fmt_str(str),
+                        aven_fmt_str(arg.description),
+                        aven_fmt_str(arg.value.data.arg_str)
+                    );
                     break;
                 }
                 case AVEN_ARG_TYPE_HELP: {
@@ -115,12 +135,6 @@
                     break;
                 }
             }
-            aven_io_perrf(
-                "    {}    {} (default={})\n",
-                aven_fmt_str(str),
-                aven_fmt_str(arg.description),
-                default_arg
-            );
         } else if (arg.optional) {
             aven_io_perrf(
                 "    {}    {} (optional)\n",
