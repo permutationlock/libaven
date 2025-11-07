@@ -62,7 +62,7 @@
         #error "C99 or later is required"
     #endif
 
-    #define countof(...) (sizeof(__VA_ARGS__) / sizeof(*(__VA_ARGS__)))
+    #define countof(...) ((sizeof(__VA_ARGS__)) / (sizeof(*(__VA_ARGS__)))
 
     #define Optional(t) struct { \
             t value; \
@@ -327,8 +327,8 @@
                     (s).ptr, \
                     ( \
                         assert( \
-                            (s).len * sizeof(*(s).ptr) <= (d).len * \
-                                sizeof(*(d).ptr) \
+                            (sizeof(*(d).ptr) == sizeof(*(s).ptr)) and \
+                            (d).len == (s).len \
                         ), \
                         (s).len * sizeof(*(s).ptr) \
                     ) \
