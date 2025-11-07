@@ -90,7 +90,6 @@
         }
         AvenStr str = slice_list(clist);
         if (arg.type == arg.value.type and arg.type != AVEN_ARG_TYPE_HELP) {
-            AvenFmtArg default_arg = { 0 };
             switch (arg.type) {
                 case AVEN_ARG_TYPE_BOOL: {
                     aven_io_perrf(
