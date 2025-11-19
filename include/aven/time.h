@@ -13,12 +13,12 @@
         typedef struct timespec AvenTimeInst;
     #endif
 
-    #define AVEN_TIME_NSEC_PER_SEC (1000L * 1000L * 1000L)
-    #define AVEN_TIME_USEC_PER_SEC (1000L * 1000L)
-    #define AVEN_TIME_MSEC_PER_SEC (1000L)
-    #define AVEN_TIME_NSEC_PER_MSEC (1000L * 1000L)
-    #define AVEN_TIME_NSEC_PER_USEC (1000L)
-    #define AVEN_TIME_USEC_PER_MSEC (1000L)
+    #define AVEN_TIME_NSEC_PER_SEC ((int64_t)1000 * 1000 * 1000)
+    #define AVEN_TIME_USEC_PER_SEC ((int64_t)1000 * 1000)
+    #define AVEN_TIME_MSEC_PER_SEC ((int64_t)1000)
+    #define AVEN_TIME_NSEC_PER_MSEC ((int64_t)1000 * 1000)
+    #define AVEN_TIME_NSEC_PER_USEC ((int64_t)1000)
+    #define AVEN_TIME_USEC_PER_MSEC ((int64_t)1000)
 
     static inline int64_t aven_time_since(AvenTimeInst end, AvenTimeInst start) {
         int64_t seconds = (int64_t)end.tv_sec - (int64_t)start.tv_sec;

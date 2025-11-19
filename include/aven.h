@@ -62,7 +62,7 @@
         #error "C99 or later is required"
     #endif
 
-    #define countof(...) ((sizeof(__VA_ARGS__)) / (sizeof(*(__VA_ARGS__)))
+    #define countof(...) ((sizeof(__VA_ARGS__)) / (sizeof((__VA_ARGS__)[0])))
 
     #define Optional(t) struct { \
             t value; \
@@ -285,28 +285,28 @@
         }
 
     #define as_bytes(ref) (ByteSlice){ \
-            .ptr = (unsigned char *)ref, \
-            .len = sizeof(*ref), \
+            .ptr = (unsigned char *)(ref), \
+            .len = sizeof((ref)[0]), \
         }
     #define array_as_bytes(arr) (ByteSlice){ \
-            .ptr = (unsigned char *)arr, \
+            .ptr = (unsigned char *)(arr), \
             .len = sizeof(arr), \
         }
     #define slice_as_bytes(s) (ByteSlice){ \
             .ptr = (unsigned char *)(s).ptr, \
-            .len = (s).len * sizeof(*(s).ptr), \
+            .len = (s).len * sizeof((s).ptr[0]), \
         }
     #define list_as_bytes(l) slice_as_bytes(l)
     #define queue_front_as_bytes(q) (ByteSlice){ \
             .ptr = ((q).used > 0) ? \
                 (unsigned char *)((q).ptr + (q).front) : \
                 NULL, \
-            .len = sizeof(*(q).ptr) * \
+            .len = sizeof((q).ptr[0]) * \
                 (min((q).cap, (q).front + (q).used) - (q).front), \
         }
     #define queue_back_as_bytes(q) (ByteSlice){ \
             .ptr = (unsigned char *)(q).ptr, \
-            .len = sizeof(*(q).ptr) * \
+            .len = sizeof((q).ptr[0]) * \
                 (((q).front + (q).used <= (q).cap) ? 0 : (q).back), \
         }
     #define pool_as_bytes(p) slice_as_bytes(p)
@@ -327,10 +327,10 @@
                     (s).ptr, \
                     ( \
                         assert( \
-                            (sizeof(*(d).ptr) == sizeof(*(s).ptr)) and \
-                            (d).len == (s).len \
+                            (sizeof((d).ptr[0]) == sizeof((s).ptr[0])) and \
+                            (d).len >= (s).len \
                         ), \
-                        (s).len * sizeof(*(s).ptr) \
+                        (s).len * sizeof((s).ptr[0]) \
                     ) \
                 ) : \
                 (void *)0 \
