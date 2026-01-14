@@ -163,6 +163,13 @@
     }
 
     #ifdef AVEN_IMPLEMENTATION
+        #if defined(__has_feature) and defined(__clang__)
+            #if __has_feature(type_sanitizer)
+                #define AVEN_ARENA_CLANG_TYSAN
+                void tysan_set_type_unknown(const void *addr, uintptr_t size);
+            #endif
+        #endif
+
         AVEN_FN void *aven_arena_alloc(
             AvenArena *arena,
             size_t count,
@@ -181,6 +188,11 @@
 
             void *ptr = arena->base + padding;
             arena->base += (size_t)padding + size * count;
+
+        #if defined(AVEN_ARENA_CLANG_TYSAN)
+            tysan_set_type_unknown(ptr, size * count);
+        #endif
+
             return ptr;
         }
 
