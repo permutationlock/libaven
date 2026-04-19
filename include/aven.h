@@ -53,7 +53,7 @@
     #endif
 
     #if defined(__STDC_VERSION__) and __STDC_VERSION__ >= 202311L
-        #define AVEN_NORETURN noreturn
+        #define AVEN_NORETURN [[noreturn]]
     #elif defined(__STDC_VERSION__) and __STDC_VERSION__ >= 201112L
         #define AVEN_NORETURN _Noreturn
     #elif defined(__STDC_VERSION__) and __STDC_VERSION__ >= 199901L
@@ -340,7 +340,7 @@
         return (b1.len == b2.len) and (memcmp(b1.ptr, b2.ptr, b1.len) == 0);
     }
 
-    static inline AVEN_NORETURN void aven_panic_internal_fn(
+    AVEN_NORETURN static inline void aven_panic_internal_fn(
         const char *msg,
         size_t len
     ) {
