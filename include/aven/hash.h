@@ -34,7 +34,7 @@
 
     #define aven_hash_map_flat_init(t, s, e, a) { \
             .set = aven_hash_set_flat_init(s, e, a), \
-            .values = aven_arena_create_slice(t, a, ((size_t)1) << e), \
+            .values = aven_arena_create_slice(t, a, ((size_t)1) << (e)), \
         }
     #define aven_hash_map_flat_get_or_put(m, k) get( \
             (m).values, \
