@@ -10,6 +10,7 @@
 
     typedef struct {
         AvenStr compiler;
+        AvenStr pprflag;
         AvenStr objflag;
         AvenStr outflag;
         AvenStr incflag;
@@ -48,6 +49,7 @@
         AvenBuildCommonLDOpts ld;
         AvenBuildCommonAROpts ar;
         AvenBuildCommonWindresOpts windres;
+        AvenStrSlice ppexts;
         AvenStrSlice obexts;
         AvenStrSlice exexts;
         AvenStrSlice soexts;
@@ -321,6 +323,29 @@
             },
         },
         {
+            .name = aven_str_init("--ppext"),
+            .description = aven_str_init(
+                "File extension(s) for preprocessed files"
+            ),
+            .type = AVEN_ARG_TYPE_STRING,
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
+    #if defined(AVEN_BUILD_COMMON_DEFAULT_PPEXT)
+                .data = {
+                    .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_PPEXT),
+                },
+    #elif defined(_WIN32)
+    #if defined(_MSC_VER)
+                .data = { .arg_str = aven_str_init(".I") },
+    #else
+                .data = { .arg_str = aven_str_init(".i") },
+    #endif
+    #else
+                .data = { .arg_str = aven_str_init(".i") },
+    #endif
+            },
+        },
+        {
             .name = aven_str_init("--obext"),
             .description = aven_str_init("File extension(s) for object files"),
             .type = AVEN_ARG_TYPE_STRING,
@@ -501,6 +526,27 @@
                 .data = { .arg_str = aven_str_init("/c") },
     #else
                 .data = { .arg_str = aven_str_init("-c") },
+    #endif
+            },
+        },
+        {
+            .name = aven_str_init("--ccpprflag"),
+            .description = aven_str_init(
+                "C compiler flag to run only preprocessor"
+            ),
+            .type = AVEN_ARG_TYPE_STRING,
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
+    #if defined(AVEN_BUILD_COMMON_DEFAULT_CCPPRFLAG)
+                .data = {
+                    .arg_str = aven_str_init(
+                        AVEN_BUILD_COMMON_DEFAULT_CPPRFLAGEXT
+                    ),
+                },
+    #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
+                .data = { .arg_str = aven_str_init("/P") },
+    #else
+                .data = { .arg_str = aven_str_init("-E") },
     #endif
             },
         },
@@ -763,6 +809,7 @@
         opts.cc.incflag = aven_arg_get_str(arg_slice, "--ccincflag");
         opts.cc.picflag = aven_arg_get_str(arg_slice, "--ccpicflag");
         opts.cc.defflag = aven_arg_get_str(arg_slice, "--ccdefflag");
+        opts.cc.pprflag = aven_arg_get_str(arg_slice, "--ccpprflag");
         opts.cc.objflag = aven_arg_get_str(arg_slice, "--ccobjflag");
         opts.cc.outflag = aven_arg_get_str(arg_slice, "--ccoutflag");
         opts.cc.flagsep = aven_arg_get_bool(arg_slice, "--ccflagsep");
@@ -819,6 +866,11 @@
             );
         }
 
+        opts.ppexts = aven_str_split(
+            aven_arg_get_str(arg_slice, "--ppext"),
+            ' ',
+            arena
+        );
         opts.obexts = aven_str_split(
             aven_arg_get_str(arg_slice, "--obext"),
             ' ',
@@ -885,41 +937,36 @@
         }
     }
 
-    static inline AvenBuildStep aven_build_common_step_cc_ex(
+    static inline AvenBuildStep aven_build_common_step_cc_pp(
         AvenBuildCommonOpts *opts,
         AvenStrSlice includes,
         AvenStrSlice macros,
         AvenStr src_path,
         AvenBuildStep *out_dir_step,
-        bool pic,
         AvenArena *arena
     ) {
         AvenStr out_dir_path = unwrap(out_dir_step->out_path);
 
-        AvenStr src_fname = aven_path_fname(src_path, arena);
+        AvenStr src_fname = aven_path_fname(src_path);
         AvenStrSlice ext_split = aven_str_split(src_fname, '.', arena);
         AvenStr ext_free_fname = get(ext_split, 0);
 
         AvenStr out_fname = ext_free_fname;
-        if (opts->obexts.len > 0) {
-            out_fname = aven_str_concat(out_fname, get(opts->obexts, 0), arena);
+        if (opts->ppexts.len > 0) {
+            out_fname = aven_str_concat(out_fname, get(opts->ppexts, 0), arena);
         }
         AvenStr target_path = aven_path(arena, out_dir_path, out_fname);
 
         List(AvenStr) cmd_list = aven_arena_create_list(
             AvenStr,
             arena,
-            6 + opts->cc.flags.len + 2 * includes.len + 2 * macros.len
+            5 + opts->cc.flags.len + 2 * includes.len + 2 * macros.len
         );
 
         list_push(cmd_list) = opts->cc.compiler;
 
         for (size_t j = 0; j < opts->cc.flags.len; j += 1) {
             list_push(cmd_list) = get(opts->cc.flags, j);
-        }
-
-        if (pic and opts->cc.picflag.len > 0) {
-            list_push(cmd_list) = opts->cc.picflag;
         }
 
         for (size_t j = 0; j < includes.len; j += 1) {
@@ -948,7 +995,7 @@
             }
         }
 
-        list_push(cmd_list) = opts->cc.objflag;
+        list_push(cmd_list) = opts->cc.pprflag;
 
         if (opts->cc.flagsep) {
             list_push(cmd_list) = opts->cc.outflag;
@@ -965,8 +1012,92 @@
         AvenStrSlice cmd_slice = slice_list(cmd_list);
 
         AvenBuildOptionalPath out_path = { .value = target_path, .valid = true };
+        AvenBuildStep pp_step = aven_build_step_cmd(out_path, cmd_slice);
+        aven_build_step_add_dep(&pp_step, out_dir_step, arena);
+
+        if (opts->ppexts.len > 1) {
+            AvenStrSlice extra_exts = slice_tail(opts->ppexts, 1);
+            aven_build_common_step_add_path_deps(
+                &pp_step,
+                out_dir_step,
+                ext_free_fname,
+                extra_exts,
+                arena
+            );
+        }
+
+        pp_step.always_run = true;
+
+        return pp_step;
+    }
+
+    static inline AvenBuildStep aven_build_common_step_cc_ex(
+        AvenBuildCommonOpts *opts,
+        AvenStrSlice includes,
+        AvenStrSlice macros,
+        AvenStr src_path,
+        AvenBuildStep *out_dir_step,
+        bool pic,
+        AvenArena *arena
+    ) {
+        AvenBuildStep *pp_step = aven_arena_create(AvenBuildStep, arena);
+        *pp_step = aven_build_common_step_cc_pp(
+            opts,
+            includes,
+            macros,
+            src_path,
+            out_dir_step,
+            arena
+        );
+
+        AvenStr out_dir_path = unwrap(out_dir_step->out_path);
+
+        AvenStr src_fname = aven_path_fname(src_path);
+        AvenStrSlice ext_split = aven_str_split(src_fname, '.', arena);
+        AvenStr ext_free_fname = get(ext_split, 0);
+
+        AvenStr out_fname = ext_free_fname;
+        if (opts->obexts.len > 0) {
+            out_fname = aven_str_concat(out_fname, get(opts->obexts, 0), arena);
+        }
+        AvenStr target_path = aven_path(arena, out_dir_path, out_fname);
+
+        List(AvenStr) cmd_list = aven_arena_create_list(
+            AvenStr,
+            arena,
+            6 + opts->cc.flags.len
+        );
+
+        list_push(cmd_list) = opts->cc.compiler;
+
+        for (size_t j = 0; j < opts->cc.flags.len; j += 1) {
+            list_push(cmd_list) = get(opts->cc.flags, j);
+        }
+
+        if (pic and opts->cc.picflag.len > 0) {
+            list_push(cmd_list) = opts->cc.picflag;
+        }
+
+        list_push(cmd_list) = opts->cc.objflag;
+
+        if (opts->cc.flagsep) {
+            list_push(cmd_list) = opts->cc.outflag;
+            list_push(cmd_list) = target_path;
+        } else {
+            list_push(cmd_list) = aven_str_concat(
+                opts->cc.outflag,
+                target_path,
+                arena
+            );
+        }
+        list_push(cmd_list) = unwrap(pp_step->out_path);
+
+        AvenStrSlice cmd_slice = slice_list(cmd_list);
+
+        AvenBuildOptionalPath out_path = { .value = target_path, .valid = true };
         AvenBuildStep cc_step = aven_build_step_cmd(out_path, cmd_slice);
         aven_build_step_add_dep(&cc_step, out_dir_step, arena);
+        aven_build_step_add_dep(&cc_step, pp_step, arena);
 
         if (opts->obexts.len > 1) {
             AvenStrSlice extra_exts = slice_tail(opts->obexts, 1);
@@ -1267,7 +1398,7 @@
     ) {
         AvenStr out_dir_path = unwrap(out_dir_step->out_path);
 
-        AvenStr src_fname = aven_path_fname(src_path, arena);
+        AvenStr src_fname = aven_path_fname(src_path);
         AvenStrSlice ext_split = aven_str_split(src_fname, '.', arena);
         AvenStr ext_free_fname = get(ext_split, 0);
 
@@ -1353,7 +1484,7 @@
             i += 1;
         }
 
-        AvenStr obj_fname = aven_path_fname(unwrap(obj_step->out_path), arena);
+        AvenStr obj_fname = aven_path_fname(unwrap(obj_step->out_path));
         if (opts->obexts.len > 0) {
             obj_fname.len -= get(opts->obexts, 0).len;
         }

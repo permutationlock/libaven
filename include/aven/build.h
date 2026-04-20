@@ -44,6 +44,7 @@
         AvenProcId pid;
         AvenBuildStepType type;
         bool cached;
+        bool always_run;
     } AvenBuildStep;
 
     struct AvenBuildStepNode {
@@ -127,42 +128,28 @@
         step->dep = node;
     }
 
-    typedef enum {
-        AVEN_BUILD_STEP_RUN_ERROR_NONE = 0,
-        AVEN_BUILD_STEP_RUN_ERROR_DEPRUN,
-        AVEN_BUILD_STEP_RUN_ERROR_DEPWAIT,
-        AVEN_BUILD_STEP_RUN_ERROR_CMD,
-        AVEN_BUILD_STEP_RUN_ERROR_RM,
-        AVEN_BUILD_STEP_RUN_ERROR_RMDIR,
-        AVEN_BUILD_STEP_RUN_ERROR_MKDIR,
-        AVEN_BUILD_STEP_RUN_ERROR_TRUNC,
-        AVEN_BUILD_STEP_RUN_ERROR_COPY,
-        AVEN_BUILD_STEP_RUN_ERROR_OUTPATH,
-        AVEN_BUILD_STEP_RUN_ERROR_BADTYPE,
-    } AvenBuildStepRunError;
-
-    static int aven_build_step_wait(AvenBuildStep *step) {
-        if (step->state != AVEN_BUILD_STEP_STATE_RUNNING) {
-            return 0;
+    static inline bool aven_build_step_cache_able(AvenBuildStep *step) {
+        switch (step->type) {
+            case AVEN_BUILD_STEP_TYPE_PATH:
+            case AVEN_BUILD_STEP_TYPE_CMD:
+            case AVEN_BUILD_STEP_TYPE_COPY:
+                return step->out_path.valid;
+            default:
+                break;
         }
-
-        AvenProcWaitResult result = aven_proc_wait(step->pid);
-        step->state = AVEN_BUILD_STEP_STATE_DONE;
-        if (result.error != 0) {
-            return 1;
-        }
-        return result.payload;
+        return false;
     }
 
     static inline AvenStr aven_build_step_cache_path(
         AvenBuildStep *step,
         AvenArena *arena
     ) {
-        return aven_str_concat(
-            unwrap(step->out_path),
-            aven_str(".cache"),
-            arena
-        );
+        AvenStr out_path = unwrap(step->out_path);
+        AvenStr dir_path = aven_path_containing_dir(out_path);
+        AvenStr fname = aven_path_fname(out_path);
+        AvenStr cache_fname = aven_str_concat(aven_str(".cache."), fname, arena);
+
+        return aven_path(arena, dir_path, cache_fname);
     }
 
     typedef Optional(uint64_t) AvenBuildStepHashOpt;
@@ -171,14 +158,7 @@
         AvenBuildStep *step,
         AvenArena arena
     ) {
-        switch (step->type) {
-            case AVEN_BUILD_STEP_TYPE_PATH:
-            case AVEN_BUILD_STEP_TYPE_CMD:
-            case AVEN_BUILD_STEP_TYPE_COPY:
-                break;
-            default:
-                assert(false);
-        }
+        assert(aven_build_step_cache_able(step));
         AvenIoOpenResult opr_res = aven_io_open(
             unwrap(step->out_path),
             AVEN_IO_OPEN_MODE_READ,
@@ -204,16 +184,8 @@
         AvenBuildStep *step,
         AvenArena arena
     ) {
-        switch (step->type) {
-            case AVEN_BUILD_STEP_TYPE_CMD:
-            case AVEN_BUILD_STEP_TYPE_PATH:
-            case AVEN_BUILD_STEP_TYPE_COPY:
-                if (!step->out_path.valid) {
-                    return false;
-                }
-                break;
-            default:
-                return false;
+        if (!aven_build_step_cache_able(step)) {
+            return false;
         }
 
         AvenBuildStepHashOpt hash_opt = aven_build_step_hash(step, arena);
@@ -245,16 +217,8 @@
         AvenBuildStep *step,
         AvenArena arena
     ) {
-        switch (step->type) {
-            case AVEN_BUILD_STEP_TYPE_PATH:
-            case AVEN_BUILD_STEP_TYPE_CMD:
-            case AVEN_BUILD_STEP_TYPE_COPY:
-                if (!step->out_path.valid) {
-                    return;
-                }
-                break;
-            default:
-                return;
+        if (!aven_build_step_cache_able(step)) {
+            return;
         }
 
         AvenBuildStepHashOpt hash_opt = aven_build_step_hash(step, arena);
@@ -277,6 +241,44 @@
         aven_io_close(opw_res.payload);
     }
 
+    typedef enum {
+        AVEN_BUILD_STEP_RUN_ERROR_NONE = 0,
+        AVEN_BUILD_STEP_RUN_ERROR_DEPRUN,
+        AVEN_BUILD_STEP_RUN_ERROR_DEPWAIT,
+        AVEN_BUILD_STEP_RUN_ERROR_CMD,
+        AVEN_BUILD_STEP_RUN_ERROR_RM,
+        AVEN_BUILD_STEP_RUN_ERROR_RMDIR,
+        AVEN_BUILD_STEP_RUN_ERROR_MKDIR,
+        AVEN_BUILD_STEP_RUN_ERROR_TRUNC,
+        AVEN_BUILD_STEP_RUN_ERROR_COPY,
+        AVEN_BUILD_STEP_RUN_ERROR_OUTPATH,
+        AVEN_BUILD_STEP_RUN_ERROR_BADTYPE,
+    } AvenBuildStepRunError;
+
+    static int aven_build_step_wait(AvenBuildStep *step, AvenArena arena) {
+        if (step->state != AVEN_BUILD_STEP_STATE_RUNNING) {
+            return 0;
+        }
+
+        AvenProcWaitResult result = aven_proc_wait(step->pid);
+        step->state = AVEN_BUILD_STEP_STATE_DONE;
+        if (result.error != 0) {
+            return 1;
+        }
+
+        if (result.payload == 0) {
+            if (!step->cached) {
+                step->cached = aven_build_step_cache_validate(step, arena);
+            }
+
+            if (!step->cached) {
+                aven_build_step_cache_update(step, arena);
+            }
+        }
+
+        return result.payload;
+    }
+
     static inline AvenBuildStepRunError aven_build_step_run(
         AvenBuildStep *step,
         AvenArena arena
@@ -294,16 +296,20 @@
 
         bool deps_cached = true;
         for (AvenBuildStepNode *dep = step->dep; dep != NULL; dep = dep->next) {
-            int error = aven_build_step_wait(dep->step);
+            int error = aven_build_step_wait(dep->step, arena);
             if (error != 0) {
                 return AVEN_BUILD_STEP_RUN_ERROR_DEPWAIT;
             }
             deps_cached = deps_cached && dep->step->cached;
         }
 
-        if (deps_cached && aven_build_step_cache_validate(step, arena)) {
-            step->state = AVEN_BUILD_STEP_STATE_DONE;
+        if (
+            deps_cached &&
+            !step->always_run &&
+            aven_build_step_cache_validate(step, arena)
+        ) {
             step->cached = true;
+            step->state = AVEN_BUILD_STEP_STATE_DONE;
             return AVEN_BUILD_STEP_RUN_ERROR_NONE;
         }
 
@@ -406,12 +412,14 @@
                 return AVEN_BUILD_STEP_RUN_ERROR_BADTYPE;
         }
 
-        if (!step->cached) {
-            step->cached = aven_build_step_cache_validate(step, arena);
-        }
+        if (step->state == AVEN_BUILD_STEP_STATE_DONE) {
+            if (!step->cached) {
+                step->cached = aven_build_step_cache_validate(step, arena);
+            }
 
-        if (!step->cached) {
-            aven_build_step_cache_update(step, arena);
+            if (!step->cached) {
+                aven_build_step_cache_update(step, arena);
+            }
         }
 
         return AVEN_BUILD_STEP_RUN_ERROR_NONE;
@@ -483,6 +491,9 @@
         if (step->out_path.valid) {
             aven_fs_rm(step->out_path.value, arena);
             aven_fs_rmdir(step->out_path.value, arena);
+            if (aven_build_step_cache_able(step)) {
+                aven_fs_rm(aven_build_step_cache_path(step, &arena), arena);
+            }
         }
         step->state = AVEN_BUILD_STEP_STATE_NONE;
 

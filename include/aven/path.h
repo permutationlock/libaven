@@ -20,7 +20,7 @@
             a \
         )
 
-    static inline AvenStr aven_path_fname(AvenStr path, AvenArena *arena) {
+    static inline AvenStr aven_path_fname(AvenStr path) {
         size_t i;
         for (i = path.len; i > 0; i -= 1) {
             if (get(path, i - 1) == AVEN_PATH_SEP) {
@@ -33,14 +33,11 @@
         if (i == path.len) {
             return aven_str("");
         }
-        AvenStr fname = { .len = path.len - i };
-        fname.ptr = aven_arena_alloc(arena, fname.len, 1, 1);
 
         path.ptr += i;
         path.len -= i;
-        slice_copy(fname, path);
 
-        return fname;
+        return path;
     }
 
     static inline AvenStr aven_path_containing_dir(AvenStr path) {
