@@ -4,6 +4,7 @@
     #include "../aven.h"
     #include "arena.h"
     #include "fs.h"
+    #include "hash.h"
     #include "proc.h"
     #include "str.h"
     #include "io.h"
@@ -18,11 +19,11 @@
         AVEN_BUILD_STEP_TYPE_ROOT = 0,
         AVEN_BUILD_STEP_TYPE_PATH,
         AVEN_BUILD_STEP_TYPE_CMD,
+        AVEN_BUILD_STEP_TYPE_COPY,
         AVEN_BUILD_STEP_TYPE_RM,
         AVEN_BUILD_STEP_TYPE_RMDIR,
         AVEN_BUILD_STEP_TYPE_MKDIR,
         AVEN_BUILD_STEP_TYPE_TRUNC,
-        AVEN_BUILD_STEP_TYPE_COPY,
     } AvenBuildStepType;
 
     typedef union {
@@ -37,11 +38,12 @@
 
     typedef struct AvenBuildStep {
         AvenBuildStepNode *dep;
+        AvenBuildOptionalPath out_path;
+        AvenBuildStepData data;
         AvenBuildStepState state;
         AvenProcId pid;
         AvenBuildStepType type;
-        AvenBuildStepData data;
-        AvenBuildOptionalPath out_path;
+        bool cached;
     } AvenBuildStep;
 
     struct AvenBuildStepNode {
@@ -152,6 +154,129 @@
         return result.payload;
     }
 
+    static inline AvenStr aven_build_step_cache_path(
+        AvenBuildStep *step,
+        AvenArena *arena
+    ) {
+        return aven_str_concat(
+            unwrap(step->out_path),
+            aven_str(".cache"),
+            arena
+        );
+    }
+
+    typedef Optional(uint64_t) AvenBuildStepHashOpt;
+
+    static inline AvenBuildStepHashOpt aven_build_step_hash(
+        AvenBuildStep *step,
+        AvenArena arena
+    ) {
+        switch (step->type) {
+            case AVEN_BUILD_STEP_TYPE_PATH:
+            case AVEN_BUILD_STEP_TYPE_CMD:
+            case AVEN_BUILD_STEP_TYPE_COPY:
+                break;
+            default:
+                assert(false);
+        }
+        AvenIoOpenResult opr_res = aven_io_open(
+            unwrap(step->out_path),
+            AVEN_IO_OPEN_MODE_READ,
+            arena
+        );
+        if (opr_res.error != 0) {
+            return (AvenBuildStepHashOpt){ 0 };
+        }
+        AvenIoReader reader = aven_io_reader_init_fd(opr_res.payload);
+        AvenIoBytesResult rd_res = aven_io_reader_pop_all(&reader, 8096, &arena);
+        aven_io_close(opr_res.payload);
+        if (rd_res.error != 0) {
+            return (AvenBuildStepHashOpt){ 0 };
+        }
+        AvenHashCtx hctx = aven_hash_init(0);
+        return (AvenBuildStepHashOpt){
+            .valid = true,
+            .value = aven_hash(&hctx, rd_res.payload),
+        };
+    }
+
+    static inline bool aven_build_step_cache_validate(
+        AvenBuildStep *step,
+        AvenArena arena
+    ) {
+        switch (step->type) {
+            case AVEN_BUILD_STEP_TYPE_CMD:
+            case AVEN_BUILD_STEP_TYPE_PATH:
+            case AVEN_BUILD_STEP_TYPE_COPY:
+                if (!step->out_path.valid) {
+                    return false;
+                }
+                break;
+            default:
+                return false;
+        }
+
+        AvenBuildStepHashOpt hash_opt = aven_build_step_hash(step, arena);
+        if (!hash_opt.valid) {
+            return false;
+        }
+        uint64_t hash = unwrap(hash_opt);
+
+        AvenStr path = aven_build_step_cache_path(step, &arena);
+        AvenIoOpenResult op_res = aven_io_open(
+            path,
+            AVEN_IO_OPEN_MODE_READ,
+            arena
+        );
+        if (op_res.error != 0) {
+            return false;
+        }
+        uint64_t old_hash;
+        ByteSlice old_hash_bytes = as_bytes(&old_hash);
+        AvenIoReadResult rd_res = aven_io_read(op_res.payload, old_hash_bytes);
+        aven_io_close(op_res.payload);
+        if (rd_res.error != 0 or rd_res.payload != old_hash_bytes.len) {
+            return false;
+        }
+        return hash == old_hash;
+    }
+
+    static inline void aven_build_step_cache_update(
+        AvenBuildStep *step,
+        AvenArena arena
+    ) {
+        switch (step->type) {
+            case AVEN_BUILD_STEP_TYPE_PATH:
+            case AVEN_BUILD_STEP_TYPE_CMD:
+            case AVEN_BUILD_STEP_TYPE_COPY:
+                if (!step->out_path.valid) {
+                    return;
+                }
+                break;
+            default:
+                return;
+        }
+
+        AvenBuildStepHashOpt hash_opt = aven_build_step_hash(step, arena);
+        if (!hash_opt.valid) {
+            return;
+        }
+        uint64_t hash = unwrap(hash_opt);
+
+        AvenStr path = aven_build_step_cache_path(step, &arena);
+        AvenIoOpenResult opw_res = aven_io_open(
+            path,
+            AVEN_IO_OPEN_MODE_WRITE,
+            arena
+        );
+        if (opw_res.error != 0) {
+            return;
+        }
+
+        aven_io_write(opw_res.payload, as_bytes(&hash));
+        aven_io_close(opw_res.payload);
+    }
+
     static inline AvenBuildStepRunError aven_build_step_run(
         AvenBuildStep *step,
         AvenArena arena
@@ -161,17 +286,25 @@
         }
 
         for (AvenBuildStepNode *dep = step->dep; dep != NULL; dep = dep->next) {
-            int error = (int)aven_build_step_run(dep->step, arena);
+            AvenBuildStepRunError error = aven_build_step_run(dep->step, arena);
             if (error != 0) {
                 return AVEN_BUILD_STEP_RUN_ERROR_DEPRUN;
             }
         }
 
+        bool deps_cached = true;
         for (AvenBuildStepNode *dep = step->dep; dep != NULL; dep = dep->next) {
             int error = aven_build_step_wait(dep->step);
             if (error != 0) {
                 return AVEN_BUILD_STEP_RUN_ERROR_DEPWAIT;
             }
+            deps_cached = deps_cached && dep->step->cached;
+        }
+
+        if (deps_cached && aven_build_step_cache_validate(step, arena)) {
+            step->state = AVEN_BUILD_STEP_STATE_DONE;
+            step->cached = true;
+            return AVEN_BUILD_STEP_RUN_ERROR_NONE;
         }
 
         step->state = AVEN_BUILD_STEP_STATE_RUNNING;
@@ -182,6 +315,7 @@
             case AVEN_BUILD_STEP_TYPE_ROOT:
             case AVEN_BUILD_STEP_TYPE_PATH:
                 step->state = AVEN_BUILD_STEP_STATE_DONE;
+                step->cached = true;
                 break;
             case AVEN_BUILD_STEP_TYPE_CMD:
                 result = aven_proc_cmd(step->data.cmd, arena);
@@ -236,6 +370,7 @@
                     if (error != AVEN_FS_MKDIR_ERROR_EXIST) {
                         return AVEN_BUILD_STEP_RUN_ERROR_MKDIR;
                     }
+                    step->cached = true;
                 } else {
     #ifndef AVEN_SUPPRESS_LOGS
                     aven_io_printf(
@@ -269,6 +404,14 @@
                 break;
             default:
                 return AVEN_BUILD_STEP_RUN_ERROR_BADTYPE;
+        }
+
+        if (!step->cached) {
+            step->cached = aven_build_step_cache_validate(step, arena);
+        }
+
+        if (!step->cached) {
+            aven_build_step_cache_update(step, arena);
         }
 
         return AVEN_BUILD_STEP_RUN_ERROR_NONE;

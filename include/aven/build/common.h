@@ -1359,8 +1359,7 @@
         }
         AvenStr exe_fname = aven_str_copy(obj_fname, arena);
 
-        AvenBuildStep *bin_step = aven_arena_create(AvenBuildStep, arena);
-        *bin_step = aven_build_common_step_ld(
+        return aven_build_common_step_ld(
             opts,
             linked_libs,
             exe_obj_steps,
@@ -1369,13 +1368,6 @@
             bin_type,
             arena
         );
-
-        AvenBuildStep rm_obj_step = aven_build_step_rm(obj_step->out_path.value);
-        aven_build_step_add_dep(&rm_obj_step, bin_step, arena);
-
-        rm_obj_step.out_path = bin_step->out_path;
-        bin_step->out_path.valid = false;
-        return rm_obj_step;
     }
 
     static inline AvenBuildStep aven_build_common_step_cc_ld_so_ex(
