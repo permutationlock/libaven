@@ -507,6 +507,7 @@
         AvenArena arena
     ) {
         step->state = AVEN_BUILD_STEP_STATE_NONE;
+        step->cached = false;
 
         for (AvenBuildStepNode *dep = step->dep; dep != NULL; dep = dep->next) {
             aven_build_step_reset(dep->step, arena);
