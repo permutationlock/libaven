@@ -127,7 +127,15 @@
             (void)0 \
         )
     #define aven_arena_commit_list_to_slice(st, a, l) ( \
-            aven_arena_resize_list(a, l, (l).len), (st)slice_list(l) \
+            (void)aven_arena_resize( \
+                a, \
+                (l).ptr, \
+                (l).cap, \
+                (l).len, \
+                sizeof(*(l).ptr) \
+            ), \
+            (l).cap = (l).len, \
+            (st)slice_list(l) \
         )
 
     typedef struct {
