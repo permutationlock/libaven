@@ -9,16 +9,27 @@
     #include "../str.h"
 
     typedef struct {
-        AvenStr compiler;
-        AvenStr pprflag;
-        AvenStr objflag;
+        AvenStrSlice flags;
+    } AvenBuildCommonCOpts;
+
+    typedef struct {
+        AvenStr preprocessor;
         AvenStr outflag;
         AvenStr incflag;
         AvenStr defflag;
+        AvenStrSlice flags;
+        bool flagsep;
+    } AvenBuildCommonPPOpts;
+
+    typedef struct {
+        AvenStr compiler;
+        AvenStr objflag;
+        AvenStr srcflag;
+        AvenStr outflag;
         AvenStr picflag;
         AvenStrSlice flags;
         bool flagsep;
-    } AvenBuildCommonCOpts;
+    } AvenBuildCommonCCOpts;
 
     typedef struct {
         AvenStr linker;
@@ -45,7 +56,9 @@
     } AvenBuildCommonWindresOpts;
 
     typedef struct {
-        AvenBuildCommonCOpts cc;
+        AvenBuildCommonCOpts c;
+        AvenBuildCommonPPOpts pp;
+        AvenBuildCommonCCOpts cc;
         AvenBuildCommonLDOpts ld;
         AvenBuildCommonAROpts ar;
         AvenBuildCommonWindresOpts windres;
@@ -135,6 +148,22 @@
             },
     #endif
     #endif
+        },
+        {
+            .name = aven_str_init("--pp"),
+            .description = aven_str_init(
+                "Preprocessor exe to use instead of C compiler"
+            ),
+            .type = AVEN_ARG_TYPE_STRING,
+    #if defined(AVEN_BUILD_COMMON_DEFAULT_PP)
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
+                .data = {
+                    .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_PP),
+                },
+            },
+    #endif
+            .optional = true,
         },
         {
             .name = aven_str_init("--ld"),
@@ -243,14 +272,14 @@
             .optional = true,
         },
         {
-            .name = aven_str_init("--ccflags"),
-            .description = aven_str_init("C compiler common flags"),
+            .name = aven_str_init("--cflags"),
+            .description = aven_str_init("C toolchain common flags"),
             .type = AVEN_ARG_TYPE_STRING,
             .value = {
                 .type = AVEN_ARG_TYPE_STRING,
-    #if defined(AVEN_BUILD_COMMON_DEFAULT_CCFLAGS)
+    #if defined(AVEN_BUILD_COMMON_DEFAULT_CFLAGS)
                 .data = {
-                    .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_CCFLAGS),
+                    .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_CFLAGS),
                 },
     #elif defined(_WIN32) and defined(_MSC_VER)
     #if defined(__clang__)
@@ -264,6 +293,38 @@
     #endif
     #elif defined(__TINYC__)
                 .data = { .arg_str = aven_str_init("-std=c11") },
+    #else
+                .data = { .arg_str = aven_str_init("") },
+    #endif
+            },
+        },
+        {
+            .name = aven_str_init("--ppflags"),
+            .description = aven_str_init("C preprocessor common flags"),
+            .type = AVEN_ARG_TYPE_STRING,
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
+    #if defined(AVEN_BUILD_COMMON_DEFAULT_PPFLAGS)
+                .data = {
+                    .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_PPFLAGS),
+                },
+    #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
+                .data = { .arg_str = aven_str_init("/P") },
+    #else
+                .data = { .arg_str = aven_str_init("-E") },
+    #endif
+            },
+        },
+        {
+            .name = aven_str_init("--ccflags"),
+            .description = aven_str_init("C compiler common flags"),
+            .type = AVEN_ARG_TYPE_STRING,
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
+    #if defined(AVEN_BUILD_COMMON_DEFAULT_CCFLAGS)
+                .data = {
+                    .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_CCFLAGS),
+                },
     #else
                 .data = { .arg_str = aven_str_init("") },
     #endif
@@ -334,12 +395,8 @@
                 .data = {
                     .arg_str = aven_str_init(AVEN_BUILD_COMMON_DEFAULT_PPEXT),
                 },
-    #elif defined(_WIN32)
-    #if defined(_MSC_VER)
+    #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
                 .data = { .arg_str = aven_str_init(".I") },
-    #else
-                .data = { .arg_str = aven_str_init(".i") },
-    #endif
     #else
                 .data = { .arg_str = aven_str_init(".i") },
     #endif
@@ -453,21 +510,63 @@
             },
         },
         {
-            .name = aven_str_init("--ccincflag"),
-            .description = aven_str_init("C compiler flag to add include path"),
+            .name = aven_str_init("--ppincflag"),
+            .description = aven_str_init(
+                "C preprocessor flag to add include path"
+            ),
             .type = AVEN_ARG_TYPE_STRING,
             .value = {
                 .type = AVEN_ARG_TYPE_STRING,
-    #if defined(AVEN_BUILD_COMMON_DEFAULT_CCINCFLAG)
+    #if defined(AVEN_BUILD_COMMON_DEFAULT_PPINCFLAG)
                 .data = {
                     .arg_str = aven_str_init(
-                        AVEN_BUILD_COMMON_DEFAULT_CCINCFLAGEXT
+                        AVEN_BUILD_COMMON_DEFAULT_PPINCFLAGEXT
                     ),
                 },
     #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
                 .data = { .arg_str = aven_str_init("/I") },
     #else
                 .data = { .arg_str = aven_str_init("-I") },
+    #endif
+            },
+        },
+        {
+            .name = aven_str_init("--ppdefflag"),
+            .description = aven_str_init("C preprocessor flag to define macro"),
+            .type = AVEN_ARG_TYPE_STRING,
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
+    #if defined(AVEN_BUILD_COMMON_DEFAULT_PPDEFFLAG)
+                .data = {
+                    .arg_str = aven_str_init(
+                        AVEN_BUILD_COMMON_DEFAULT_PPDEFFLAGEXT
+                    ),
+                },
+    #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
+                .data = { .arg_str = aven_str_init("/D") },
+    #else
+                .data = { .arg_str = aven_str_init("-D") },
+    #endif
+            },
+        },
+        {
+            .name = aven_str_init("--ppoutflag"),
+            .description = aven_str_init(
+                "C preprocessor flag to specify output file"
+            ),
+            .type = AVEN_ARG_TYPE_STRING,
+            .value = {
+                .type = AVEN_ARG_TYPE_STRING,
+    #if defined(AVEN_BUILD_COMMON_DEFAULT_CCPPOFLAG)
+                .data = {
+                    .arg_str = aven_str_init(
+                        AVEN_BUILD_COMMON_DEFAULT_CCPPOFLAGEXT
+                    ),
+                },
+    #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
+                .data = { .arg_str = aven_str_init("/Fi:") },
+    #else
+                .data = { .arg_str = aven_str_init("-o") },
     #endif
             },
         },
@@ -492,25 +591,6 @@
             },
         },
         {
-            .name = aven_str_init("--ccdefflag"),
-            .description = aven_str_init("C compiler flag to define macro"),
-            .type = AVEN_ARG_TYPE_STRING,
-            .value = {
-                .type = AVEN_ARG_TYPE_STRING,
-    #if defined(AVEN_BUILD_COMMON_DEFAULT_CCDEFFLAG)
-                .data = {
-                    .arg_str = aven_str_init(
-                        AVEN_BUILD_COMMON_DEFAULT_CCDEFFLAGEXT
-                    ),
-                },
-    #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
-                .data = { .arg_str = aven_str_init("/D") },
-    #else
-                .data = { .arg_str = aven_str_init("-D") },
-    #endif
-            },
-        },
-        {
             .name = aven_str_init("--ccobjflag"),
             .description = aven_str_init("C compiler flag to compile object"),
             .type = AVEN_ARG_TYPE_STRING,
@@ -519,7 +599,7 @@
     #if defined(AVEN_BUILD_COMMON_DEFAULT_CCOBJFLAG)
                 .data = {
                     .arg_str = aven_str_init(
-                        AVEN_BUILD_COMMON_DEFAULT_COBJFLAGEXT
+                        AVEN_BUILD_COMMON_DEFAULT_CCOBJFLAGEXT
                     ),
                 },
     #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
@@ -530,23 +610,23 @@
             },
         },
         {
-            .name = aven_str_init("--ccpprflag"),
+            .name = aven_str_init("--ccsrcflag"),
             .description = aven_str_init(
-                "C compiler flag to run only preprocessor"
+                "C compiler flag to specify C source file"
             ),
             .type = AVEN_ARG_TYPE_STRING,
             .value = {
                 .type = AVEN_ARG_TYPE_STRING,
-    #if defined(AVEN_BUILD_COMMON_DEFAULT_CCPPRFLAG)
+    #if defined(AVEN_BUILD_COMMON_DEFAULT_CCSRCFLAG)
                 .data = {
                     .arg_str = aven_str_init(
-                        AVEN_BUILD_COMMON_DEFAULT_CPPRFLAGEXT
+                        AVEN_BUILD_COMMON_DEFAULT_CCSRCFLAGEXT
                     ),
                 },
     #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
-                .data = { .arg_str = aven_str_init("/P") },
+                .data = { .arg_str = aven_str_init("/Tc") },
     #else
-                .data = { .arg_str = aven_str_init("-E") },
+                .data = { .arg_str = aven_str_init("") },
     #endif
             },
         },
@@ -561,7 +641,7 @@
     #if defined(AVEN_BUILD_COMMON_DEFAULT_CCOUTFLAG)
                 .data = {
                     .arg_str = aven_str_init(
-                        AVEN_BUILD_COMMON_DEFAULT_COUTFLAGEXT
+                        AVEN_BUILD_COMMON_DEFAULT_CCOUTFLAGEXT
                     ),
                 },
     #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
@@ -738,6 +818,23 @@
             },
         },
         {
+            .name = aven_str_init("--ppflagsep"),
+            .description = aven_str_init(
+                "C preprocessor add space between flag and argument"
+            ),
+            .type = AVEN_ARG_TYPE_BOOL,
+            .value = {
+                .type = AVEN_ARG_TYPE_BOOL,
+    #if defined(AVEN_BUILD_COMMON_DEFAULT_CCFLAGSPACES)
+                .data = { .arg_bool = AVEN_BUILD_COMMON_DEFAULT_CCFLAGSPACES },
+    #elif defined(_WIN32) and defined(_MSC_VER) and !defined(__clang__)
+                .data = { .arg_bool = false },
+    #else
+                .data = { .arg_bool = true },
+    #endif
+            },
+        },
+        {
             .name = aven_str_init("--ccflagsep"),
             .description = aven_str_init(
                 "C compiler add space between flag and argument"
@@ -805,16 +902,34 @@
         opts.clean = aven_arg_get_bool(arg_slice, "clean");
         opts.dry_run = aven_arg_get_bool(arg_slice, "--dry-run");
 
+        opts.c.flags = aven_str_split(
+            aven_arg_get_str(arg_slice, "--cflags"),
+            ' ',
+            arena
+        );
+
         opts.cc.compiler = aven_arg_get_str(arg_slice, "--cc");
-        opts.cc.incflag = aven_arg_get_str(arg_slice, "--ccincflag");
         opts.cc.picflag = aven_arg_get_str(arg_slice, "--ccpicflag");
-        opts.cc.defflag = aven_arg_get_str(arg_slice, "--ccdefflag");
-        opts.cc.pprflag = aven_arg_get_str(arg_slice, "--ccpprflag");
         opts.cc.objflag = aven_arg_get_str(arg_slice, "--ccobjflag");
+        opts.cc.srcflag = aven_arg_get_str(arg_slice, "--ccsrcflag");
         opts.cc.outflag = aven_arg_get_str(arg_slice, "--ccoutflag");
         opts.cc.flagsep = aven_arg_get_bool(arg_slice, "--ccflagsep");
         opts.cc.flags = aven_str_split(
             aven_arg_get_str(arg_slice, "--ccflags"),
+            ' ',
+            arena
+        );
+
+        if (aven_arg_has_arg(arg_slice, "--pp")) {
+            opts.pp.preprocessor = aven_arg_get_str(arg_slice, "--pp");
+        } else {
+            opts.pp.preprocessor = opts.cc.compiler;
+        }
+        opts.pp.outflag = aven_arg_get_str(arg_slice, "--ppoutflag");
+        opts.pp.incflag = aven_arg_get_str(arg_slice, "--ppincflag");
+        opts.pp.defflag = aven_arg_get_str(arg_slice, "--ppdefflag");
+        opts.pp.flags = aven_str_split(
+            aven_arg_get_str(arg_slice, "--ppflags"),
             ' ',
             arena
         );
@@ -937,7 +1052,7 @@
         }
     }
 
-    static inline AvenBuildStep aven_build_common_step_cc_pp(
+    static inline AvenBuildStep aven_build_common_step_pp(
         AvenBuildCommonOpts *opts,
         AvenStrSlice includes,
         AvenStrSlice macros,
@@ -960,22 +1075,30 @@
         List(AvenStr) cmd_list = aven_arena_create_list(
             AvenStr,
             arena,
-            5 + opts->cc.flags.len + 2 * includes.len + 2 * macros.len
+            5 +
+            opts->c.flags.len +
+            opts->pp.flags.len +
+            2 * includes.len +
+            2 * macros.len
         );
 
-        list_push(cmd_list) = opts->cc.compiler;
+        list_push(cmd_list) = opts->pp.preprocessor;
 
-        for (size_t j = 0; j < opts->cc.flags.len; j += 1) {
-            list_push(cmd_list) = get(opts->cc.flags, j);
+        for (size_t j = 0; j < opts->c.flags.len; j += 1) {
+            list_push(cmd_list) = get(opts->c.flags, j);
+        }
+
+        for (size_t j = 0; j < opts->pp.flags.len; j += 1) {
+            list_push(cmd_list) = get(opts->pp.flags, j);
         }
 
         for (size_t j = 0; j < includes.len; j += 1) {
-            if (opts->cc.flagsep) {
-                list_push(cmd_list) = opts->cc.incflag;
+            if (opts->pp.flagsep) {
+                list_push(cmd_list) = opts->pp.incflag;
                 list_push(cmd_list) = get(includes, j);
             } else {
                 list_push(cmd_list) = aven_str_concat(
-                    opts->cc.incflag,
+                    opts->pp.incflag,
                     get(includes, j),
                     arena
                 );
@@ -983,26 +1106,24 @@
         }
 
         for (size_t j = 0; j < macros.len; j += 1) {
-            if (opts->cc.flagsep) {
-                list_push(cmd_list) = opts->cc.defflag;
+            if (opts->pp.flagsep) {
+                list_push(cmd_list) = opts->pp.defflag;
                 list_push(cmd_list) = get(macros, j);
             } else {
                 list_push(cmd_list) = aven_str_concat(
-                    opts->cc.defflag,
+                    opts->pp.defflag,
                     get(macros, j),
                     arena
                 );
             }
         }
 
-        list_push(cmd_list) = opts->cc.pprflag;
-
-        if (opts->cc.flagsep) {
-            list_push(cmd_list) = opts->cc.outflag;
+        if (opts->pp.flagsep) {
+            list_push(cmd_list) = opts->pp.outflag;
             list_push(cmd_list) = target_path;
         } else {
             list_push(cmd_list) = aven_str_concat(
-                opts->cc.outflag,
+                opts->pp.outflag,
                 target_path,
                 arena
             );
@@ -1041,7 +1162,7 @@
         AvenArena *arena
     ) {
         AvenBuildStep *pp_step = aven_arena_create(AvenBuildStep, arena);
-        *pp_step = aven_build_common_step_cc_pp(
+        *pp_step = aven_build_common_step_pp(
             opts,
             includes,
             macros,
@@ -1065,10 +1186,14 @@
         List(AvenStr) cmd_list = aven_arena_create_list(
             AvenStr,
             arena,
-            6 + opts->cc.flags.len
+            7 + opts->c.flags.len + opts->cc.flags.len
         );
 
         list_push(cmd_list) = opts->cc.compiler;
+
+        for (size_t j = 0; j < opts->c.flags.len; j += 1) {
+            list_push(cmd_list) = get(opts->c.flags, j);
+        }
 
         for (size_t j = 0; j < opts->cc.flags.len; j += 1) {
             list_push(cmd_list) = get(opts->cc.flags, j);
@@ -1090,7 +1215,21 @@
                 arena
             );
         }
-        list_push(cmd_list) = unwrap(pp_step->out_path);
+
+        if (opts->cc.srcflag.len > 0) {
+            if (opts->cc.flagsep) {
+                list_push(cmd_list) = opts->cc.srcflag;
+                list_push(cmd_list) = unwrap(pp_step->out_path);
+            } else {
+                list_push(cmd_list) = aven_str_concat(
+                    opts->cc.srcflag,
+                    unwrap(pp_step->out_path),
+                    arena
+                );
+            }
+        } else {
+            list_push(cmd_list) = unwrap(pp_step->out_path);
+        }
 
         AvenStrSlice cmd_slice = slice_list(cmd_list);
 
