@@ -287,7 +287,7 @@
     #else
                 .data = {
                     .arg_str = aven_str_init(
-                        "/std:c11 /experimental:c11atomics"
+                        "/std:c11 /experimental:c11atomics /nologo"
                     ),
                 },
     #endif
