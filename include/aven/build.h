@@ -176,11 +176,21 @@
         AvenHashCtx hctx = aven_hash_init(0);
         uint64_t hash = aven_hash(&hctx, rd_res.payload);
 
-        if (step->type == AVEN_BUILD_STEP_TYPE_CMD) {
-            AvenStrSlice cmd = step->data.cmd;
-            for (size_t i = 0; i < cmd.len; i++) {
-                hash ^= aven_hash(&hctx, slice_as_bytes(get(cmd, i)));
+        switch (step->type) {
+            case AVEN_BUILD_STEP_TYPE_CMD: {
+                AvenStrSlice cmd = step->data.cmd;
+                for (size_t i = 0; i < cmd.len; i++) {
+                    hash ^= aven_hash(&hctx, slice_as_bytes(get(cmd, i)));
+                }
+                break;
             }
+            case AVEN_BUILD_STEP_TYPE_COPY: {
+                AvenStr src = step->data.copy;
+                hash ^= aven_hash(&hctx, slice_as_bytes(src));
+                break;
+            }
+            default:
+                break;
         }
 
         return (AvenBuildStepHashOpt){ .valid = true, .value = hash };
