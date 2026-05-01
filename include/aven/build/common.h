@@ -174,7 +174,7 @@
     #if defined(__clang__)
             .value = {
                 .type = AVEN_ARG_TYPE_STRING,
-                .data = { .arg_str = aven_str_init("llvm-ar.exe") },
+                .data = { .arg_str = aven_str_init("ar.exe") },
             },
     #elif defined(_MSC_VER)
             .value = {
@@ -196,7 +196,7 @@
     #if defined(__clang__)
             .value = {
                 .type = AVEN_ARG_TYPE_STRING,
-                .data = { .arg_str = aven_str_init("llvm-ar") },
+                .data = { .arg_str = aven_str_init("ar") },
             },
     #elif defined(__GNUC__)
             .value = {
@@ -226,7 +226,7 @@
     #if defined(__clang__)
             .value = {
                 .type = AVEN_ARG_TYPE_STRING,
-                .data = { .arg_str = aven_str_init("llvm-windres.exe") },
+                .data = { .arg_str = aven_str_init("windres.exe") },
             },
     #elif defined(_MSC_VER)
             .value = {
