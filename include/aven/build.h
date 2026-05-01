@@ -174,10 +174,16 @@
             return (AvenBuildStepHashOpt){ 0 };
         }
         AvenHashCtx hctx = aven_hash_init(0);
-        return (AvenBuildStepHashOpt){
-            .valid = true,
-            .value = aven_hash(&hctx, rd_res.payload),
-        };
+        uint64_t hash = aven_hash(&hctx, rd_res.payload);
+
+        if (step->type == AVEN_BUILD_STEP_TYPE_CMD) {
+            AvenStrSlice cmd = step->data.cmd;
+            for (size_t i = 0; i < cmd.len; i++) {
+                hash ^= aven_hash(&hctx, slice_as_bytes(get(cmd, i)));
+            }
+        }
+
+        return (AvenBuildStepHashOpt){ .valid = true, .value = hash };
     }
 
     static inline bool aven_build_step_cache_validate(
