@@ -13,10 +13,10 @@
 
 #include <stdlib.h>
 
-#include "test/str.h"
-#include "test/path.h"
-#include "test/io.h"
-#include "test/hash_map.h"
+#include "str.h"
+#include "path.h"
+#include "io.h"
+#include "hash_map.h"
 
 #define ARENA_SIZE (4096 * 32)
 

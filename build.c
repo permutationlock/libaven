@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
         (AvenStrSlice){ 0 },
         (AvenStrSlice){ 0 },
         test_obj_steps,
-        aven_str("test.c"),
+        aven_path(&arena, aven_str("test"), aven_str("test.c")),
         &test_dir_step,
         false,
         (AvenStrSlice){ 0 },
