@@ -131,7 +131,7 @@
             opts,
             includes,
             macros,
-            aven_path(arena, root_path, aven_str("src"), aven_str("aven.c")),
+            aven_path(arena, root_path, aven_str("aven.c")),
             out_dir_step,
             pic,
             arena
@@ -149,7 +149,6 @@
             aven_path(
                 arena,
                 root_path,
-                aven_str("src"),
                 aven_str("windows"),
                 aven_str("manifest.rc")
             ),
