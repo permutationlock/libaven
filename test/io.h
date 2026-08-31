@@ -410,8 +410,8 @@
             TestAvenIoStruct expected = get(io_args->slice, i);
             if (
                 actual.a == expected.a and
-                    actual.b == expected.b and
-                    actual.c == expected.c
+                actual.b == expected.b and
+                actual.c == expected.c
             ) {
                 entries_equal += 1;
             }
@@ -515,8 +515,8 @@
             TestAvenIoStruct expected = get(io_args->list, i);
             if (
                 actual.a == expected.a and
-                    actual.b == expected.b and
-                    actual.c == expected.c
+                actual.b == expected.b and
+                actual.c == expected.c
             ) {
                 entries_equal += 1;
             }
@@ -620,8 +620,8 @@
             TestAvenIoStruct expected = queue_get(io_args->queue, i);
             if (
                 actual.a == expected.a and
-                    actual.b == expected.b and
-                    actual.c == expected.c
+                actual.b == expected.b and
+                actual.c == expected.c
             ) {
                 entries_equal += 1;
             }
@@ -642,9 +642,9 @@
         return (AvenTestResult){ 0 };
     }
 
-    typedef Slice(size_t) TestAvenIoPoolIndexSlice;
+    typedef Slice(uint32_t) TestAvenIoPoolIndexSlice;
     typedef struct {
-        size_t size;
+        uint32_t size;
         TestAvenIoStructSlice inserts;
         TestAvenIoPoolIndexSlice deletes;
     } TestAvenIoWriterPoolArgs;
@@ -666,13 +666,13 @@
             &arena,
             io_args->inserts.len
         );
-        for (size_t i = 0; i < io_args->inserts.len; i += 1) {
-            size_t idx = pool_create(pool);
+        for (uint32_t i = 0; i < io_args->inserts.len; i += 1) {
+            uint32_t idx = pool_create(pool);
             pool_get(pool, idx) = get(io_args->inserts, i);
             get(valid_entries, idx) = true;
         }
-        for (size_t i = 0; i < io_args->deletes.len; i += 1) {
-            size_t idx = get(io_args->deletes, i);
+        for (uint32_t i = 0; i < io_args->deletes.len; i += 1) {
+            uint32_t idx = get(io_args->deletes, i);
             pool_delete(pool, idx);
             get(valid_entries, idx) = false;
         }
@@ -743,14 +743,14 @@
             };
         }
 
-        if (read_pool.free != pool.free) {
+        if (read_pool.free.index != pool.free.index) {
             return (AvenTestResult){
                 .error = 1,
                 .message = aven_fmt(
                     emsg_arena,
                     "expected pool free {}, found {}",
-                    aven_fmt_uint(pool.free),
-                    aven_fmt_uint(read_pool.free)
+                    aven_fmt_uint(pool.free.index),
+                    aven_fmt_uint(read_pool.free.index)
                 ),
             };
         }
@@ -768,14 +768,18 @@
         }
 
         bool valid = true;
-        size_t count = 0;
-        size_t free = read_pool.free;
-        while (free != 0 and free <= read_pool.len and count < read_pool.len) {
-            if (get(valid_entries, free - 1)) {
+        uint32_t count = 0;
+        Idx free = pool_next_free(read_pool, (Idx){ 0 });
+        while (
+            idx_valid(free) != 0 and
+            idx_unwrap(free) < read_pool.len and
+            count < read_pool.len
+        ) {
+            if (get(valid_entries, idx_unwrap(free))) {
                 valid = false;
                 break;
             }
-            free = get(read_pool, free - 1).parent;
+            free = pool_next_free(read_pool, free);
             count += 1;
         }
 
@@ -797,8 +801,8 @@
             };
         }
 
-        size_t entries_equal = 0;
-        for (size_t i = 0; i < read_pool.len; i += 1) {
+        uint32_t entries_equal = 0;
+        for (uint32_t i = 0; i < read_pool.len; i += 1) {
             if (!get(valid_entries, i)) {
                 continue;
             }
@@ -806,8 +810,8 @@
             TestAvenIoStruct expected = pool_get(pool, i);
             if (
                 actual.a == expected.a and
-                    actual.b == expected.b and
-                    actual.c == expected.c
+                actual.b == expected.b and
+                actual.c == expected.c
             ) {
                 entries_equal += 1;
             }
@@ -1170,7 +1174,7 @@
                     .inserts = slice_array(
                         (TestAvenIoStruct[]){ { .a = 1, .b = 1, .c = 1 } }
                     ),
-                    .deletes = slice_array((size_t[]){ 0 }),
+                    .deletes = slice_array((uint32_t[]){ 0 }),
                 },
             },
             {
@@ -1200,7 +1204,7 @@
                             { .a = 2, .b = 2, .c = 2 },
                         }
                     ),
-                    .deletes = slice_array((size_t[]){ 0 }),
+                    .deletes = slice_array((uint32_t[]){ 0 }),
                 },
             },
             {
@@ -1236,7 +1240,7 @@
                             { .a = 5, .b = 5, .c = 5 },
                         }
                     ),
-                    .deletes = slice_array((size_t[]){ 1, 3 }),
+                    .deletes = slice_array((uint32_t[]){ 1, 3 }),
                 },
             },
         };

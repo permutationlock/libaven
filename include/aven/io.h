@@ -965,7 +965,7 @@
             w, \
             pool_as_bytes(p), \
             sizeof(*(p).ptr), \
-            (p).free, \
+            (p).free.index, \
             (p).used, \
             (p).len, \
             (p).cap \
@@ -978,13 +978,12 @@
         )
     #define aven_io_pool(t, g) { \
             .ptr = ( \
-                assert(sizeof(PoolEntry(t)) == (size_t)(g).pool.size), \
-                (void *)(g).ptr \
+                assert(sizeof(PoolEntry(t)) == (g).pool.size), (void *)(g).ptr \
             ), \
-            .free = (size_t)(g).pool.free, \
-            .used = (size_t)(g).pool.used, \
-            .len = (size_t)(g).pool.len, \
-            .cap = (size_t)(g).pool.cap, \
+            .free = (Idx){ .index = (g).pool.free }, \
+            .used = (g).pool.used, \
+            .len = (g).pool.len, \
+            .cap = (g).pool.cap, \
         }
     #define aven_io_pool_size(s) ( \
             sizeof(AvenIoPoolHeader) + (s).len * sizeof(*(s).ptr) \
@@ -993,10 +992,10 @@
 
     typedef struct {
         uint64_t size;
-        uint64_t free;
-        uint64_t used;
-        uint64_t len;
-        uint64_t cap;
+        uint32_t free;
+        uint32_t used;
+        uint32_t len;
+        uint32_t cap;
     } AvenIoPool;
 
     typedef struct {
@@ -1077,11 +1076,11 @@
     static inline int aven_io_writer_push_pool_internal(
         AvenIoWriter *writer,
         ByteSlice bytes,
-        size_t size,
-        size_t free,
-        size_t used,
-        size_t len,
-        size_t cap
+        uint32_t size,
+        uint32_t free,
+        uint32_t used,
+        uint32_t len,
+        uint32_t cap
     ) {
         AvenIoPoolHeader header = {
             .fp = AVEN_IO_POOL_FINGERPRINT,

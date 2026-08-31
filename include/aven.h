@@ -80,6 +80,18 @@
             t *ptr; \
             size_t len; \
         }
+
+    #define unwrap(o) (assert((o).valid), (o).value)
+    #define get(s, i) (s).ptr[(assert((i) < (s).len), i)]
+
+    typedef struct {
+        uint32_t index;
+    } Idx;
+
+    #define idx_valid(i) ((i).index != 0)
+    #define idx_unwrap(i) (assert(idx_valid(i)), (i).index - 1)
+    #define idx_wrap(i) ((Idx){ .index = ((i)) + 1 })
+
     #define List(t) struct { \
             t *ptr; \
             size_t len; \
@@ -95,22 +107,18 @@
 
     #define PoolEntry(t) union { \
             t data; \
-            uint64_t parent; \
+            Idx parent; \
         }
     #define PoolExplicit(e) struct { \
             e *ptr; \
-            size_t len; \
-            size_t cap; \
-            size_t used; \
-            size_t free; \
+            uint32_t len; \
+            uint32_t cap; \
+            uint32_t used; \
+            Idx free; \
         }
     #define Pool(t) PoolExplicit(PoolEntry(t))
 
     typedef Slice(unsigned char) ByteSlice;
-
-    typedef struct {
-        uint32_t index;
-    } Idx;
 
     static inline size_t aven_queue_push_internal(
         size_t *used,
@@ -140,41 +148,36 @@
         return index;
     }
 
-    static inline size_t aven_pool_next_internal(size_t *used, size_t *len) {
+    static inline uint32_t aven_pool_next_internal(uint32_t *used, uint32_t *len) {
         *used += 1;
-        size_t index = *len;
+        uint32_t index = *len;
         *len += 1;
         return index;
     }
 
-    static inline size_t aven_pool_pop_free_internal(
-        size_t *used,
-        size_t *free,
-        uint64_t parent
+    static inline uint32_t aven_pool_pop_free_internal(
+        uint32_t *used,
+        Idx *free,
+        Idx parent
     ) {
         *used += 1;
 
-        size_t index = *free;
-        *free = (size_t)parent;
-        return index - 1;
+        Idx index = *free;
+        *free = parent;
+        return idx_unwrap(index);
     }
 
     static inline void aven_pool_push_free_internal(
-        size_t *used,
-        size_t *free,
-        uint64_t *parent,
-        size_t index
+        uint32_t *used,
+        Idx *free,
+        Idx *parent,
+        uint32_t index
     ) {
         *used -= 1;
         *parent = *free;
-        *free = index + 1;
+        *free = idx_wrap(index);
     }
 
-    #define idx_valid(i) ((i).index != 0)
-    #define idx_unwrap(i) (assert(idx_valid(i)), (i).index - 1)
-    #define idx_wrap(i) ((Idx){ .index = ((i)) + 1 })
-    #define unwrap(o) (assert((o).valid), (o).value)
-    #define get(s, i) (s).ptr[(assert((i) < (s).len), i)]
     #define list_get(l, i) get(l, i)
     #define list_front(l) get(l, 0)
     #define list_back(l) get(l, (l).len - 1)
@@ -213,18 +216,18 @@
         } while (0)
     #define pool_get(p, i) get(p, i).data
     #define pool_create(p) ( \
-            ((p).free == 0) ? \
-                ( \
-                    assert((p).len < (p).cap and (p).used == (p).len), \
-                    aven_pool_next_internal(&(p).used, &(p).len) \
-                ) : \
+            (idx_valid((p).free)) ? \
                 ( \
                     assert((p).used < (p).cap), \
                     aven_pool_pop_free_internal( \
                         &(p).used, \
                         &(p).free, \
-                        get(p, (p).free - 1).parent \
+                        get(p, idx_unwrap((p).free)).parent \
                     ) \
+                ) : \
+                ( \
+                    assert((p).len < (p).cap and (p).used == (p).len), \
+                    aven_pool_next_internal(&(p).used, &(p).len) \
                 ) \
         )
     #define pool_delete(p, i) ( \
@@ -238,9 +241,10 @@
         )
     #define pool_clear(p) do { \
             (p).used = 0; \
-            (p).free = 0; \
+            (p).free = (Idx){ 0 }; \
             (p).len = 0; \
         } while (0)
+    #define pool_next_free(p, i) (idx_valid(i) ? get(p, idx_unwrap(i)).parent : (p).free)
 
     #define slice_array(...) { \
             .ptr = (__VA_ARGS__), \
