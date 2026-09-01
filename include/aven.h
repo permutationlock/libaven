@@ -148,14 +148,14 @@
         return index;
     }
 
-    static inline uint32_t aven_pool_next_internal(uint32_t *used, uint32_t *len) {
+    static inline Idx aven_pool_next_internal(uint32_t *used, uint32_t *len) {
         *used += 1;
-        uint32_t index = *len;
+        Idx index = idx_wrap(*len);
         *len += 1;
         return index;
     }
 
-    static inline uint32_t aven_pool_pop_free_internal(
+    static inline Idx aven_pool_pop_free_internal(
         uint32_t *used,
         Idx *free,
         Idx parent
@@ -164,18 +164,18 @@
 
         Idx index = *free;
         *free = parent;
-        return idx_unwrap(index);
+        return index;
     }
 
     static inline void aven_pool_push_free_internal(
         uint32_t *used,
         Idx *free,
         Idx *parent,
-        uint32_t index
+        Idx index
     ) {
         *used -= 1;
         *parent = *free;
-        *free = idx_wrap(index);
+        *free = index;
     }
 
     #define list_get(l, i) get(l, i)
@@ -214,7 +214,7 @@
             (q).front = 0; \
             (q).back = 0; \
         } while (0)
-    #define pool_get(p, i) get(p, i).data
+    #define pool_get(p, i) get(p, idx_unwrap(i)).data
     #define pool_create(p) ( \
             (idx_valid((p).free)) ? \
                 ( \
@@ -226,8 +226,9 @@
                     ) \
                 ) : \
                 ( \
-                    assert((p).len < (p).cap and (p).used == (p).len), \
-                    aven_pool_next_internal(&(p).used, &(p).len) \
+                    ((p).len < (p).cap and (p).used == (p).len) ? \
+                        aven_pool_next_internal(&(p).used, &(p).len) : \
+                        (Idx){ 0 } \
                 ) \
         )
     #define pool_delete(p, i) ( \
@@ -235,7 +236,7 @@
             aven_pool_push_free_internal( \
                 &(p).used, \
                 &(p).free, \
-                &get(p, i).parent, \
+                &get(p, idx_unwrap(i)).parent, \
                 i \
             ) \
         )
@@ -244,7 +245,9 @@
             (p).free = (Idx){ 0 }; \
             (p).len = 0; \
         } while (0)
-    #define pool_next_free(p, i) (idx_valid(i) ? get(p, idx_unwrap(i)).parent : (p).free)
+    #define pool_next_free(p, i) ( \
+            idx_valid(i) ? get(p, idx_unwrap(i)).parent : (p).free \
+        )
 
     #define slice_array(...) { \
             .ptr = (__VA_ARGS__), \

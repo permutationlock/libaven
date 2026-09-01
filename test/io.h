@@ -667,14 +667,14 @@
             io_args->inserts.len
         );
         for (uint32_t i = 0; i < io_args->inserts.len; i += 1) {
-            uint32_t idx = pool_create(pool);
+            Idx idx = pool_create(pool);
             pool_get(pool, idx) = get(io_args->inserts, i);
-            get(valid_entries, idx) = true;
+            get(valid_entries, idx_unwrap(idx)) = true;
         }
         for (uint32_t i = 0; i < io_args->deletes.len; i += 1) {
-            uint32_t idx = get(io_args->deletes, i);
+            Idx idx = idx_wrap(get(io_args->deletes, i));
             pool_delete(pool, idx);
-            get(valid_entries, idx) = false;
+            get(valid_entries, idx_unwrap(idx)) = false;
         }
 
         ByteSlice space = aven_arena_create_slice(
@@ -806,8 +806,8 @@
             if (!get(valid_entries, i)) {
                 continue;
             }
-            TestAvenIoStruct actual = pool_get(read_pool, i);
-            TestAvenIoStruct expected = pool_get(pool, i);
+            TestAvenIoStruct actual = pool_get(read_pool, idx_wrap(i));
+            TestAvenIoStruct expected = pool_get(pool, idx_wrap(i));
             if (
                 actual.a == expected.a and
                 actual.b == expected.b and
